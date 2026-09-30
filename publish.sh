@@ -29,8 +29,11 @@ TOKEN=$(printf 'protocol=https\nhost=github.com\nusername=%s\n\n' "$user" | git 
 api() { curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
 code=$(api -o /dev/null -w '%{http_code}' "https://api.github.com/repos/$user/$repo")
 if [ "$code" = 404 ]; then
-  api -X POST https://api.github.com/user/repos -o /dev/null -w "create repo -> HTTP %{http_code}\n" \
-    -d "$(jq -n --arg n "$repo" --arg d "$desc" '{name:$n, description:$d}')"
+  made=$(api -X POST https://api.github.com/user/repos -o /dev/null -w '%{http_code}' \
+    -d "$(jq -n --arg n "$repo" --arg d "$desc" '{name:$n, description:$d}')")
+  # 403 = token can't create repos: create an empty public repo named $repo on github.com, then re-run
+  if [ "$made" != 201 ]; then echo "STOP: creating $repo failed (HTTP $made)"; exit 1; fi
+  echo "created https://github.com/$user/$repo"
 elif [ "$code" != 200 ]; then echo "STOP: GitHub API said HTTP $code (token expired or missing permission?)"; exit 1; fi
 
 git remote get-url origin >/dev/null 2>&1 || git remote add origin "https://github.com/$user/$repo.git"
