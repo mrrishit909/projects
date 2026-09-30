@@ -1,0 +1,61 @@
+/* tokens copied from the portfolio (mrrishit909.github.io) so both sites read as one */
+:root{
+  --bg:#f5f6f4; --card:#ffffff; --card2:#f0f3f1; --ink:#14181a; --muted:#56635e; --label:#6a7772; --line:#e2e7e4;
+  --accent:#006747; --accent-ink:#ffffff; --gold:#cfae4a; --gold-soft:#efe3b4; --code:#f0f3f1;
+  --shadow:0 1px 2px rgba(20,40,30,.05),0 14px 34px -14px rgba(20,40,30,.16); --ring:#006747;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1110; --card:#151b19; --card2:#1d2523; --ink:#eef2f0; --muted:#a4afab; --label:#8f9b96; --line:#25302d;
+    --accent:#4cc38a; --accent-ink:#06170f; --gold:#e0c268; --gold-soft:#4a4020; --code:#101614;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 34px -14px rgba(0,0,0,.6); --ring:#4cc38a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1110; --card:#151b19; --card2:#1d2523; --ink:#eef2f0; --muted:#a4afab; --label:#8f9b96; --line:#25302d;
+  --accent:#4cc38a; --accent-ink:#06170f; --gold:#e0c268; --gold-soft:#4a4020; --code:#101614;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 34px -14px rgba(0,0,0,.6); --ring:#4cc38a;
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Urbanist,"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.55;padding:28px 16px 40px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin-inline:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow);min-width:0}
+.crumbs{display:flex;gap:16px;font-size:14px;font-weight:600}
+.crumbs a{text-decoration:none}
+.intro h1,.head-card h1{margin:4px 0 6px;font-size:clamp(28px,5vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:600}
+.intro p{margin:0;color:var(--muted);max-width:60ch;font-size:17px}
+.kind{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--label);font-weight:700}
+.tagline{margin:0 0 12px;color:var(--muted);font-size:17px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:500}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.btn{display:inline-block;padding:8px 14px;border-radius:11px;background:var(--card2);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;border:1px solid var(--line)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.note{margin:14px 0 0;padding:10px 12px;border-radius:11px;background:var(--gold-soft);font-size:14px}
+h2{margin:0 0 10px;font-size:19px;font-weight:600}
+h3{margin:0 0 4px;font-size:16px;font-weight:600}
+section p{margin:0 0 10px}section p:last-child{margin-bottom:0}
+section ul{margin:0 0 10px;padding-left:20px}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+.steps li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px}
+.steps .n{width:32px;height:32px;border-radius:50%;background:var(--gold-soft);display:grid;place-items:center;font-weight:700;font-size:14px}
+.steps p{color:var(--muted)}
+pre{margin:8px 0 0;background:var(--code);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0 10px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--label);text-transform:uppercase;letter-spacing:.06em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+a.proj{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit;transition:border-color .15s ease}
+a.proj:hover{border-color:var(--accent)}
+a.proj h2{margin:0}
+a.proj p{margin:0;color:var(--muted);font-size:15px}
+.more{margin-top:auto;padding-top:6px;font-size:14px;font-weight:600;color:var(--accent)}
+footer{margin-top:8px;text-align:center;font-size:13px;color:var(--label)}
+footer a{color:inherit}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.card{padding:18px}}

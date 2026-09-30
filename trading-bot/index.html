@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A paper-money trading system that scans stocks, options and crypto, checks every order against hard risk rules, and logs every decision for later grading.">
+<title>Trading Bot · Rishit Mathur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="crumbs"><a href="../">&larr; All projects</a><a href="https://mrrishit909.github.io/">Portfolio</a></nav>
+<header class="card head-card">
+  <span class="kind">Python · Automation</span>
+  <h1>Trading Bot</h1>
+  <p class="tagline">A paper-money trading system that scans stocks, options and crypto, checks every order against hard risk rules, and logs every decision for later grading.</p>
+  <div class="pills"><span class="pill">Python</span><span class="pill">Alpaca API</span><span class="pill">SQLite</span><span class="pill">Claude API</span><span class="pill">launchd</span><span class="pill">http.server</span></div>
+  <div class="actions"><a class="btn" href="https://github.com/mrrishit909/trading-bot" target="_blank" rel="noopener">Code on GitHub</a></div>
+  <p class="note">Paper trading only: it uses Alpaca's pretend-money account. No real money is involved, and nothing here is investment advice.</p>
+</header>
+<section class="card"><h2>The problem</h2><p>I wanted to understand how an automated trading system is actually put together: data in, a decision rule, risk controls, execution, and a record you can audit afterwards. I also wanted to test a practical question: <em>does an AI advisor make better calls than a simple rule?</em> That needs a clean log of every decision, not just the trades.</p></section>
+<section class="card"><h2>What I built</h2><p>A Python system that runs itself on a schedule against Alpaca's paper-trading API:</p><ul><li><b>Strategy:</b> a moving-average crossover (5-day vs 20-day) across about 70 large US stocks, plus options (long calls and puts only) and 24/7 crypto.</li><li><b>Risk engine:</b> a "bouncer" that every order must pass: daily loss limit, trade-count cap, allowed-stock list, max positions, max dollars per stock.</li><li><b>Diary:</b> SQLite tables for every run, decision (with its reasoning) and trade.</li><li><b>AI advisor:</b> Claude reads prices, signals and news and gives an opinion per stock. It never trades; its calls are only logged and graded.</li><li><b>Dashboard:</b> a local multi-page site: overview, holdings, options, crypto, decisions, trades, scoreboard.</li></ul></section>
+<section class="card"><h2>How it was built, step by step</h2><ol class="steps"><li><div class="n">1</div><div><h3>Connect to the paper account</h3><p>Set up the project, stored the API keys in a <code>.env</code> file that is never committed, and printed the pretend account balance to prove the connection works.</p></div></li><li><div class="n">2</div><div><h3>Look up prices, then buy and sell one share</h3><p>Fetched live quotes and daily bars, then placed a single market buy and sold it back. This was the smallest possible end-to-end test before any strategy existed.</p></div></li><li><div class="n">3</div><div><h3>The safety bouncer (risk engine)</h3><p>Before writing any strategy, every order had to ask one function for permission. It answers YES or NO with a reason, and sells are always allowed so the bot can get out of a position.</p><pre><code>MAX_DOLLARS_PER_STOCK = 2000
+MAX_STOCKS_HELD = 5
+MAX_TRADES_PER_DAY = 16
+DAILY_LOSS_LIMIT = 500
+
+ok, why = can_i_trade(client, &quot;AAPL&quot;, shares=3, price_per_share=230, side=&quot;buy&quot;)
+# -&gt; (False, &quot;NO. We already hold 5 different stocks (limit is 5). Sell something first.&quot;)</code></pre></div></li><li><div class="n">4</div><div><h3>A first rule-based robot</h3><p>A moving-average crossover: buy when the 5-day average moves above the 20-day, sell when it drops back below. It is deliberately simple, so it works as a baseline.</p></div></li><li><div class="n">5</div><div><h3>A diary of every move</h3><p>Three SQLite tables, <code>runs</code>, <code>decisions</code> and <code>trades</code>, record everything, including WAIT decisions and the reason for each one. Without this, there's nothing to grade later.</p></div></li><li><div class="n">6</div><div><h3>Run by itself, plus a web dashboard</h3><p><code>auto_run.py</code> loops during market hours; a local dashboard shows account value, holdings, decisions and trades. Later, macOS LaunchAgents replaced the loop so it runs unattended every 30 minutes for weeks.</p></div></li><li><div class="n">7</div><div><h3>The AI advisor (advisory only)</h3><p>Claude Haiku reads each stock's recent prices, the crossover signal and news headlines, then answers BUY, SELL or WAIT with a reason. That answer goes into the diary as a separate strategy. It costs about a third of a cent per run.</p></div></li><li><div class="n">8</div><div><h3>Scoreboard: rule vs AI</h3><p><code>compare.py</code> lines up every decision against what the price actually did 3 or 5 trading days later, and checks whether either strategy beat simply staying invested.</p></div></li><li><div class="n">9</div><div><h3>Scan a whole universe of stocks</h3><p>Instead of a handful of tickers, each run scans about 70 large, liquid US stocks, sells anything no longer trending up, and buys the strongest fresh crossovers, up to 5 positions.</p></div></li><li><div class="n">10</div><div><h3>Options and crypto</h3><p>Options: buy a call on a fresh upward cross or a put on a downward one, one contract at a time. The bot closes at +50%, -50% or 5 days before expiry, and never sells options to open, so the worst case is what was paid. Crypto runs 24/7 on the same crossover idea, with its own smaller limits.</p></div></li></ol></section>
+<section class="card"><h2>Results</h2><ul><li>A working, scheduled system that has paper-traded unattended, logging every run, decision and trade.</li><li>Every order passes through one auditable risk function, and the limits live in one settings file.</li><li>The rule-vs-AI scoreboard is in place; the comparison needs weeks of logged decisions before it means anything, so no win-rate is claimed here.</li></ul></section>
+<section class="card"><h2>What I'd do next</h2><ul><li>Once enough history is logged, publish the scoreboard: hit rate and return for each strategy against buy-and-hold.</li><li>Backtest the crossover rule on several years of data before trusting the live numbers.</li><li>Replace fixed dollar sizing with volatility-based position sizing.</li></ul></section>
+<footer>&copy; 2026 Rishit Raj Mathur &middot; <a href="https://mrrishit909.github.io/">mrrishit909.github.io</a></footer>
+</div>
+</body>
+</html>

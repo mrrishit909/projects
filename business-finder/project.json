@@ -1,0 +1,45 @@
+{
+  "title": "Business Finder",
+  "tagline": "Type a US city, get a cleaned table of its local businesses, each labeled likely active, unknown or likely closed.",
+  "kind": "Python · Data pipeline",
+  "tech": ["Python", "SQLite", "FastAPI", "OpenStreetMap", "US Census", "Chart.js", "Leaflet"],
+  "date": "2026-08",
+  "order": 1,
+  "repo": "https://github.com/mrrishit909/business-finder",
+  "problem": "<p>Market research often starts with a simple question: <em>how many businesses of each kind are in this city, and where?</em> Paid lead databases answer it, but they cost money and hide how they count. I wanted the same answer from free, public data, and I wanted to know how much to trust each row.</p>",
+  "built": "<p>A pipeline that turns a city name into a clean business table, plus a local web app on top of it.</p><ul><li><b>Input:</b> a city like <code>Tampa, FL</code>.</li><li><b>Sources:</b> GeoNames ZIP list, US Census ZIP areas (ZCTA gazetteer), OpenStreetMap via the Overpass API. All free.</li><li><b>Output:</b> a SQLite table and a CSV: name, category, address, ZIP, phone, website, plus a status label and the reason for it.</li><li><b>Web app:</b> FastAPI with three tabs: a filterable table, a Chart.js dashboard and a Leaflet map.</li></ul>",
+  "steps": [
+    {
+      "title": "City to ZIP codes",
+      "body": "<p>Downloaded the GeoNames US ZIP list and the Census ZIP-area list once into SQLite. Many ZIPs are PO-box-only and cover no land, so each ZIP is tagged <code>is_real</code> using the Census list, with its center point and land area.</p>"
+    },
+    {
+      "title": "Give every real ZIP a search box",
+      "body": "<p>Fake ZIPs are dropped. Each real one gets a map box sized from its Census land area (a circle radius clamped between 0.6 and 6 miles, padded 15% so neighbors overlap and nothing falls through the gaps).</p>"
+    },
+    {
+      "title": "Ask OpenStreetMap for every business",
+      "body": "<p>One Overpass query covers the whole city: shops, offices, crafts, healthcare, and hand-picked amenity/tourism/leisure values (restaurants yes, park benches no). Raw JSON is cached to disk, and the fetch retries with backoff when the server is busy.</p><p>Gotcha I hit: the output line has to be <code>out tags center meta;</code>. Writing <code>out center meta tags;</code> silently drops the edit timestamps that step 5 depends on.</p>",
+      "code": "[out:json][timeout:180];\n(\n  nwr[\"shop\"](bbox);\n  nwr[\"office\"](bbox);\n  nwr[\"amenity\"~\"^(restaurant|cafe|bank|...)$\"](bbox);\n  nwr[\"healthcare\"](bbox);\n);\nout tags center meta;"
+    },
+    {
+      "title": "Clean it into one table",
+      "body": "<p>Pulled name, category, address, phone and website out of the raw tags; grouped 100+ OSM categories into 13 business buckets; and removed duplicates (same normalized name within about 60 meters). OSM postcodes are sometimes wrong, so a ZIP from the tags is only trusted if it is within 15 miles of the point; otherwise the nearest real ZIP is used.</p>"
+    },
+    {
+      "title": "Guess whether each business is still open",
+      "body": "<p>No free source says \"this shop closed\", so I combined weak signals into a score: does the website still load, did a mapper verify it recently, was the entry edited in the last 2 years, does it list opening hours and a phone plus address. Some rules win outright, such as a closed lifecycle tag or a brand that shut its US stores. Every label keeps its reason so a person can check it.</p>",
+      "code": "if web_ok is True:  score += 2   # website loads\nif web_ok is False: score -= 2   # website is dead\nif checked_recently: score += 2  # mapper verified it\nif edited <= 2:     score += 1   # map entry is fresh\nif edited >= 7:     score -= 1   # untouched for years\nif has_hours:       score += 1\nif phone and address: score += 1\n\nlabel = 'likely active' if score >= 2 else 'likely closed' if score <= -2 else 'unknown'"
+    },
+    {
+      "title": "One command for the whole pipeline",
+      "body": "<p><code>run.py \"Tampa, FL\"</code> runs steps 1 to 5 and writes a CSV. The first run checks about 2,500 websites in parallel (about 3 minutes); everything is cached, so re-runs take about 20 seconds.</p>"
+    },
+    {
+      "title": "The web app",
+      "body": "<p>A FastAPI site: type a city, watch a progress bar while the build runs in the background, then explore three tabs: <b>Table</b> (filter, sort, search, download CSV), <b>Dashboard</b> (businesses by category, status split, density per square mile by ZIP) and <b>Map</b> (every business as a dot colored by status).</p>"
+    }
+  ],
+  "results": "<p>Tampa, FL:</p><table><tr><th>Measure</th><th class=\"num\">Value</th></tr><tr><td>Businesses after cleaning</td><td class=\"num\">6,298</td></tr><tr><td>Inside city limits</td><td class=\"num\">5,425</td></tr><tr><td>Likely active</td><td class=\"num\">2,466 (39%)</td></tr><tr><td>Unknown</td><td class=\"num\">3,766 (60%)</td></tr><tr><td>Likely closed</td><td class=\"num\">66 (1%)</td></tr><tr><td>Largest group (in city)</td><td class=\"num\">Food &amp; Drink, 1,526</td></tr></table><p>The big \"unknown\" bucket is honest rather than a bug: most small businesses on OpenStreetMap have no website or verification date, so there is simply not enough evidence either way.</p>",
+  "next": "<ul><li>Add Census population to show businesses per 1,000 residents, not just per square mile.</li><li>Deploy it (Postgres plus a real job queue) instead of running locally.</li><li>Spot-check a random sample of \"unknown\" rows by hand to measure how often the labels are right.</li></ul>"
+}

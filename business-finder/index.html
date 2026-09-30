@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Type a US city, get a cleaned table of its local businesses, each labeled likely active, unknown or likely closed.">
+<title>Business Finder · Rishit Mathur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="crumbs"><a href="../">&larr; All projects</a><a href="https://mrrishit909.github.io/">Portfolio</a></nav>
+<header class="card head-card">
+  <span class="kind">Python · Data pipeline</span>
+  <h1>Business Finder</h1>
+  <p class="tagline">Type a US city, get a cleaned table of its local businesses, each labeled likely active, unknown or likely closed.</p>
+  <div class="pills"><span class="pill">Python</span><span class="pill">SQLite</span><span class="pill">FastAPI</span><span class="pill">OpenStreetMap</span><span class="pill">US Census</span><span class="pill">Chart.js</span><span class="pill">Leaflet</span></div>
+  <div class="actions"><a class="btn" href="https://github.com/mrrishit909/business-finder" target="_blank" rel="noopener">Code on GitHub</a></div>
+  
+</header>
+<section class="card"><h2>The problem</h2><p>Market research often starts with a simple question: <em>how many businesses of each kind are in this city, and where?</em> Paid lead databases answer it, but they cost money and hide how they count. I wanted the same answer from free, public data, and I wanted to know how much to trust each row.</p></section>
+<section class="card"><h2>What I built</h2><p>A pipeline that turns a city name into a clean business table, plus a local web app on top of it.</p><ul><li><b>Input:</b> a city like <code>Tampa, FL</code>.</li><li><b>Sources:</b> GeoNames ZIP list, US Census ZIP areas (ZCTA gazetteer), OpenStreetMap via the Overpass API. All free.</li><li><b>Output:</b> a SQLite table and a CSV: name, category, address, ZIP, phone, website, plus a status label and the reason for it.</li><li><b>Web app:</b> FastAPI with three tabs: a filterable table, a Chart.js dashboard and a Leaflet map.</li></ul></section>
+<section class="card"><h2>How it was built, step by step</h2><ol class="steps"><li><div class="n">1</div><div><h3>City to ZIP codes</h3><p>Downloaded the GeoNames US ZIP list and the Census ZIP-area list once into SQLite. Many ZIPs are PO-box-only and cover no land, so each ZIP is tagged <code>is_real</code> using the Census list, with its center point and land area.</p></div></li><li><div class="n">2</div><div><h3>Give every real ZIP a search box</h3><p>Fake ZIPs are dropped. Each real one gets a map box sized from its Census land area (a circle radius clamped between 0.6 and 6 miles, padded 15% so neighbors overlap and nothing falls through the gaps).</p></div></li><li><div class="n">3</div><div><h3>Ask OpenStreetMap for every business</h3><p>One Overpass query covers the whole city: shops, offices, crafts, healthcare, and hand-picked amenity/tourism/leisure values (restaurants yes, park benches no). Raw JSON is cached to disk, and the fetch retries with backoff when the server is busy.</p><p>Gotcha I hit: the output line has to be <code>out tags center meta;</code>. Writing <code>out center meta tags;</code> silently drops the edit timestamps that step 5 depends on.</p><pre><code>[out:json][timeout:180];
+(
+  nwr[&quot;shop&quot;](bbox);
+  nwr[&quot;office&quot;](bbox);
+  nwr[&quot;amenity&quot;~&quot;^(restaurant|cafe|bank|...)$&quot;](bbox);
+  nwr[&quot;healthcare&quot;](bbox);
+);
+out tags center meta;</code></pre></div></li><li><div class="n">4</div><div><h3>Clean it into one table</h3><p>Pulled name, category, address, phone and website out of the raw tags; grouped 100+ OSM categories into 13 business buckets; and removed duplicates (same normalized name within about 60 meters). OSM postcodes are sometimes wrong, so a ZIP from the tags is only trusted if it is within 15 miles of the point; otherwise the nearest real ZIP is used.</p></div></li><li><div class="n">5</div><div><h3>Guess whether each business is still open</h3><p>No free source says "this shop closed", so I combined weak signals into a score: does the website still load, did a mapper verify it recently, was the entry edited in the last 2 years, does it list opening hours and a phone plus address. Some rules win outright, such as a closed lifecycle tag or a brand that shut its US stores. Every label keeps its reason so a person can check it.</p><pre><code>if web_ok is True:  score += 2   # website loads
+if web_ok is False: score -= 2   # website is dead
+if checked_recently: score += 2  # mapper verified it
+if edited &lt;= 2:     score += 1   # map entry is fresh
+if edited &gt;= 7:     score -= 1   # untouched for years
+if has_hours:       score += 1
+if phone and address: score += 1
+
+label = &#x27;likely active&#x27; if score &gt;= 2 else &#x27;likely closed&#x27; if score &lt;= -2 else &#x27;unknown&#x27;</code></pre></div></li><li><div class="n">6</div><div><h3>One command for the whole pipeline</h3><p><code>run.py "Tampa, FL"</code> runs steps 1 to 5 and writes a CSV. The first run checks about 2,500 websites in parallel (about 3 minutes); everything is cached, so re-runs take about 20 seconds.</p></div></li><li><div class="n">7</div><div><h3>The web app</h3><p>A FastAPI site: type a city, watch a progress bar while the build runs in the background, then explore three tabs: <b>Table</b> (filter, sort, search, download CSV), <b>Dashboard</b> (businesses by category, status split, density per square mile by ZIP) and <b>Map</b> (every business as a dot colored by status).</p></div></li></ol></section>
+<section class="card"><h2>Results</h2><p>Tampa, FL:</p><table><tr><th>Measure</th><th class="num">Value</th></tr><tr><td>Businesses after cleaning</td><td class="num">6,298</td></tr><tr><td>Inside city limits</td><td class="num">5,425</td></tr><tr><td>Likely active</td><td class="num">2,466 (39%)</td></tr><tr><td>Unknown</td><td class="num">3,766 (60%)</td></tr><tr><td>Likely closed</td><td class="num">66 (1%)</td></tr><tr><td>Largest group (in city)</td><td class="num">Food &amp; Drink, 1,526</td></tr></table><p>The big "unknown" bucket is honest rather than a bug: most small businesses on OpenStreetMap have no website or verification date, so there is simply not enough evidence either way.</p></section>
+<section class="card"><h2>What I'd do next</h2><ul><li>Add Census population to show businesses per 1,000 residents, not just per square mile.</li><li>Deploy it (Postgres plus a real job queue) instead of running locally.</li><li>Spot-check a random sample of "unknown" rows by hand to measure how often the labels are right.</li></ul></section>
+<footer>&copy; 2026 Rishit Raj Mathur &middot; <a href="https://mrrishit909.github.io/">mrrishit909.github.io</a></footer>
+</div>
+</body>
+</html>

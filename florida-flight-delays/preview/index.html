@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Web preview of the Florida Flight Delays Power BI report: on-time arrivals, cancellations and delay causes for flights leaving Florida airports.">
+<title>Florida Flight Delays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f5f6f4; --card:#ffffff; --ink:#14181a; --muted:#56635e; --label:#6a7772; --line:#e2e7e4; --card2:#f0f3f1;
+  --gold-soft:#efe3b4; --ring:#006747;
+  --series:#00754a; --context:#a9b1ad; --grid:#e9ecea; --axis:#c3c9c6; --good:#006300; --bad:#b42828;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1110; --card:#151b19; --ink:#eef2f0; --muted:#a4afab; --label:#8f9b96; --line:#25302d; --card2:#1d2523;
+    --gold-soft:#4a4020; --ring:#4cc38a;
+    --series:#3aa876; --context:#5d6763; --grid:#222b28; --axis:#38433f; --good:#0ca30c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1110; --card:#151b19; --ink:#eef2f0; --muted:#a4afab; --label:#8f9b96; --line:#25302d; --card2:#1d2523;
+  --gold-soft:#4a4020; --ring:#4cc38a;
+  --series:#3aa876; --context:#5d6763; --grid:#222b28; --axis:#38433f; --good:#0ca30c; --bad:#e66767;
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Urbanist,"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.5;padding:24px 16px 40px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin-inline:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+a{color:var(--ring)}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.crumbs{display:flex;gap:16px;font-size:14px;font-weight:600}.crumbs a{text-decoration:none}
+h1{margin:0;font-size:clamp(26px,4.5vw,34px);line-height:1.15;letter-spacing:-.02em;font-weight:600}
+.sub{margin:4px 0 0;color:var(--muted)}
+.note{padding:10px 14px;border-radius:12px;background:var(--gold-soft);font-size:14px}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.filters label{font-size:13px;font-weight:600;color:var(--label)}
+select{font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 10px;max-width:100%}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.kpi .l{font-size:13px;color:var(--muted);font-weight:500}
+.kpi .v{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-top:4px}
+.kpi .d{font-size:13px;margin-top:4px;color:var(--muted);min-height:20px}
+.kpi .d b{font-weight:700}.up{color:var(--good)}.down{color:var(--bad)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+h2{margin:0;font-size:16px;font-weight:600}
+.cap{margin:2px 0 10px;font-size:13px;color:var(--muted)}
+.plot{position:relative;height:260px}
+.plot.tall{height:390px}
+details{margin-top:8px;font-size:13px}
+.read{margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line);line-height:1.55}.read b{color:var(--ink)}
+summary{cursor:pointer;color:var(--label);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tablewrap{overflow-x:auto}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--label);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--card2);font-weight:600}
+tbody tr{cursor:pointer}
+footer{text-align:center;font-size:13px;color:var(--label)}
+@media (max-width:820px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.charts{grid-template-columns:1fr}}
+@media (max-width:420px){.kpi .v{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="crumbs"><a href="../">&larr; How this was built</a><a href="../../">All projects</a></nav>
+  <header>
+    <h1>Florida Flight Delays</h1>
+    <p class="sub">Every scheduled flight departing a Florida airport, <span id="period"></span>. Source: US Bureau of Transportation Statistics.</p>
+  </header>
+  <p class="note">This is a <b>web preview</b> of the Power BI report, drawn from the same star schema and the same measure definitions (<a href="https://github.com/mrrishit909/florida-flight-delays/blob/main/model.md">model.md</a>). The Power BI file itself is built in Power BI Desktop from the <a href="https://github.com/mrrishit909/florida-flight-delays/tree/main/model">model CSVs</a> and <a href="https://github.com/mrrishit909/florida-flight-delays/blob/main/measures.dax">DAX measures</a>.</p>
+
+  <div class="filters">
+    <label for="airport">Origin airport</label>
+    <select id="airport"><option value="ALL">All Florida airports</option></select>
+  </div>
+
+  <section class="kpis" aria-label="Headline numbers">
+    <div class="card kpi"><div class="l">Scheduled flights</div><div class="v" id="k-flights">–</div><div class="d" id="d-flights"></div></div>
+    <div class="card kpi"><div class="l">On-time arrivals</div><div class="v" id="k-otp">–</div><div class="d" id="d-otp"></div></div>
+    <div class="card kpi"><div class="l">Cancellation rate</div><div class="v" id="k-cancel">–</div><div class="d" id="d-cancel"></div></div>
+    <div class="card kpi"><div class="l">Avg arrival delay</div><div class="v" id="k-delay">–</div><div class="d" id="d-delay"></div></div>
+  </section>
+
+  <section class="charts">
+    <div class="card">
+      <h2>On-time arrivals by month</h2>
+      <p class="cap" id="cap-month">Share of completed flights arriving within 15 minutes of schedule</p>
+      <div class="plot"><canvas id="c-month" role="img" aria-label="Line chart of on-time arrival percentage by month"></canvas></div>
+      <details><summary>Show as table</summary><div class="tablewrap" id="t-month"></div></details>
+    </div>
+    <div class="card">
+      <h2>On-time arrivals by departure hour</h2>
+      <p class="cap">Scheduled departure hour. Delays pile up as the day goes on.</p>
+      <div class="plot"><canvas id="c-hour" role="img" aria-label="Column chart of on-time arrival percentage by scheduled departure hour"></canvas></div>
+      <details><summary>Show as table</summary><div class="tablewrap" id="t-hour"></div></details>
+    </div>
+    <div class="card">
+      <h2>Airlines ranked by on-time arrivals</h2>
+      <p class="cap">Airlines with at least 100 flights in the selection</p>
+      <div class="plot tall"><canvas id="c-carrier" role="img" aria-label="Bar chart of airlines ranked by on-time arrival percentage"></canvas></div>
+      <details><summary>Show as table</summary><div class="tablewrap" id="t-carrier"></div></details>
+    </div>
+    <div class="card">
+      <h2>Why flights were late</h2>
+      <p class="cap">Share of all late-arrival delay minutes, by cause the airline reported</p>
+      <div class="plot"><canvas id="c-cause" role="img" aria-label="Bar chart of delay minutes by cause"></canvas></div>
+      <details><summary>Show as table</summary><div class="tablewrap" id="t-cause"></div></details>
+      <p class="cap read"><b>Reading it:</b> "late-arriving aircraft" means the plane was already late from its previous flight. It is the biggest cause, and it is the same knock-on effect the departure-hour chart shows: the first flights of the day leave on time, and every delay after that rolls forward. Weather causes far fewer delay minutes than most people guess, but it drives most cancellations (59%, mostly January through March).</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>All Florida airports</h2>
+    <p class="cap">Click a row to filter the page. Busiest first.</p>
+    <div class="tablewrap" id="t-airports"></div>
+  </section>
+
+  <footer>Rishit Raj Mathur &middot; <a href="https://mrrishit909.github.io/">mrrishit909.github.io</a></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  var DATA, charts = {}, sel = "ALL";
+  var pct = function (x, d) { return x == null ? "–" : (x * 100).toFixed(d == null ? 1 : d) + "%"; };
+  var num = function (x) { return x.toLocaleString("en-US"); };
+  var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
+
+  // table built with textContent (never innerHTML) so labels can't inject markup
+  function table(el, cols, rows, onRow) {
+    var t = document.createElement("table"), h = t.createTHead().insertRow(), b = t.createTBody();
+    cols.forEach(function (c) { var th = document.createElement("th"); th.textContent = c[0]; if (c[2]) th.className = "n"; h.appendChild(th); });
+    rows.forEach(function (r) {
+      var tr = b.insertRow();
+      cols.forEach(function (c) { var td = tr.insertCell(); td.textContent = c[1](r); if (c[2]) td.className = "n"; });
+      if (onRow) onRow(tr, r);
+    });
+    el.replaceChildren(t);
+  }
+
+  function baseOpts(horizontal, yPct) {
+    var ink = css("--muted"), grid = css("--grid"), axis = css("--axis");
+    var valueAxis = { min: yPct ? 0 : undefined, max: yPct ? 1 : undefined, grid: { color: grid, drawTicks: false }, border: { color: axis },
+      ticks: { color: ink, padding: 6, callback: function (v) { return yPct ? Math.round(v * 100) + "%" : v; } } };
+    var catAxis = { grid: { display: false }, border: { color: axis }, ticks: { color: ink, padding: 4, autoSkip: true } };
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false, indexAxis: horizontal ? "y" : "x",
+      layout: { padding: { right: horizontal ? 8 : 0 } },
+      scales: horizontal ? { x: valueAxis, y: catAxis } : { x: catAxis, y: valueAxis },
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: css("--card"), titleColor: css("--muted"), bodyColor: css("--ink"), borderColor: css("--line"),
+          borderWidth: 1, padding: 10, displayColors: true, boxWidth: 12, boxHeight: 2, titleFont: { weight: "500" }, bodyFont: { weight: "700", size: 14 } } },
+      interaction: { mode: "index", intersect: false }
+    };
+  }
+
+  function draw(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); }
+
+  function render() {
+    var s = DATA.slices[sel], all = DATA.slices.ALL, isAll = sel === "ALL";
+    var series = css("--series"), context = css("--context"), fontFamily = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.font.family = fontFamily;
+
+    document.getElementById("k-flights").textContent = s.kpi.flights >= 1e5 ? Math.round(s.kpi.flights / 1000) + "K" : num(s.kpi.flights);
+    document.getElementById("k-otp").textContent = pct(s.kpi.otp);
+    document.getElementById("k-cancel").textContent = pct(s.kpi.cancel);
+    document.getElementById("k-delay").textContent = s.kpi.delay.toFixed(1) + " min";
+    document.getElementById("d-flights").textContent = isAll ? DATA.airports.length + " airports" : pct(s.kpi.flights / all.kpi.flights) + " of Florida departures";
+    document.getElementById("d-delay").textContent = s.kpi.late_delay.toFixed(0) + " min when late";
+    var dOtp = document.getElementById("d-otp"), dCan = document.getElementById("d-cancel");
+    dOtp.replaceChildren(); dCan.replaceChildren();
+    if (!isAll) {
+      var pts = (s.kpi.otp - all.kpi.otp) * 100, cpts = (s.kpi.cancel - all.kpi.cancel) * 100;
+      // arrow + words carry the direction; color only repeats it
+      var b = document.createElement("b"); b.className = pts >= 0 ? "up" : "down";
+      b.textContent = (pts >= 0 ? "▲ " : "▼ ") + Math.abs(pts).toFixed(1) + " pts"; dOtp.append(b, " vs all Florida");
+      var c = document.createElement("b"); c.className = cpts <= 0 ? "up" : "down";
+      c.textContent = (cpts <= 0 ? "▼ " : "▲ ") + Math.abs(cpts).toFixed(1) + " pts"; dCan.append(c, " vs all Florida");
+    } else { dOtp.textContent = "arrived < 15 min late"; dCan.textContent = "of scheduled flights"; }
+
+    // month: selected airport in the accent, all-Florida benchmark in gray when an airport is picked
+    var mOpts = baseOpts(false, false);
+    mOpts.scales.y.ticks.callback = function (v) { return Math.round(v * 100) + "%"; };
+    mOpts.scales.y.grace = "10%";
+    mOpts.plugins.tooltip.callbacks = { label: function (c) { return " " + pct(c.parsed.y) + "  " + c.dataset.label; } };
+    var ds = [{ label: isAll ? "All Florida" : sel, data: s.months.map(function (m) { return m.otp; }), borderColor: series, backgroundColor: series,
+      borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, pointBorderColor: css("--card"), pointBorderWidth: 2, tension: 0 }];
+    if (!isAll) ds.push({ label: "All Florida", data: all.months.map(function (m) { return m.otp; }), borderColor: context, backgroundColor: context,
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0 });
+    mOpts.plugins.legend = { display: !isAll, position: "top", align: "start", labels: { color: css("--muted"), boxWidth: 14, boxHeight: 2, usePointStyle: false } };
+    draw("c-month", { type: "line", data: { labels: s.months.map(function (m) { return m.m.replace(" 20", " '"); }), datasets: ds }, options: mOpts });
+    document.getElementById("cap-month").textContent = isAll ? "Share of completed flights arriving within 15 minutes of schedule"
+      : sel + " vs all Florida airports, share arriving within 15 minutes of schedule";
+    table(document.getElementById("t-month"), [["Month", function (m) { return m.m; }], ["On-time", function (m) { return pct(m.otp); }, 1],
+      ["Cancelled", function (m) { return pct(m.cancel); }, 1]], s.months);
+
+    var bar = function (labels, values, horizontal, fmt, extra) {
+      var o = baseOpts(horizontal, true);
+      o.plugins.tooltip.callbacks = { label: function (c) { return " " + fmt(c.raw) + (extra ? extra(c.dataIndex) : ""); } };
+      o.plugins.tooltip.displayColors = false;
+      return { type: "bar", data: { labels: labels, datasets: [{ data: values, backgroundColor: series, hoverBackgroundColor: series,
+        borderRadius: 4, borderSkipped: "start", maxBarThickness: 24, categoryPercentage: 0.8, barPercentage: 0.9 }] }, options: o };
+    };
+    draw("c-hour", bar(s.hours.map(function (h) { return h.h + ":00"; }), s.hours.map(function (h) { return h.otp; }), false, pct,
+      function (i) { return "  ·  " + num(s.hours[i].n) + " flights"; }));
+    table(document.getElementById("t-hour"), [["Departs", function (h) { return h.h + ":00"; }], ["Flights", function (h) { return num(h.n); }, 1],
+      ["On-time", function (h) { return pct(h.otp); }, 1]], s.hours);
+
+    draw("c-carrier", bar(s.carriers.map(function (c) { return c.c; }), s.carriers.map(function (c) { return c.otp; }), true, pct,
+      function (i) { return "  ·  " + num(s.carriers[i].n) + " flights"; }));
+    table(document.getElementById("t-carrier"), [["Rank", function (c) { return s.carriers.indexOf(c) + 1; }, 1], ["Airline", function (c) { return c.c; }],
+      ["Flights", function (c) { return num(c.n); }, 1], ["On-time", function (c) { return pct(c.otp); }, 1]], s.carriers);
+
+    var tot = s.causes.reduce(function (a, c) { return a + c.min; }, 0) || 1;
+    var cOpts = bar(s.causes.map(function (c) { return c.c; }), s.causes.map(function (c) { return c.min / tot; }), true, pct,
+      function (i) { return "  ·  " + num(s.causes[i].min) + " min"; });
+    cOpts.options.scales.x.max = undefined; cOpts.options.scales.x.suggestedMax = 0.5;
+    draw("c-cause", cOpts);
+    table(document.getElementById("t-cause"), [["Cause", function (c) { return c.c; }], ["Minutes", function (c) { return num(c.min); }, 1],
+      ["Share", function (c) { return pct(c.min / tot); }, 1]], s.causes);
+
+    Array.prototype.forEach.call(document.querySelectorAll("#t-airports tbody tr"), function (tr) { tr.classList.toggle("sel", tr.dataset.code === sel); });
+  }
+
+  function pick(code) { sel = code; document.getElementById("airport").value = code; render(); }
+
+  fetch("data.json").then(function (r) { return r.json(); }).then(function (d) {
+    DATA = d;
+    document.getElementById("period").textContent = d.period;
+    var s = document.getElementById("airport");
+    d.airports.forEach(function (a) { var o = document.createElement("option"); o.value = a.code; o.textContent = a.code + " · " + a.city; s.appendChild(o); });
+    s.addEventListener("change", function () { pick(s.value); });
+    var fl = d.slices.ALL.kpi.otp;
+    table(document.getElementById("t-airports"), [
+      ["Airport", function (a) { return a.code; }], ["City", function (a) { return a.city; }],
+      ["Flights", function (a) { return num(d.slices[a.code].kpi.flights); }, 1],
+      ["On-time", function (a) { return pct(d.slices[a.code].kpi.otp); }, 1],
+      ["Cancelled", function (a) { return pct(d.slices[a.code].kpi.cancel); }, 1],
+      ["vs Florida", function (a) { var p = (d.slices[a.code].kpi.otp - fl) * 100; return (p >= 0 ? "+" : "−") + Math.abs(p).toFixed(1) + " pts"; }, 1]
+    ], d.airports, function (tr, a) {
+      tr.dataset.code = a.code; tr.tabIndex = 0;
+      tr.addEventListener("click", function () { pick(sel === a.code ? "ALL" : a.code); });
+      tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(sel === a.code ? "ALL" : a.code); } });
+    });
+    render();
+    // redraw with the other theme's colors when the OS theme flips
+    if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  });
+})();
+</script>
+</body>
+</html>
