@@ -59,3 +59,4 @@ a.proj p{margin:0;color:var(--muted);font-size:15px}
 footer{margin-top:8px;text-align:center;font-size:13px;color:var(--label)}
 footer a{color:inherit}
 @media (max-width:640px){.grid{grid-template-columns:1fr}.card{padding:18px}}
+img{display:block;max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line)}

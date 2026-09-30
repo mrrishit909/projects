@@ -1,16 +1,23 @@
 {
   "title": "Florida Flight Delays",
-  "tagline": "A Power BI star schema and DAX model of 635,459 flights leaving Florida airports: who's on time, when, and why flights run late.",
+  "tagline": "A Power BI report on 635,459 flights leaving Florida airports: who's on time, when, and why flights run late.",
   "kind": "Power BI · DAX",
-  "tech": ["Power BI", "DAX", "Star schema", "Python", "pandas", "Chart.js"],
+  "tech": [
+    "Power BI",
+    "DAX",
+    "Star schema",
+    "Python",
+    "pandas",
+    "Chart.js"
+  ],
   "date": "2026-09",
   "order": 1,
   "repo": "https://github.com/mrrishit909/florida-flight-delays",
   "demo": "preview/",
   "demo_label": "Open the dashboard preview",
-  "note": "The dashboard preview is a web version of the report, built from the same star schema and measure definitions. The .pbix file is built in Power BI Desktop, which runs on Windows only; the model, DAX, expected values and build guide are all in the repo.",
+  "note": "The report was built in Power BI in the browser (Power BI Service) on a free USF account; the screenshot below is the real report. The interactive version on this site is a web preview built from the same model and measure definitions, because sharing a Power BI report publicly needs a paid license.",
   "problem": "<p>Florida has some of the busiest airports in the US, and 'is my flight going to be late?' is a question travelers, airlines and airport operators all care about. The US DOT publishes every flight's on-time record, but as about 6.5 million raw rows a year with 109 columns. I wanted a report that answers four questions quickly:</p><ul><li>How reliable are flights out of each Florida airport, compared with the state as a whole?</li><li>Which airlines are most and least punctual?</li><li>When (month, time of day) do delays happen?</li><li>Why are flights late, and why are they cancelled?</li></ul>",
-  "built": "<p>A Power BI data model for one year (Aug 2025 – Jul 2026) of every scheduled departure from a Florida airport:</p><ul><li><b>Star schema:</b> <code>FactFlights</code> (635,459 rows) with <code>DimDate</code>, <code>DimCarrier</code>, <code>DimAirport</code> (a role-playing dimension for origin and destination) and <code>DimCancelReason</code>.</li><li><b>DAX measures:</b> On-Time %, Cancellation Rate, delay by cause, a whole-Florida benchmark that ignores the airport slicer, carrier rank, and a destination measure that uses the inactive relationship.</li><li><b>A test for the report:</b> the same measures computed independently in pandas, written out as the value every card should show.</li><li><b>A web preview</b> of the report page so it can be explored without Power BI.</li></ul>",
+  "built": "<p><img src=\"report.png\" alt=\"The Florida Flight Delays report page in Power BI: KPI cards, on-time rate by month and by departure hour, airlines ranked, delay causes, and a table of Florida airports\" loading=\"lazy\"></p><p>A Power BI data model and report for one year (Aug 2025 – Jul 2026) of every scheduled departure from a Florida airport:</p><ul><li><b>Star schema:</b> <code>FactFlights</code> (635,459 rows) with <code>DimDate</code>, <code>DimCarrier</code>, <code>DimAirport</code> (a role-playing dimension for origin and destination) and <code>DimCancelReason</code>.</li><li><b>DAX measures:</b> On-Time %, Cancellation Rate, delay by cause, a whole-Florida benchmark that ignores the airport slicer, carrier rank, and a destination measure that uses the inactive relationship.</li><li><b>A test for the report:</b> the same measures computed independently in pandas, written out as the value every card should show.</li><li><b>A web preview</b> of the report page so it can be explored without Power BI.</li></ul>",
   "steps": [
     {
       "title": "Download a year of flight data",
@@ -36,10 +43,14 @@
       "body": "<p>Publishing a Power BI report to the open web needs a Power BI Service account and a paid license, so I built a web version of the report page: an airport filter, four KPI cards, and charts by month, departure hour, airline and delay cause. Its numbers come from the same pandas function that produced the expected values, so the preview and the Power BI report agree by construction. Chart colors were checked for contrast in light and dark mode, and every chart has a table view.</p>"
     },
     {
-      "title": "A build guide for the .pbix",
-      "body": "<p><code>BUILD_IN_POWERBI.md</code> walks through importing the CSVs, setting types (keeping blanks as blanks), creating the five relationships (one inactive), pasting the measures, and checking each card against the expected values before designing the page.</p>"
+      "title": "Build and check it in Power BI",
+      "body": "<p>Built in Power BI Service in the browser, with no Windows machine. The two big tables were uploaded as CSVs; the three small ones (airlines, cancellation reasons, dates) were written as DAX calculated tables. The relationships and all 22 measures went in through <b>TMDL view</b>, the model's code editor, in two pasted scripts. Then <code>verify.dax</code> ran in DAX query view and <code>check_powerbi.py</code> compared its output with pandas: <b>all 184 values match</b>. One gotcha: relationships added by script stayed empty until the model recalculated, and a free license can't refresh, so re-saving one calculated table was the trick.</p><p>Then the report page: KPI cards, on-time rate by month (selected airport vs all Florida) and by departure hour, airlines ranked, delay causes as a 100% bar, and an airport table that filters the whole page when you click a row. Hour 0 (a single flight) is filtered out so it can't show a fake 100%.</p>"
+    },
+    {
+      "title": "Write down how to rebuild it",
+      "body": "<p><code>BUILD_IN_POWERBI.md</code> covers three routes: in the browser (what was done here), by hand in Power BI Desktop, or with Claude Code plus Microsoft's Power BI Modeling MCP on a Windows laptop. Every route ends the same way: run <code>verify.dax</code> and check the numbers before designing anything.</p>"
     }
   ],
   "results": "<table><tr><th>Measure (all Florida departures)</th><th class=\"num\">Value</th></tr><tr><td>Scheduled flights</td><td class=\"num\">635,459</td></tr><tr><td>On-time arrivals</td><td class=\"num\">75.5%</td></tr><tr><td>Cancellation rate</td><td class=\"num\">1.8%</td></tr><tr><td>Average arrival delay</td><td class=\"num\">10.5 min (75 min when late)</td></tr></table><ul><li><b>Time of day matters most.</b> 92% of 6 a.m. departures arrive on time, versus 63% at 8 p.m. The spread between the best and worst hour (29 points) is about twice the spread between the best and worst airline.</li><li><b>Delays cascade.</b> \"Late-arriving aircraft\", meaning the plane was already late from its previous flight, is the biggest cause at 42.5% of delay minutes.</li><li><b>Weather cancels more than it delays.</b> It directly causes only 5.9% of delay minutes but 59% of cancellations, two-thirds of them in January to March. November 2025's cancellations are different: mostly coded \"National Air System\" and clustered on Nov 7–10, which lines up with the <a href=\"https://www.faa.gov/newsroom/dot-faa-announce-temporary-10-reduction-flights-40-airports\">FAA-ordered flight cuts at 40 airports</a> that began Nov 7 during the government shutdown.</li><li><b>Tampa beats the state average</b> (78.3%, +2.9 points); Fort Lauderdale trails it (70.8%, −4.7). Among airlines, Envoy, United and Delta lead at 80–82%; JetBlue and Spirit trail at 68–70%.</li></ul>",
-  "next": "<ul><li>Build the .pbix in Power BI Desktop on Windows, check every card against <code>expected_values.md</code>, and add screenshots here.</li><li>Add a second year for year-over-year measures (<code>SAMEPERIODLASTYEAR</code>).</li><li>Add arrivals into Florida and route-level analysis (the inactive destination relationship is already in the model).</li></ul>"
+  "next": "<ul><li>Download the report as a .pbix and add it to the repo, so it can be opened in Power BI Desktop too.</li><li>Add a second year for year-over-year measures (<code>SAMEPERIODLASTYEAR</code>).</li><li>Add arrivals into Florida and route-level analysis (the inactive destination relationship is already in the model).</li></ul>"
 }
