@@ -29,7 +29,7 @@ def load():
     return sorted(projects, key=lambda p: (p["date"], -p.get("order", 0)), reverse=True)
 
 
-def page(title, desc, body, css="style.css"):
+def page(title, desc, body):
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -39,52 +39,47 @@ def page(title, desc, body, css="style.css"):
 <title>{escape(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap">
-<link rel="stylesheet" href="{css}">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<link rel="stylesheet" href="../site.css">
 </head>
 <body>
-<div class="wrap">
 {body}
-<footer>&copy; 2026 Rishit Raj Mathur &middot; <a href="{PORTFOLIO}">mrrishit909.github.io</a></footer>
-</div>
 </body>
 </html>
 """
 
 
-def pills(items):
-    return "".join(f'<span class="pill">{escape(t)}</span>' for t in items)
-
-
-def links(p, prefix=""):
-    out = [f'<a class="btn" href="{escape(p["repo"])}" target="_blank" rel="noopener">Code on GitHub</a>']
-    if p.get("demo"):
-        href = p["demo"] if "://" in p["demo"] else prefix + p["demo"]
-        out.insert(0, f'<a class="btn primary" href="{escape(href)}">{escape(p.get("demo_label", "See it"))}</a>')
-    return "".join(out)
-
-
-def project_page(p):
+def project_page(p, nxt):
     steps = []
     for i, s in enumerate(p["steps"], 1):
         code = f'<pre><code>{escape(s["code"])}</code></pre>' if s.get("code") else ""
-        steps.append(f'<li><div class="n">{i}</div><div><h3>{escape(s["title"])}</h3>{s["body"]}{code}</div></li>')
+        steps.append(f'<li><span class="n">{i:02d}</span><div><h3>{escape(s["title"])}</h3>{s["body"]}{code}</div></li>')
+    links = [f'<a href="{escape(p["repo"])}" target="_blank" rel="noopener">Code on GitHub &#8599;</a>']
+    if p.get("demo"):
+        links.insert(0, f'<a href="{escape(p["demo"])}">{escape(p.get("demo_label", "See it"))} &#8599;</a>')
+    cover = (f'<figure class="cover"><img src="{escape(p["cover"])}" alt="Screenshot of {escape(p["title"])}"></figure>'
+             if p.get("cover") else "")
     note = f'<p class="note">{p["note"]}</p>' if p.get("note") else ""
-    body = f"""<nav class="crumbs"><a href="../">&larr; All projects</a><a href="{PORTFOLIO}">Portfolio</a></nav>
-<header class="card head-card">
-  <span class="kind">{escape(p["kind"])}</span>
-  <h1>{escape(p["title"])}</h1>
-  <p class="tagline">{escape(p["tagline"])}</p>
-  <div class="pills">{pills(p["tech"])}</div>
-  <div class="actions">{links(p)}</div>
+    sections = [("The problem", p["problem"]), ("What I built", p["built"]),
+                ("How it was built", f'<ol class="steps">{"".join(steps)}</ol>'),
+                ("Results", p["results"]), ("What I'd do next", p["next"])]
+    secs = "".join(f'<section class="s"><h2 class="cap">{n:02d} &mdash; {escape(t)}</h2><div class="body">{b}</div></section>'
+                   for n, (t, b) in enumerate(sections, 1))
+    body = f"""<header class="bar cap"><a href="{PORTFOLIO}">Rishit Mathur</a><nav><a href="../">All projects</a><a href="{PORTFOLIO}resume.pdf">Resume</a></nav></header>
+<main class="wrap">
+  <div class="hero">
+    <p class="cap dim">{escape(p["kind"])} &middot; {escape(p["date"])}</p>
+    <h1>{escape(p["title"])}</h1>
+    <p class="tagline">{escape(p["tagline"])}</p>
+    <div class="meta cap"><span class="tech">{" &middot; ".join(escape(t) for t in p["tech"])}</span><span class="links">{"".join(links)}</span></div>
+  </div>
+  {cover}
   {note}
-</header>
-<section class="card"><h2>The problem</h2>{p["problem"]}</section>
-<section class="card"><h2>What I built</h2>{p["built"]}</section>
-<section class="card"><h2>How it was built, step by step</h2><ol class="steps">{"".join(steps)}</ol></section>
-<section class="card"><h2>Results</h2>{p["results"]}</section>
-<section class="card"><h2>What I'd do next</h2>{p["next"]}</section>"""
-    return page(f'{p["title"]} · Rishit Mathur', p["tagline"], body, css="../style.css")
+  {secs}
+  <a class="next" href="../{nxt["slug"]}/"><span class="cap">Next project</span><span class="t">{escape(nxt["title"])} &rarr;</span></a>
+</main>
+<footer class="cap"><span>&copy; 2026 Rishit Raj Mathur</span><a href="https://github.com/mrrishit909">GitHub</a></footer>"""
+    return page(f'{p["title"]} · Rishit Mathur', p["tagline"], body)
 
 
 def index_page(projects):
@@ -100,7 +95,9 @@ def index_page(projects):
 
 if __name__ == "__main__":
     projects = load()
-    for p in projects:
-        (ROOT / p["slug"] / "index.html").write_text(project_page(p))
+    for i, p in enumerate(projects):
+        if p.get("frozen"):   # page kept exactly as published; its old style.css stays too
+            continue
+        (ROOT / p["slug"] / "index.html").write_text(project_page(p, projects[(i + 1) % len(projects)]))
     (ROOT / "index.html").write_text(index_page(projects))
-    print(f"built {len(projects)} project pages + index.html")
+    print(f"built {sum(not p.get("frozen") for p in projects)} project pages (+{sum(bool(p.get("frozen")) for p in projects)} frozen) + index.html")
