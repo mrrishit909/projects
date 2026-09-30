@@ -2,7 +2,15 @@
   "title": "Business Finder",
   "tagline": "Type a US city, get a cleaned table of its local businesses, each labeled likely active, unknown or likely closed.",
   "kind": "Python · Data pipeline",
-  "tech": ["Python", "SQLite", "FastAPI", "OpenStreetMap", "US Census", "Chart.js", "Leaflet"],
+  "tech": [
+    "Python",
+    "SQLite",
+    "FastAPI",
+    "OpenStreetMap",
+    "US Census",
+    "Chart.js",
+    "Leaflet"
+  ],
   "date": "2026-08",
   "order": 1,
   "repo": "https://github.com/mrrishit909/business-finder",
@@ -41,5 +49,6 @@
     }
   ],
   "results": "<p>Tampa, FL:</p><table><tr><th>Measure</th><th class=\"num\">Value</th></tr><tr><td>Businesses after cleaning</td><td class=\"num\">6,298</td></tr><tr><td>Inside city limits</td><td class=\"num\">5,425</td></tr><tr><td>Likely active</td><td class=\"num\">2,466 (39%)</td></tr><tr><td>Unknown</td><td class=\"num\">3,766 (60%)</td></tr><tr><td>Likely closed</td><td class=\"num\">66 (1%)</td></tr><tr><td>Largest group (in city)</td><td class=\"num\">Food &amp; Drink, 1,526</td></tr></table><p>The big \"unknown\" bucket is honest rather than a bug: most small businesses on OpenStreetMap have no website or verification date, so there is simply not enough evidence either way.</p>",
-  "next": "<ul><li>Add Census population to show businesses per 1,000 residents, not just per square mile.</li><li>Deploy it (Postgres plus a real job queue) instead of running locally.</li><li>Spot-check a random sample of \"unknown\" rows by hand to measure how often the labels are right.</li></ul>"
+  "next": "<ul><li>Add Census population to show businesses per 1,000 residents, not just per square mile.</li><li>Deploy it (Postgres plus a real job queue) instead of running locally.</li><li>Spot-check a random sample of \"unknown\" rows by hand to measure how often the labels are right.</li></ul>",
+  "cover": "cover.jpg"
 }

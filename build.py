@@ -22,6 +22,8 @@ def load():
         assert not missing, f"{f}: missing {missing}"
         assert all(s.get("title") and s.get("body") for s in p["steps"]), f"{f}: every step needs title + body"
         p["slug"] = f.parent.name
+        if p.get("cover"):
+            assert (f.parent / p["cover"]).exists(), f"{f}: cover {p['cover']} not found"
         projects.append(p)
     # newest first; "order" breaks ties / pins
     return sorted(projects, key=lambda p: (p["date"], -p.get("order", 0)), reverse=True)
@@ -86,23 +88,14 @@ def project_page(p):
 
 
 def index_page(projects):
-    cards = "".join(
-        f"""<a class="card proj" href="{p["slug"]}/">
-  <span class="kind">{escape(p["kind"])}</span>
-  <h2>{escape(p["title"])}</h2>
-  <p>{escape(p["tagline"])}</p>
-  <div class="pills">{pills(p["tech"][:5])}</div>
-  <span class="more">{len(p["steps"])} build steps &rarr;</span>
-</a>"""
-        for p in projects
-    )
-    body = f"""<nav class="crumbs"><a href="{PORTFOLIO}">&larr; Portfolio</a></nav>
-<header class="intro">
-  <h1>Projects</h1>
-  <p>Analyst projects I built end to end, each with the full build log: the problem, every step and why, and what came out.</p>
-</header>
-<main class="grid">{cards}</main>"""
-    return page("Projects · Rishit Mathur", "Analyst projects by Rishit Raj Mathur, with step-by-step build logs.", body)
+    """The 3D carousel page (index.template.html). The list of real links is rendered here, so it works without JS."""
+    items = '<span class="sep" aria-hidden="true">·</span>'.join(
+        f'<a class="item" href="{p["slug"]}/" data-slug="{p["slug"]}">{escape(p["title"])}</a>' for p in projects)
+    data = [{k: p.get(k) for k in ("slug", "title", "kind", "date", "cover")} for p in projects]
+    tpl = (ROOT / "index.template.html").read_text()
+    assert "<!--LIST-->" in tpl and "/*PROJECTS*/[]" in tpl
+    # json.dumps output is safe inside <script> once "</" can't appear
+    return tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
 
 
 if __name__ == "__main__":

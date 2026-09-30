@@ -2,7 +2,14 @@
   "title": "Trading Bot",
   "tagline": "A paper-money trading system that scans stocks, options and crypto, checks every order against hard risk rules, and logs every decision for later grading.",
   "kind": "Python · Automation",
-  "tech": ["Python", "Alpaca API", "SQLite", "Claude API", "launchd", "http.server"],
+  "tech": [
+    "Python",
+    "Alpaca API",
+    "SQLite",
+    "Claude API",
+    "launchd",
+    "http.server"
+  ],
   "date": "2026-08",
   "order": 2,
   "repo": "https://github.com/mrrishit909/trading-bot",
@@ -53,5 +60,6 @@
     }
   ],
   "results": "<ul><li>A working, scheduled system that has paper-traded unattended, logging every run, decision and trade.</li><li>Every order passes through one auditable risk function, and the limits live in one settings file.</li><li>The rule-vs-AI scoreboard is in place; the comparison needs weeks of logged decisions before it means anything, so no win-rate is claimed here.</li></ul>",
-  "next": "<ul><li>Once enough history is logged, publish the scoreboard: hit rate and return for each strategy against buy-and-hold.</li><li>Backtest the crossover rule on several years of data before trusting the live numbers.</li><li>Replace fixed dollar sizing with volatility-based position sizing.</li></ul>"
+  "next": "<ul><li>Once enough history is logged, publish the scoreboard: hit rate and return for each strategy against buy-and-hold.</li><li>Backtest the crossover rule on several years of data before trusting the live numbers.</li><li>Replace fixed dollar sizing with volatility-based position sizing.</li></ul>",
+  "cover": "cover.jpg"
 }
