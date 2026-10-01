@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E-mail Test Readout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.6;padding:32px 40px 60px;-webkit-font-smoothing:antialiased}
+main{max-width:1000px;margin:0 auto}a{color:var(--fg)}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+h1{margin:10px 0 14px;font-size:clamp(40px,7vw,80px);line-height:.98;font-weight:500;letter-spacing:-.045em}
+.lede{margin:0;max-width:62ch;color:var(--dim);font-size:clamp(16px,1.7vw,19px)}
+.decision{margin:28px 0 0;padding:18px 20px;background:var(--card);border:1px solid var(--line);border-left:3px solid #3987e5;border-radius:10px;max-width:80ch}
+.decision p{margin:6px 0 0;color:#d6d6d3}
+section{margin-top:36px;padding:26px 0 0;border-top:1px solid var(--line)}
+h2{margin:0 0 8px;font-size:22px;font-weight:500;letter-spacing:-.015em}
+section p,section li{max-width:74ch;color:#c9c9c6}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{padding:7px 14px 7px 0;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+figure{margin:14px 0;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+svg{display:block;width:100%;height:auto}
+.t{fill:#f2f2f0;font:500 14px Geist,sans-serif}.l{fill:#c9c9c6;font:13px Geist,sans-serif}.v{fill:#f2f2f0;font:13px Geist,sans-serif;font-variant-numeric:tabular-nums}
+.z{stroke:#5c5c5a;stroke-width:1;stroke-dasharray:4 3}
+.lg{display:flex;gap:18px;margin:0 0 6px;font-size:13px;color:var(--dim)}.lg i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+footer{margin-top:48px;color:var(--faint)}
+@media (max-width:640px){body{padding:20px 20px 40px}}
+</style></head>
+<body><main>
+<nav class="cap" style="display:flex;gap:28px;margin-bottom:6vh"><a style="text-decoration:none" href="https://mrrishit909.github.io/projects/email-ab-test/">&larr; How this was built</a><a style="text-decoration:none" href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Experiment readout · MineThatData e-mail test · 64,000 customers · 2-week window</p>
+<h1>The men's e-mail won</h1>
+<p class="lede">Customers who bought in the last year were split at random into three groups: a men's merchandise e-mail,
+a women's merchandise e-mail, or no e-mail. Two weeks later, did the e-mails change what they did?</p>
+<div class="decision"><span class="cap">Recommendation</span>
+<p>Send the <b>men's e-mail</b>. It raised spend by $0.77 per customer (95% CI $0.49 to $1.05),
+about $769 more two-week revenue per 1,000 customers e-mailed, vs $424 for the women's e-mail.
+That is revenue, not profit: the e-mail's cost and margins aren't in the data. Next, test the women's e-mail only on customers
+who have bought women's merchandise (see section 4).</p></div>
+
+<section><h2>1 · Was the test fair?</h2>
+<p>Yes. Group sizes were 21,307, 21,387, 21,306: what a random one-third split produces
+(sample-ratio test p = 0.90). Across 18 things known before the e-mail (recency, past spend, channel,
+area, new customer…), the groups differ by at most 0.016 standard deviations; 0.1 is the usual warning line.
+So differences after the e-mail are caused by the e-mail.</p></section>
+
+<section><h2>2 · What each e-mail did</h2>
+<div class="lg"><span><i style="background:#3987e5"></i>Men's e-mail</span><span><i style="background:#d95926"></i>Women's e-mail</span></div>
+<figure><svg viewBox="0 0 880 108" role="img" aria-label="Spend per customer, vs no e-mail"><text x="0" y="16" class="t">Spend per customer, vs no e-mail</text><line x1="238.6" x2="238.6" y1="24" y2="102" class="z"/><text x="0" y="51.0" class="l">Men&#x27;s e-mail</text><line x1="460.7" x2="721.4" y1="47.0" y2="47.0" stroke="#3987e5" stroke-width="2"/><circle cx="591.0" cy="47.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Men&#x27;s e-mail: +$0.77 (95% CI +$0.49 to +$1.05)</title></circle><text x="772" y="51.0" class="v">+$0.77</text><text x="0" y="85.0" class="l">Women&#x27;s e-mail</text><line x1="316.0" x2="549.9" y1="81.0" y2="81.0" stroke="#d95926" stroke-width="2"/><circle cx="432.9" cy="81.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Women&#x27;s e-mail: +$0.42 (95% CI +$0.17 to +$0.68)</title></circle><text x="772" y="85.0" class="v">+$0.42</text></svg></figure><figure><svg viewBox="0 0 880 108" role="img" aria-label="Visited the site, vs no e-mail"><text x="0" y="16" class="t">Visited the site, vs no e-mail</text><line x1="238.6" x2="238.6" y1="24" y2="102" class="z"/><text x="0" y="51.0" class="l">Men&#x27;s e-mail</text><line x1="644.4" x2="721.4" y1="47.0" y2="47.0" stroke="#3987e5" stroke-width="2"/><circle cx="682.9" cy="47.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Men&#x27;s e-mail: +7.7 pts (95% CI +7.0 pts to +8.3 pts)</title></circle><text x="772" y="51.0" class="v">+7.7 pts</text><text x="0" y="85.0" class="l">Women&#x27;s e-mail</text><line x1="464.2" x2="537.8" y1="81.0" y2="81.0" stroke="#d95926" stroke-width="2"/><circle cx="501.0" cy="81.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Women&#x27;s e-mail: +4.5 pts (95% CI +3.9 pts to +5.2 pts)</title></circle><text x="772" y="85.0" class="v">+4.5 pts</text></svg></figure><figure><svg viewBox="0 0 880 108" role="img" aria-label="Bought anything, vs no e-mail"><text x="0" y="16" class="t">Bought anything, vs no e-mail</text><line x1="238.6" x2="238.6" y1="24" y2="102" class="z"/><text x="0" y="51.0" class="l">Men&#x27;s e-mail</text><line x1="519.0" x2="721.4" y1="47.0" y2="47.0" stroke="#3987e5" stroke-width="2"/><circle cx="620.2" cy="47.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Men&#x27;s e-mail: +0.68 pts (95% CI +0.50 pts to +0.86 pts)</title></circle><text x="772" y="51.0" class="v">+0.68 pts</text><text x="0" y="85.0" class="l">Women&#x27;s e-mail</text><line x1="322.7" x2="503.5" y1="81.0" y2="81.0" stroke="#d95926" stroke-width="2"/><circle cx="413.1" cy="81.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Women&#x27;s e-mail: +0.31 pts (95% CI +0.15 pts to +0.47 pts)</title></circle><text x="772" y="85.0" class="v">+0.31 pts</text></svg></figure>
+<div class="tw"><table><thead><tr><th>E-mail</th><th>Metric</th><th class="n">No e-mail</th><th class="n">E-mail</th><th class="n">Difference</th><th class="n">95% CI</th><th class="n">Lift</th><th class="n">p (Holm)</th></tr></thead><tbody><tr><td>Men's e-mail</td><td>Spend per customer</td><td class="n">$0.65</td><td class="n">$1.42</td><td class="n">+$0.77</td><td class="n">+$0.49 to +$1.05</td><td class="n">118%</td><td class="n">&lt; 0.001</td></tr><tr><td>Men's e-mail</td><td>Visited the site</td><td class="n">10.6%</td><td class="n">18.3%</td><td class="n">+7.7 pts</td><td class="n">+7.0 pts to +8.3 pts</td><td class="n">72%</td><td class="n">&lt; 0.001</td></tr><tr><td>Men's e-mail</td><td>Bought anything</td><td class="n">0.57%</td><td class="n">1.25%</td><td class="n">+0.68 pts</td><td class="n">+0.50 pts to +0.86 pts</td><td class="n">119%</td><td class="n">&lt; 0.001</td></tr><tr><td>Women's e-mail</td><td>Spend per customer</td><td class="n">$0.65</td><td class="n">$1.08</td><td class="n">+$0.42</td><td class="n">+$0.17 to +$0.68</td><td class="n">65%</td><td class="n">0.001</td></tr><tr><td>Women's e-mail</td><td>Visited the site</td><td class="n">10.6%</td><td class="n">15.1%</td><td class="n">+4.5 pts</td><td class="n">+3.9 pts to +5.2 pts</td><td class="n">43%</td><td class="n">&lt; 0.001</td></tr><tr><td>Women's e-mail</td><td>Bought anything</td><td class="n">0.57%</td><td class="n">0.88%</td><td class="n">+0.31 pts</td><td class="n">+0.15 pts to +0.47 pts</td><td class="n">54%</td><td class="n">&lt; 0.001</td></tr></tbody></table></div>
+<p>Dots are the measured effect; lines are 95% confidence intervals; the dashed line is "no effect". p-values are Holm-adjusted across
+these six comparisons, so the chance of even one false "win" stays at 5%. Spend is $0 for 99% of customers, so its interval was also
+computed by resampling customers (bootstrap): men's $0.49 to $1.05, women's $0.18 to $0.68, almost the same.</p></section>
+
+<section><h2>3 · Men's vs women's e-mail, head to head</h2>
+<p>The men's e-mail beat the women's on every metric: spend +$0.35 per customer (95% CI +$0.03 to +$0.66, p = 0.030 after Holm),
+visits +3.1 pts, purchases +0.37 pts. One caution on spend: with ~21,306 customers per group the test had only
+58% power for a gap that size (35,761 per group would give 80%). Gaps that clear the bar
+in under-powered tests tend to be overstated, so the true difference is probably smaller than $0.35.</p></section>
+
+<section><h2>4 · Who responds? (exploratory)</h2>
+<div class="lg"><span><i style="background:#3987e5"></i>Men's e-mail</span><span><i style="background:#d95926"></i>Women's e-mail</span></div>
+<figure><svg viewBox="0 0 880 244" role="img" aria-label="Visited the site, vs no e-mail, by what the customer bought before"><text x="0" y="16" class="t">Visited the site, vs no e-mail, by what the customer bought before</text><line x1="238.6" x2="238.6" y1="24" y2="238" class="z"/><text x="0" y="51.0" class="l">Men&#x27;s-only buyers · men&#x27;s</text><line x1="418.5" x2="476.5" y1="47.0" y2="47.0" stroke="#3987e5" stroke-width="2"/><circle cx="447.5" cy="47.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Men&#x27;s-only buyers · men&#x27;s: +6.9 pts (95% CI +6.0 pts to +7.9 pts)</title></circle><text x="772" y="51.0" class="v">+6.9 pts</text><text x="0" y="85.0" class="l">Men&#x27;s-only buyers · women&#x27;s</text><line x1="245.9" x2="298.3" y1="81.0" y2="81.0" stroke="#d95926" stroke-width="2"/><circle cx="272.1" cy="81.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Men&#x27;s-only buyers · women&#x27;s: +1.1 pts (95% CI +0.2 pts to +2.0 pts)</title></circle><text x="772" y="85.0" class="v">+1.1 pts</text><text x="0" y="119.0" class="l">Women&#x27;s-only buyers · men&#x27;s</text><line x1="423.0" x2="480.6" y1="115.0" y2="115.0" stroke="#3987e5" stroke-width="2"/><circle cx="451.8" cy="115.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Women&#x27;s-only buyers · men&#x27;s: +7.1 pts (95% CI +6.1 pts to +8.0 pts)</title></circle><text x="772" y="119.0" class="v">+7.1 pts</text><text x="0" y="153.0" class="l">Women&#x27;s-only buyers · women&#x27;s</text><line x1="433.3" x2="490.9" y1="149.0" y2="149.0" stroke="#d95926" stroke-width="2"/><circle cx="462.1" cy="149.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Women&#x27;s-only buyers · women&#x27;s: +7.4 pts (95% CI +6.4 pts to +8.4 pts)</title></circle><text x="772" y="153.0" class="v">+7.4 pts</text><text x="0" y="187.0" class="l">Bought both · men&#x27;s</text><line x1="568.0" x2="721.4" y1="183.0" y2="183.0" stroke="#3987e5" stroke-width="2"/><circle cx="644.7" cy="183.0" r="6" fill="#3987e5" stroke="#0b0b0b" stroke-width="2"><title>Bought both · men&#x27;s: +13.4 pts (95% CI +10.9 pts to +16.0 pts)</title></circle><text x="772" y="187.0" class="v">+13.4 pts</text><text x="0" y="221.0" class="l">Bought both · women&#x27;s</text><line x1="379.0" x2="527.7" y1="217.0" y2="217.0" stroke="#d95926" stroke-width="2"/><circle cx="453.4" cy="217.0" r="6" fill="#d95926" stroke="#0b0b0b" stroke-width="2"><title>Bought both · women&#x27;s: +7.1 pts (95% CI +4.6 pts to +9.6 pts)</title></circle><text x="772" y="221.0" class="v">+7.1 pts</text></svg></figure>
+<p>The men's e-mail lifted visits in every group. The women's e-mail barely moved customers who had only ever bought men's merchandise
+(+1.1 pts) but worked as well as the men's e-mail on women's-only buyers (+7.4 pts).
+That gap (+6.3 pts, p &lt; 0.001) was <b>spotted after looking</b> at this table, so it's a lead for the next test, not a finding.
+The one segment test chosen in advance (does the men's e-mail's spend effect differ between men's-only and women's-only buyers?) found
+no difference (+$0.07, p = 0.81).</p></section>
+
+<section><h2>5 · Could the tests be fooling us?</h2>
+<p>Each method was run 1,000 times on two random halves of the no-e-mail group, where nothing differs. A sound test calls about 5% of those
+"significant". Visits: 4.9%. Spend: 5.2%, so Welch's t holds up despite the long tail. Purchases: 6.8% with the z-test,
+a little hot because buyers are rare (about 61 per half), and 4.7% with Fisher's exact test. Both purchase effects in section 2 also pass
+Fisher's test (larger p = 0.0002).</p>
+<p>Smallest effect this design could reliably catch (80% power): +0.8 pts on visits (8% of the
+10.6% base), +0.20 pts on purchases (36% of 0.57%),
+$0.31 on spend (48% of $0.65).</p></section>
+
+<section><h2>What this test can't tell us</h2><ul>
+<li>Profit: e-mail cost, margins and returns aren't in the data.</li>
+<li>Anything after two weeks, including unsubscribes or e-mail fatigue from sending every week.</li>
+<li>Today's customers: the data is from 2008 (released by Kevin Hillstrom for the MineThatData challenge).</li>
+</ul></section>
+<footer class="cap">Built by Rishit Mathur · code: github.com/mrrishit909/email-ab-test</footer>
+</main></body></html>
