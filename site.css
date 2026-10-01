@@ -61,7 +61,7 @@ footer a{text-decoration:none}
 @media (max-width:760px){
   .bar{padding:20px}.wrap{padding:0 20px}footer{padding:0 20px 22px}
   .bar nav{gap:18px}
-  section.s{grid-template-columns:1fr;gap:14px;padding:40px 0}
+  section.s{grid-template-columns:minmax(0,1fr);gap:14px;padding:40px 0}
   section.s > .cap{position:static}
   ol.steps > li{grid-template-columns:34px minmax(0,1fr);gap:0 10px}
 }
