@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Divide Map</title>
+<meta name="description" content="Share of households without an internet subscription in every US county, ACS 2020-2024.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--line:#1d1d1d;--na:#1c1c1c}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:1200px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+h1{margin:6px 0 6px;font-size:clamp(30px,5vw,52px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:80ch}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;margin:22px 0 14px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
+select,button{font:inherit;font-size:14px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--card);color:var(--dim)}
+.seg button[aria-pressed="true"]{background:#1f2937;color:var(--fg)}
+.grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1.2fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+#map svg{width:100%;height:auto;display:block}
+#map path.county{stroke:#000;stroke-width:.25}
+#map path.county:hover{stroke:var(--fg);stroke-width:1}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:8px;flex-wrap:wrap}
+#lg-bar{width:180px;height:10px;border-radius:2px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 6px 6px 0;border-bottom:1px solid var(--line)}
+th{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+#tip{position:fixed;display:none;pointer-events:none;background:#111;border:1px solid #333;border-radius:8px;padding:8px 10px;font-size:13px;max-width:260px;z-index:5}
+footer{margin-top:20px;color:var(--dim);font-size:12px;max-width:90ch}
+@media (max-width:820px){body{padding:20px 16px 40px}.grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<main>
+<div class="cap">Digital divide · ACS 2020–2024</div>
+<h1>Who is still offline?</h1>
+<p class="lede">Share of households in each US county with no internet subscription, relying on a phone plan alone, or without a computer. Hover or tap a county for its numbers and margin of error.</p>
+<div class="controls">
+  <div class="seg" role="group" aria-label="Measure">
+    <button data-m="2" aria-pressed="true">No internet subscription</button>
+    <button data-m="4" aria-pressed="false">Phone plan only</button>
+    <button data-m="5" aria-pressed="false">No computer</button>
+  </div>
+  <label>Area<select id="area"></select></label>
+  <label style="flex-direction:row;align-items:center;gap:8px;font-size:13px;color:var(--fg)"><input type="checkbox" id="rel" checked> Rank only counties with a margin of error of 5 points or less</label>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="cap" id="map-title">Counties</div>
+    <div id="map"></div>
+    <div class="legend"><span id="lg-lo"></span><span id="lg-bar"></span><span id="lg-hi"></span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--na);border:1px solid #333;vertical-align:-1px"></span> no matching boundary</span></div>
+  </div>
+  <div class="card">
+    <div class="cap" id="list-title">Highest 12</div>
+    <table><thead><tr><th>County</th><th class="n">Share</th><th class="n">± MOE</th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</div>
+<footer>Source: US Census Bureau, American Community Survey 5-year estimates 2020–2024, tables B28002 and B28003 (households); USDA ERS 2023
+Rural-Urban Continuum Codes. "± MOE" is the 90% margin of error for the no-subscription share; small counties have wide ones. Connecticut's
+planning regions and two Alaska census areas created after 2017 have no boundary in this map (us-atlas, 2017), so they show as blank.
+Build log: <a href="../">the project page</a>.</footer>
+<div id="tip" role="tooltip"></div>
+</main>
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
+<script>
+(async function () {
+  const [D, topo] = await Promise.all([fetch("map_data.json").then((r) => r.json()), fetch("vendor/counties-albers-10m.json").then((r) => r.json())]);
+  const counties = topojson.feature(topo, topo.objects.counties).features;
+  const states = topojson.feature(topo, topo.objects.states).features;
+  const stateName = Object.fromEntries(states.map((s) => [s.id, s.properties.name]));
+  const S = { m: 2, area: "US", rel: true };
+  const NAMES = { 2: "No internet subscription", 4: "Phone plan only", 5: "No computer" };
+  const path = d3.geoPath();
+  const svg = d3.select("#map").append("svg").attr("viewBox", "0 0 975 610").attr("role", "img");
+  const g = svg.append("g");
+  const tip = document.getElementById("tip");
+  const fmt = (x) => x == null ? "–" : x.toFixed(1) + "%";
+  const usd = (x) => x == null ? "not published" : "$" + d3.format(",")(x);
+
+  const area = document.getElementById("area");
+  area.innerHTML = `<option value="US">United States</option>` + states.filter((s) => +s.id < 60).sort((a, b) => a.properties.name.localeCompare(b.properties.name))
+    .map((s) => `<option value="${s.id}">${s.properties.name}</option>`).join("");
+  area.onchange = () => { S.area = area.value; render(); };
+  document.getElementById("rel").onchange = (e) => { S.rel = e.target.checked; render(); };
+  document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { S.m = +b.dataset.m; document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); });
+
+  const show = (e, d) => {
+    const r = D[d.id];
+    tip.innerHTML = r ? `<b>${r[0]}, ${r[1]}</b><br>No subscription: ${fmt(r[2])} (± ${fmt(r[3])})<br>Phone plan only: ${fmt(r[4])}<br>No computer: ${fmt(r[5])}<br>Median income: ${usd(r[6])}<br>${r[7]}`
+                      : `<b>${d.properties.name}</b><br>No data for this boundary`;
+    tip.style.display = "block";
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px";
+    tip.style.top = Math.min(e.clientY + 14, innerHeight - 150) + "px";
+  };
+
+  function render() {
+    const inArea = (id) => S.area === "US" || id.slice(0, 2) === S.area;
+    const vals = Object.entries(D).filter(([id]) => inArea(id)).map(([, r]) => r[S.m]);
+    const sorted = vals.slice().sort(d3.ascending);
+    const lo = d3.quantile(sorted, 0.02), hi = d3.quantile(sorted, 0.98);
+    const sc = d3.scaleSequential([lo, hi], d3.interpolateRgb("#16243a", "#8fc0ff")).clamp(true);
+    document.getElementById("lg-lo").textContent = fmt(lo);
+    document.getElementById("lg-hi").textContent = fmt(hi);
+    document.getElementById("lg-bar").style.background = "linear-gradient(90deg,#16243a,#8fc0ff)";
+    document.getElementById("map-title").textContent = `${NAMES[S.m]} · ${S.area === "US" ? "all counties" : stateName[S.area]}`;
+    const shown = S.area === "US" ? counties : counties.filter((c) => c.id.slice(0, 2) === S.area);
+    g.selectAll("path.county").data(shown, (d) => d.id).join("path").attr("class", "county").attr("d", path)
+      .attr("fill", (d) => D[d.id] ? sc(D[d.id][S.m]) : "var(--na)")
+      .attr("tabindex", 0).attr("aria-label", (d) => D[d.id] ? `${D[d.id][0]}, ${D[d.id][1]}: ${fmt(D[d.id][S.m])}` : d.properties.name)
+      .on("mousemove", show).on("mouseleave", () => tip.style.display = "none")
+      .on("focus", (e, d) => { const b = e.target.getBoundingClientRect(); show({ clientX: b.right, clientY: b.top }, d); })
+      .on("blur", () => tip.style.display = "none");
+    if (S.area === "US") svg.attr("viewBox", "0 0 975 610");
+    else {
+      const [[x0, y0], [x1, y1]] = path.bounds({ type: "FeatureCollection", features: shown });
+      const pad = 10;
+      svg.attr("viewBox", `${x0 - pad} ${y0 - pad} ${x1 - x0 + 2 * pad} ${y1 - y0 + 2 * pad}`);
+    }
+    const top = Object.entries(D).filter(([id, r]) => inArea(id) && (!S.rel || r[3] <= 5)).sort((a, b) => b[1][S.m] - a[1][S.m]).slice(0, 12);
+    document.getElementById("list-title").textContent = `Highest 12 · ${NAMES[S.m].toLowerCase()}${S.rel ? " · MOE ≤ 5 pts" : ""}`;
+    document.getElementById("rows").innerHTML = top.map(([, r]) => `<tr><td>${r[0]}, ${r[1]}</td><td class="n">${fmt(r[S.m])}</td><td class="n">${S.m === 2 ? "± " + fmt(r[3]) : ""}</td></tr>`).join("");
+  }
+  render();
+})();
+</script>
+</body>
+</html>

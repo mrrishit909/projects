@@ -1,0 +1,50 @@
+{
+  "title": "Who Is Still Offline?",
+  "tagline": "The US digital divide county by county from the Census Bureau's ACS 2020–2024: how many households have no internet, how much of the rural gap is really about income, and an interactive map with margins of error.",
+  "kind": "Python · Digital transformation",
+  "tech": [
+    "Python",
+    "pandas",
+    "statsmodels",
+    "Census ACS",
+    "Margins of error",
+    "D3.js",
+    "Choropleth map"
+  ],
+  "date": "2026-10",
+  "order": 22,
+  "repo": "https://github.com/mrrishit909/digital-divide",
+  "demo": "explorer/",
+  "demo_label": "Open the county map",
+  "cover": "cover.jpg",
+  "note": "County-level survey estimates with real uncertainty: only 1,892 of 3,144 counties have a margin of error within ±5 points. The findings are associations, not causes.",
+  "problem": "<p>As benefits, healthcare, school and job applications move online, a household without internet is left out of digital transformation. Federal and state programmes are spending billions to close the gap. They have to choose between building networks (access) and helping people afford and use them (adoption). <em>Who is still offline, and is the gap mostly about where people live or about income, age and education?</em></p>",
+  "built": "<p>An analysis of the Census Bureau's American Community Survey for all 3,144 US counties:</p><ul><li><b>County shares with margins of error</b>, using the Census Bureau's formula for a proportion.</li><li><b>The income gradient and the 2021–2024 trend.</b></li><li><b>An access-vs-adoption regression:</b> how much of the rural gap survives holding income, age and education equal.</li><li><b>An interactive county map</b> that ranks only reliable estimates by default.</li></ul>",
+  "steps": [
+    {
+      "title": "Get the data without an API key",
+      "body": "<p>The Census API now requires a key, but the ACS table-based summary files on the Census file server don't. <code>download.py</code> streams six national tables for 2020–2024: internet subscriptions, computers, internet by income, income, age and education. It keeps only the US, state and county rows, adds the 2021–2024 one-year tables for the trend, and fetches the USDA's rural-urban codes.</p>",
+      "code": "if line.startswith(KEEP):"
+    },
+    {
+      "title": "Clean the survey codes and carry the error",
+      "body": "<p>ACS files use placeholder numbers: −666666666 for a missing estimate and −555555555 for \"no sampling error\". Left in, one New Mexico county dragged a group's average income below zero. Every county share also carries its 90% margin of error from the Census Bureau's proportion formula. <code>check.py</code> recomputes Hillsborough County's by hand.</p>",
+      "code": "inside = num_moe ** 2 - p ** 2 * den_moe ** 2"
+    },
+    {
+      "title": "Measure the gap and its trend",
+      "body": "<p>8.9% of US households (11.5 million) have no internet subscription. The one-year estimates show the gap closing, from 9.7% in 2021 to 6.7% in 2024. Over the same years, more households rely on a phone data plan alone. Income is the steepest divide: 26.8% of households earning $10–20k are offline, against 3.4% of those earning $75k or more.</p><img src=\"charts/01_income.jpg\" alt=\"Bar chart of households with no internet subscription by income: 22% under $10k, 27% at $10-20k, 19%, 12%, 8%, and 3% at $75k and above, against an 8.9% national average\"><img src=\"charts/03_trend.jpg\" alt=\"Line chart 2021-2024: households with no subscription fall from 9.7% to 6.7% while phone-plan-only households rise from 10.9% to 12.6%\">"
+    },
+    {
+      "title": "Separate access from adoption",
+      "body": "<p>Rural counties have about 6 points more households offline than metro counties. A weighted regression across 3,143 counties holds income, age and education equal, and the gap shrinks to 2.6–2.8 points, or 2.3–2.5 within the same state. Rurality alone explains 30% of the variation between counties; income, age and education explain 62%.</p><img src=\"charts/02_rural.jpg\" alt=\"Dot plot of the extra percentage points of households offline in nonmetro counties: raw gaps of 5.9 and 6.0 points shrink to 2.8 and 2.6 with income, age and education held equal, and 2.5 and 2.3 within states\">",
+      "code": "\"all\": \"y ~ log_income_z + age65_share_z + no_hs_share_z + C(rural, Treatment('metro'))\","
+    },
+    {
+      "title": "Map it honestly",
+      "body": "<p>The interactive map shows every county, with its margin of error in the tooltip. Its ranking list includes only counties whose margin is 5 points or less, because a county at 45% ± 20 points can't be ranked. The reliable worst cases tell different stories:</p><ul><li>the Mississippi Delta;</li><li>Navajo Nation counties (an access gap);</li><li>Holmes, Ohio and LaGrange, Indiana, home to large Amish communities, where being offline is often a choice.</li></ul><img src=\"charts/00_explorer.jpg\" alt=\"Screenshot of the interactive county map of households with no internet subscription, with a list of the 12 highest reliable counties led by Washington County, Mississippi at 49.7%\">"
+    }
+  ],
+  "results": "<table><tr><th>Households offline</th><th class=\"num\">Share</th></tr><tr><td>United States</td><td class=\"num\"><b>8.9%</b></td></tr><tr><td>Metro counties</td><td class=\"num\">8.0%</td></tr><tr><td>Nonmetro counties</td><td class=\"num\">14.0%</td></tr><tr><td>Earning $10–20k</td><td class=\"num\">26.8%</td></tr><tr><td>Earning $75k+</td><td class=\"num\">3.4%</td></tr><tr><td>Florida</td><td class=\"num\">8.3%</td></tr></table><p>Florida's least-connected counties are small and mostly nonmetro, and their margins of error are wide.</p><img src=\"charts/04_florida.jpg\" alt=\"Bar chart of Florida's 15 least-connected counties with margin-of-error bars, led by Jefferson 24%, Dixie 23% and Madison 23%, against 8.3% statewide\"><p>What it implies: under half of the rural gap is rurality itself. Network-building money reaches the access part. The larger, adoption part needs affordability help, devices and digital-skills training, aimed at low-income households wherever they live.</p>",
+  "next": "<ul><li>Add the FCC's broadband-availability map to separate \"no service\" from \"not subscribing\" directly.</li><li>Tract-level analysis inside Tampa Bay.</li><li>Update the map boundaries for Connecticut's planning regions.</li></ul>"
+}
