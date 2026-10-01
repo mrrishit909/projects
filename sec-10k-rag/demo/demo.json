@@ -1,0 +1,348 @@
+{
+ "model": "gpt-5.4-mini",
+ "embed_model": "text-embedding-3-small",
+ "filings": {
+  "AAPL": {
+   "company": "Apple Inc.",
+   "cik": "0000320193",
+   "accession": "0000320193-25-000079",
+   "filed": "2025-10-31",
+   "period_end": "2025-09-27",
+   "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+  },
+  "MSFT": {
+   "company": "MICROSOFT CORP",
+   "cik": "0000789019",
+   "accession": "0001193125-26-323660",
+   "filed": "2026-07-29",
+   "period_end": "2026-06-30",
+   "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+  },
+  "AMZN": {
+   "company": "AMAZON COM INC",
+   "cik": "0001018724",
+   "accession": "0001018724-26-000004",
+   "filed": "2026-02-06",
+   "period_end": "2025-12-31",
+   "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+  },
+  "GOOGL": {
+   "company": "Alphabet Inc.",
+   "cik": "0001652044",
+   "accession": "0001652044-26-000018",
+   "filed": "2026-02-05",
+   "period_end": "2025-12-31",
+   "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm"
+  },
+  "NVDA": {
+   "company": "NVIDIA CORP",
+   "cik": "0001045810",
+   "accession": "0001045810-26-000021",
+   "filed": "2026-02-25",
+   "period_end": "2026-01-25",
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+  }
+ },
+ "items": [
+  {
+   "question": "How much did NVIDIA spend on research and development in its latest fiscal year?",
+   "found": true,
+   "answer": "In fiscal year 2026, NVIDIA spent $18,497 million on research and development. This figure is from the Consolidated Statements of Income for fiscal year 2026.",
+   "value_usd_millions": 18497,
+   "citations": [
+    {
+     "id": "NVDA-0109",
+     "company": "NVIDIA CORP",
+     "section": "Item 15 \u00b7 Exhibits",
+     "text": "The principal considerations for our determination that performing procedures relating to the valuation of inventories, specifically the provisions for excess or obsolete inventories and excess product purchase commitments, is a critical audit matter are the significant judgment by management when developing provisions for excess or obsolete inventories and excess product purchase commitments, including developing assumptions related to future demand and market conditions. This in turn led to significant auditor judgment, subjectivity, and effort in performing procedures and evaluating management\u2019s assumptions related to future demand and market conditions.\nAddressing the matter involved performing procedures and evaluating audit evidence in connection with forming our overall opinion on the consolidated financial statements. These procedures included testing the effectiveness of controls relating to management\u2019s provisions for excess or obsolete inventories and excess product purchase commitments, including controls over management\u2019s assumptions related to future demand and market conditions. These procedures also included, among others, testing management\u2019s process for developing the provisions for excess or obsolete inventories and excess product purchase commitments; evaluating the appropriateness of management\u2019s approach; testing the completeness and accuracy of underlying data used in the approach; and evaluating the reasonableness of management\u2019s assumptions related to future demand and market conditions. Evaluating management\u2019s assumptions related to future demand and market conditions involved evaluating whether the assumptions used by management were reasonable considering (i) current and past results, including historical product life cycle, (ii) the consistency with external market and industry data, and (iii) changes in technology.\n/s/PricewaterhouseCoopers LLP\nSan Jose, California\nFebruary 25, 2026\nWe have served as the Company\u2019s auditor since 2004.\nNVIDIA Corporation and Subsidiaries\nConsolidated Statements of Income\n(In millions, except per share data)\nYear Ended\nJan 25, 2026 | Jan 26, 2025 | Jan 28, 2024\nRevenue | 215,938 | 130,497 | 60,922\nCost of revenue | 62,475 | 32,639 | 16,621\nGross profit | 153,463 | 97,858 | 44,301\nOperating expenses\nResearch and development | 18,497 | 12,914 | 8,675\nSales, general and administrative | 4,579 | 3,491 | 2,654",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+    }
+   ],
+   "retrieved": [
+    "NVDA-0083",
+    "NVDA-0011",
+    "NVDA-0109",
+    "NVDA-0078",
+    "NVDA-0012",
+    "NVDA-0146"
+   ],
+   "note": null,
+   "cost_usd": 0.00334,
+   "tokens": 3918
+  },
+  {
+   "question": "What does NVIDIA say about how US export controls affect its business in China?",
+   "found": true,
+   "answer": "For fiscal year 2026, NVIDIA says U.S. export controls effectively foreclosed it from competing in China\u2019s data center computing market, harmed its competitive position, and helped competitors build larger ecosystems, while also making it unable to create and deliver a competitive China data center product that satisfies both U.S. and Chinese approval requirements. NVIDIA also says the controls can limit sales into China and, even where licenses are granted, only a small amount of H20 revenue has been generated under those licenses. [NVDA-0056] [NVDA-0022]",
+   "value_usd_millions": 60,
+   "citations": [
+    {
+     "id": "NVDA-0056",
+     "company": "NVIDIA CORP",
+     "section": "Item 1A \u00b7 Risk Factors",
+     "text": "In August 2025, the USG granted licenses that would allow us to ship certain H20 products to certain China-based customers. We generated approximately $60 million in H20 revenue under those licenses. USG officials expressed an expectation that the USG will receive 15% or more of the revenue generated from licensed sales of our products, but the USG did not publish a regulation codifying such requirement.\nIn February 2026, the USG granted a license that would allow us to ship small amounts of H200 products to specific China-based customers. To date, we have not generated any revenue under the H200 licensing program, and do not yet know whether any imports will be allowed into China. The license requires that the H200s go through an inspection process in the United States prior to any shipment to the customer. As a result, any H200 shipped under the new licensing program will be subject to a 25% tariff upon importation into the United States.\nIn the event that we are able to sell licensed products into the China market, we may not be able to pass along all or any of the tariff to our customers, and may be subject to litigation, increased costs, and a harmed competitive position.\nThe export controls applicable to China are complex and address a variety of parameters, including the total processing performance of a chip, the \u201cperformance density\u201d of a chip, the interconnect bandwidth of a chip, and the memory bandwidth of a chip. Under the current rules and geopolitical landscape, we are unable to create and deliver a competitive product for China\u2019s data center market that receives approval from both the USG and the Chinese government. As of the end of fiscal year 2026, we were effectively foreclosed from competing in China's data center computing/compute market, and our effective foreclosure from the China market helped our competitors build larger developer and customer ecosystems to challenge us worldwide. Unless we are able to return with a product that meets the approval of both the USG and the Chinese government, our lost opportunity and the benefit to our competitors will have a material and adverse impact on our business, operating results, and financial condition.\nIn addition to controls targeting D:1, D:4 and D:5 countries, the USG has also imposed worldwide export controls impacting our products, and may impose additional controls in the future.\nIn January 2025, the USG published the AI Diffusion IFR in the Federal Register. The IFR would have imposed a worldwide licensing requirement on our data center products, such as our H200, GB200 and GB300. The AI Diffusion IFR would have divided the world into three tiers, relegating most countries to \u201cTier 2\u201d status, and would have created a complex and burdensome scheme for licensing approvals.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+    },
+    {
+     "id": "NVDA-0022",
+     "company": "NVIDIA CORP",
+     "section": "Item 1 \u00b7 Business",
+     "text": "In May 2025, the USG announced that it would rescind the AI Diffusion IFR and implement a replacement rule. The scope, timing, and requirements of the forthcoming rule remain uncertain. The replacement rule may impose new restrictions on our products or operations and/or add license requirements that could have a material impact on our business, operating results, and financial condition. For example, in October 2025, the Senate passed the \u201cGAIN AI Act\u201d in the NDAA. The GAIN AI Act would restrict the Trump Administration\u2019s ability to adapt the Biden Administration\u2019s export control rules, and could also allow private U.S. persons to review and overturn licensing and foreign policy decisions made by the Trump Administration.\nOur competitive position has been harmed by export controls, and our competitive position and future results will be further harmed, over the long term, if the restrictions remain in place or are expanded in geographic, customer, or product scope, if customers purchase product from competitors, if customers develop their own internal solution, if we are unable to provide contractual warranty or other extended service obligations, if the USG does not grant licenses in a timely manner or denies licenses to significant customers or if we incur significant transition costs.\nThe licensing process may not be resolved before significant business opportunities evaporate. Even if the USG grants any requested licenses, the licenses have already and may in the future be temporary, impose burdensome conditions regarding the installation, maintenance, and use of such products, or include financial or economic requirements that we or our customers or end users cannot or choose not to fulfill. The licensing requirements have already and may in the future benefit certain of our competitors, as the licensing process will make our pre-sale and post-sale technical support efforts more cumbersome and less certain and encourage customers in China, the Middle East, and other regions to pursue alternatives to our products, including semiconductor suppliers based in China, Europe, and Israel.\nAdditionally, restrictions imposed by the Chinese government on the duration of gaming activities and access to games may adversely affect our Gaming revenue, and even if we are able to participate in the China data center compute market, increased oversight of digital platform companies may adversely affect our Data Center revenue. The Chinese government has encouraged customers to purchase from our China-based competitors and discouraged customers from purchasing, importing, or using our data center products, including any China-specific product designed to comply with U.S. export controls.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+    }
+   ],
+   "retrieved": [
+    "NVDA-0059",
+    "NVDA-0060",
+    "NVDA-0054",
+    "NVDA-0053",
+    "NVDA-0022",
+    "NVDA-0056"
+   ],
+   "note": null,
+   "cost_usd": 0.0036,
+   "tokens": 3711
+  },
+  {
+   "question": "What was Microsoft's total revenue for fiscal year 2026, and how much of it was Microsoft Cloud revenue?",
+   "found": true,
+   "answer": "For fiscal year 2026, Microsoft\u2019s total revenue was $331,839 million, and Microsoft Cloud revenue was $214,400 million ($214.4 billion).",
+   "value_usd_millions": 214400,
+   "citations": [
+    {
+     "id": "MSFT-0161",
+     "company": "MICROSOFT CORP",
+     "section": "Item 8 \u00b7 Financial Statements",
+     "text": "Item 8\nRevenue, classified by significant product and service offerings, was as follows:\n(In millions)\nYear Ended June 30, | 2026 | 2025 | 2024\nServer products and cloud services | 129,425 | 98,435 | 79,828\nMicrosoft 365 Commercial products and cloud services | 101,997 | 87,767 | 76,969\nXBOX | 21,790 | 23,455 | 21,503\nLinkedIn | 19,817 | 17,812 | 16,372\nWindows and Devices | 17,084 | 17,314 | 17,026\nSearch advertising | 15,176 | 13,878 | 12,306\nMicrosoft 365 Consumer products and cloud services | 9,175 | 7,404 | 6,648\nDynamics products and cloud services | 9,006 | 7,827 | 6,831\nEnterprise and partner services | 8,260 | 7,760 | 7,594\nOther | 109 | 72 | 45\nTotal | 331,839 | 281,724 | 245,122\nOur Microsoft Cloud revenue, which includes Microsoft 365 Commercial cloud, Azure and other cloud services, the commercial portion of LinkedIn, and Dynamics 365, was $214.4 billion, $168.9 billion, and $137.7 billion in fiscal years 2026, 2025, and 2024, respectively. These amounts are included in Server products and cloud services, Microsoft 365 Commercial products and cloud services, LinkedIn, and Dynamics products and cloud services in the table above.\nAssets are not allocated to segments for internal reporting presentations. A portion of amortization and depreciation is included with various other costs in an overhead allocation to each segment. It is impracticable for us to separately identify the amount of amortization and depreciation by segment that is included in the measure of segment profit or loss.\nLong-lived assets, excluding financial instruments and tax assets, classified by the location of the controlling statutory company and with countries over 10% of the total shown separately, were as follows:\n(In millions)\nJune 30, | 2026 | 2025 | 2024\nUnited States | 300,354 | 230,069 | 186,106\nOther countries | 175,159 | 141,833 | 115,263\nTotal | 475,513 | 371,902 | 301,369\nPART II",
+     "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+    }
+   ],
+   "retrieved": [
+    "MSFT-0071",
+    "MSFT-0161",
+    "MSFT-0076",
+    "MSFT-0077",
+    "MSFT-0078",
+    "MSFT-0079"
+   ],
+   "note": null,
+   "cost_usd": 0.00292,
+   "tokens": 3152
+  },
+  {
+   "question": "What are the main supply-chain risks Apple describes?",
+   "found": true,
+   "answer": "For fiscal year 2025, Apple says its main supply-chain risks are reliance on single or limited sources for many components, industry-wide shortages and commodity price fluctuations, dependence on outsourcing partners and logistics providers largely outside the U.S., concentration of manufacturing in Asia, and the risk that natural disasters, industrial accidents, labor disputes, public health issues, or IT/cyber disruptions could interrupt manufacturing, shipping, and delivery. It also notes that quality defects, supplier violations, and changes to the supply chain can raise costs, reduce control over production, and hurt availability, quality, and timing of products and services. [AAPL-0014] [AAPL-0018] [AAPL-0019] [AAPL-0024]",
+   "value_usd_millions": null,
+   "citations": [
+    {
+     "id": "AAPL-0014",
+     "company": "Apple Inc.",
+     "section": "Item 1A \u00b7 Risk Factors",
+     "text": "Many of the Company\u2019s operations, retail stores and facilities, as well as critical business operations of the Company\u2019s suppliers and contract manufacturers, are in locations that are prone to earthquakes and other natural disasters. Global climate change is resulting in certain types of natural disasters and extreme weather occurring more frequently or with more intense effects. In addition, the Company\u2019s and its suppliers\u2019 operations, retail stores and facilities are subject to the risk of interruption by fire, power shortages, nuclear power plant accidents and other industrial accidents, terrorist attacks and other hostile acts, ransomware and other cybersecurity attacks, labor disputes, public health issues and other events beyond the Company\u2019s control.\nSuch events can make it difficult or impossible for the Company to manufacture and deliver products to its customers, create delays and inefficiencies in the Company\u2019s supply and manufacturing chain, result in slowdowns and outages to the Company\u2019s service offerings, increase the Company\u2019s costs, and negatively impact consumer spending and demand in affected areas.\nThe Company\u2019s operations are also subject to the risks of industrial accidents at its suppliers and contract manufacturers. While the Company\u2019s suppliers are required to maintain safe working environments and operations, an industrial accident could occur and could result in serious injuries or loss of life, disruption to the Company\u2019s business, and harm to the Company\u2019s reputation. Major public health issues, including pandemics such as the COVID-19 pandemic, have adversely affected, and could in the future materially adversely affect, the Company due to their impact on the global economy and demand for consumer products; the imposition of protective public safety measures, such as stringent employee travel restrictions and limitations on freight services and the movement of products between regions; and disruptions in the Company\u2019s operations, supply chain and sales and distribution channels, resulting in interruptions to the supply of current products and offering of existing services, and delays in production ramps of new products and development of new services.\nApple Inc. | 2025 Form 10-K | 6\nFollowing any interruption to its business, the Company can require substantial recovery time, incur significant expenditures to resume operations, and lose significant sales. Because the Company relies on single or limited sources for the supply and manufacture of many critical components, a business interruption affecting such sources would exacerbate any negative consequences to the Company. While the Company maintains insurance coverage for certain types of losses, such insurance coverage may be insufficient to cover all losses that may arise. Any of the foregoing can materially adversely affect the Company\u2019s business, results of operations, financial condition and stock price.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    },
+    {
+     "id": "AAPL-0018",
+     "company": "Apple Inc.",
+     "section": "Item 1A \u00b7 Risk Factors",
+     "text": "The Company depends on component and product manufacturing and logistical services provided by outsourcing partners, many of which are located outside of the U.S.\nA significant majority of the Company\u2019s manufacturing is performed in whole or in part by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, in addition to sourcing from partners and facilities located in the U.S. The Company relies on single-source partners in the U.S., Asia and Europe to supply and manufacture many components, and on partners primarily located in Asia, for final assembly of substantially all of the Company\u2019s hardware products. The Company has also outsourced much of its transportation and logistics management. While these arrangements can lower operating costs, they also reduce the Company\u2019s direct control over production and distribution. Such diminished control has from time to time had, and may in the future have, an adverse effect on the cost, quality or quantity of products manufactured or services provided, or adversely affect the Company\u2019s flexibility to respond to changing conditions. Although arrangements with these partners may contain provisions for product defect expense reimbursement, the Company generally remains responsible to the consumer for warranty and out-of-warranty service in the event of product defects and experiences unanticipated product defect liabilities from time to time. While the Company relies on its partners to adhere to its supplier code of conduct, violations of the supplier code of conduct occur from time to time and can materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.\nChanges or additions to the Company\u2019s supply chain require considerable time and resources and involve significant risks and uncertainties, including exposure to additional regulatory and operational risks.\nFuture operating results depend upon the Company\u2019s ability to obtain components in sufficient quantities on commercially reasonable terms.\nBecause the Company currently obtains certain components from single or limited sources, the Company is subject to significant supply and pricing risks. Many components, including those that are available from multiple sources, are at times subject to industry-wide shortages and significant commodity pricing fluctuations that can materially adversely affect the Company\u2019s business, results of operations, financial condition and stock price. For example, the global semiconductor industry has in the past experienced high demand and shortages of supply, which adversely affected the Company\u2019s ability to obtain sufficient quantities of components and products on commercially reasonable terms, or at all. Such disruptions could occur in the future.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    },
+    {
+     "id": "AAPL-0019",
+     "company": "Apple Inc.",
+     "section": "Item 1A \u00b7 Risk Factors",
+     "text": "Because the Company currently obtains certain components from single or limited sources, the Company is subject to significant supply and pricing risks. Many components, including those that are available from multiple sources, are at times subject to industry-wide shortages and significant commodity pricing fluctuations that can materially adversely affect the Company\u2019s business, results of operations, financial condition and stock price. For example, the global semiconductor industry has in the past experienced high demand and shortages of supply, which adversely affected the Company\u2019s ability to obtain sufficient quantities of components and products on commercially reasonable terms, or at all. Such disruptions could occur in the future.\nAdditionally, the Company\u2019s new products often utilize custom components available from only one source. When a component or product uses new technologies, initial capacity constraints may exist until the suppliers\u2019 yields have matured or their manufacturing capacities have increased. The Company may not be able to extend or renew agreements for the supply of components on similar terms, or at all, and may not be successful in obtaining sufficient quantities from its suppliers in a timely manner, or in identifying and obtaining sufficient quantities from an alternative source. In addition, component suppliers may fail, be subject to consolidation within a particular industry, or decide to concentrate on the production of common components instead of components customized to meet the Company\u2019s requirements, further limiting the Company\u2019s ability to obtain sufficient quantities of components on commercially reasonable terms, or at all. Therefore, the Company remains subject to significant risks of supply shortages and price increases that can materially adversely affect its business, results of operations, financial condition and stock price.\nApple Inc. | 2025 Form 10-K | 8\nThe Company\u2019s products and services may be affected from time to time by design and manufacturing defects that could materially adversely affect the Company\u2019s business and result in harm to the Company\u2019s reputation.\nThe Company offers complex hardware and software products and services that can be affected by design and manufacturing defects. Sophisticated operating system software and applications, such as those offered by the Company, often have issues that can unexpectedly interfere with the intended operation of hardware or software products and services. Defects can also exist in components and products the Company purchases from third parties. Component defects could make the Company\u2019s products unsafe and create a risk of environmental or property damage and personal injury. These risks may increase as the Company\u2019s products are introduced into specialized applications, including health. In addition, the Company\u2019s service offerings can have quality issues and from time to time experience outages, service slowdowns or errors. As a result, from time to time the Company\u2019s services have not performed as anticipated and may not meet customer expectations. The introduction of new and complex technologies, such as artificial intelligence features, can increase these and other safety risks, including exposing users to harmful, inaccurate or other negative content and experiences. The Company may not be able to detect and fix all issues and defects in the hardware, software and services it offers, which can result in widespread technical and performance issues affecting the Company\u2019s products and services. Errors, bugs and vulnerabilities can be exploited by third parties, compromising the safety and security of a user\u2019s device. In addition, the Company can be exposed to product liability claims, recalls, product replacements or modifications, write-offs of inventory, property, plant and equipment or intangible assets, and significant warranty and other expenses, including litigation costs and regulatory fines. Quality problems can adversely affect the experience for users of the Company\u2019s products and services, and result in harm to the Company\u2019s reputation, loss of competitive advantage, poor market acceptance, reduced demand for products and services, delay in new product and service introductions and lost sales.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    },
+    {
+     "id": "AAPL-0024",
+     "company": "Apple Inc.",
+     "section": "Item 1A \u00b7 Risk Factors",
+     "text": "The Company and its global supply chain are dependent on complex information technology systems and are exposed to information technology system failures or network disruptions caused by natural disasters, accidents, power disruptions, telecommunications failures, acts of terrorism or war, computer viruses, physical or electronic break-ins, ransomware or other cybersecurity incidents, or other events or disruptions. System upgrades, redundancy and other continuity measures may be ineffective or inadequate, and the Company\u2019s or its vendors\u2019 business continuity and disaster recovery planning may not be sufficient for all eventualities. Such failures or disruptions can adversely impact the Company\u2019s business by, among other things, preventing access to the Company\u2019s online services, interfering with customer transactions or impeding the manufacturing and shipping of the Company\u2019s products. These events could materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.\nLosses or unauthorized access to or releases of confidential information, including personal information, could subject the Company to significant reputational, financial, legal and operational consequences.\nThe Company\u2019s business requires it to use and store confidential information, including personal and sensitive health and financial information with respect to the Company\u2019s customers and employees. The Company devotes significant resources to systems and data security, including through the use of encryption and other security measures intended to protect its systems and data. But these measures cannot provide absolute security, and losses or unauthorized access to or releases of confidential information occur and could materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.\nThe Company\u2019s business also requires it to share confidential information with suppliers and other third parties. The Company relies on global suppliers that are also exposed to ransomware and other malicious attacks that can disrupt business operations. Although the Company takes steps to secure confidential information that is provided to or accessible by third parties working on the Company\u2019s behalf, such measures are not always effective and losses or unauthorized access to, or releases of, confidential information occur. Such incidents and other malicious attacks could materially adversely affect the Company\u2019s business, reputation, results of operations, financial condition and stock price.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    }
+   ],
+   "retrieved": [
+    "AAPL-0014",
+    "AAPL-0017",
+    "AAPL-0019",
+    "AAPL-0023",
+    "AAPL-0018",
+    "AAPL-0024"
+   ],
+   "note": null,
+   "cost_usd": 0.00356,
+   "tokens": 3624
+  },
+  {
+   "question": "What are Amazon's reportable segments, and how much operating income did AWS earn in 2025?",
+   "found": true,
+   "answer": "Amazon\u2019s reportable segments are North America, International, and AWS for fiscal year 2025. AWS earned operating income of $45,606 million in 2025. [AMZN-0112] [AMZN-0113]",
+   "value_usd_millions": 45606,
+   "citations": [
+    {
+     "id": "AMZN-0112",
+     "company": "AMAZON COM INC",
+     "section": "Item 8 \u00b7 Financial Statements",
+     "text": "Changes in tax laws, regulations, administrative practices, principles, and interpretations may impact our tax contingencies. Due to various factors, including the inherent complexities and uncertainties of the judicial, administrative, and regulatory processes in certain jurisdictions, the timing of the resolution of income tax controversies is highly uncertain, and the amounts ultimately paid, if any, upon resolution of the issues raised by the taxing authorities may differ from the amounts accrued.\nNote 10 \u2014 SEGMENT INFORMATION\nWe have organized our operations into three segments: North America, International, and AWS. We allocate to segment results the operating expenses \u201cFulfillment,\u201d \u201cTechnology and infrastructure,\u201d \u201cSales and marketing,\u201d and \u201cGeneral and administrative\u201d based on usage, which is generally reflected in the segment in which the costs are incurred. The majority of technology costs recorded in \u201cTechnology and infrastructure\u201d are incurred in the U.S. and are included in our North America and AWS segments. The majority of infrastructure costs recorded in \u201cTechnology and infrastructure\u201d are allocated to the AWS segment based on usage. There are no internal revenue transactions between our reportable segments. Our chief operating decision maker (\u201cCODM\u201d) is our President and Chief Executive Officer. Our CODM regularly reviews consolidated net sales, consolidated operating expenses, and consolidated operating income (loss) by segment. Amounts included in consolidated operating expenses include \u201cCost of sales,\u201d \u201cFulfillment,\u201d \u201cTechnology and infrastructure,\u201d \u201cSales and marketing,\u201d \u201cGeneral and administrative,\u201d and \u201cOther operating expense (income), net.\u201d Our CODM manages our business primarily by reviewing consolidated results by segment on a quarterly basis, and using those results along with forecasts and other non-financial information in our annual budgeting process.\nNorth America\nThe North America segment primarily consists of amounts earned from retail sales of consumer products (including from sellers) and advertising and subscription services through North America-focused online and physical stores. This segment includes export sales from these online stores.\nInternational\nThe International segment primarily consists of amounts earned from retail sales of consumer products (including from sellers) and advertising and subscription services through internationally-focused online stores. This segment includes export sales from these internationally-focused online stores (including export sales from these online stores to customers in the U.S., Mexico, and Canada), but excludes export sales from our North America-focused online stores.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+    },
+    {
+     "id": "AMZN-0113",
+     "company": "AMAZON COM INC",
+     "section": "Item 8 \u00b7 Financial Statements",
+     "text": "The International segment primarily consists of amounts earned from retail sales of consumer products (including from sellers) and advertising and subscription services through internationally-focused online stores. This segment includes export sales from these internationally-focused online stores (including export sales from these online stores to customers in the U.S., Mexico, and Canada), but excludes export sales from our North America-focused online stores.\nAWS\nThe AWS segment consists of amounts earned from global sales of compute, storage, database, and other services for start-ups, enterprises, government agencies, and academic institutions.\nInformation on reportable segments and reconciliation to consolidated net income is as follows (in millions):\nYear Ended December 31,\n2023 | 2024 | 2025\nNorth America\nNet sales | 352,828 | 387,497 | 426,305\nOperating expenses | 337,951 | 362,530 | 396,686\nOperating income | 14,877 | 24,967 | 29,619\nInternational\nNet sales | 131,200 | 142,906 | 161,894\nOperating expenses | 133,856 | 139,114 | 157,144\nOperating income (loss) | (2,656) | 3,792 | 4,750\nAWS\nNet sales | 90,757 | 107,556 | 128,725\nOperating expenses | 66,126 | 67,722 | 83,119\nOperating income | 24,631 | 39,834 | 45,606\nConsolidated\nNet sales | 574,785 | 637,959 | 716,924\nOperating expenses | 537,933 | 569,366 | 636,949\nOperating income | 36,852 | 68,593 | 79,975\nTotal non-operating income | 705 | 21 | 17,336\nProvision for income taxes | (7,120) | (9,265) | (19,087)\nEquity-method investment activity, net of tax | (12) | (101) | (554)\nNet income | 30,425 | 59,248 | 77,670\nNet sales by groups of similar products and services, which also have similar economic characteristics, is as follows (in millions):\nYear Ended December 31,\n2023 | 2024 | 2025\nNet Sales:\nOnline stores (1) | 231,872 | 247,029 | 269,287\nPhysical stores (2) | 20,030 | 21,215 | 22,561\nThird-party seller services (3) | 140,053 | 156,146 | 172,162\nAdvertising services (4) | 46,906 | 56,214 | 68,635\nSubscription services (5) | 40,209 | 44,374 | 49,619\nAWS | 90,757 | 107,556 | 128,725\nOther (6) | 4,958 | 5,425 | 5,935\nConsolidated | 574,785 | 637,959 | 716,924\n___________________\n(1)Includes product sales and digital media content where we record revenue gross. We leverage our retail infrastructure to offer a wide selection of consumable and durable goods that includes media products available in both a physical and digital format, such as books, videos, games, music, and software. These product sales include digital products sold on a transactional basis. Digital media content subscriptions that provide unlimited viewing or usage rights are included in \u201cSubscription services.\u201d",
+     "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+    }
+   ],
+   "retrieved": [
+    "AMZN-0113",
+    "AMZN-0054",
+    "AMZN-0053",
+    "AMZN-0049",
+    "AMZN-0114",
+    "AMZN-0112"
+   ],
+   "note": null,
+   "cost_usd": 0.00334,
+   "tokens": 3913
+  },
+  {
+   "question": "How much did Alphabet spend on capital expenditures in 2025, and what was it mainly for?",
+   "found": false,
+   "answer": "The filings provided do not state Alphabet\u2019s capital expenditures for 2025 or say what they were mainly for. They do say Alphabet continued investing in R&D and entered leases primarily related to data centers, but they do not provide a 2025 capital expenditures amount. (Fiscal year 2025)",
+   "value_usd_millions": null,
+   "citations": [
+    {
+     "id": "GOOGL-0062",
+     "company": "Alphabet Inc.",
+     "section": "Item 7 \u00b7 MD&A",
+     "text": "Continued Investment in Intellectual Property through R&D and Acquisitions: We continue to make significant research and development investments in areas of strategic focus as we seek to develop new, innovative offerings, and improve our existing offerings across our businesses. Acquisitions and strategic investments remain important elements in our use of capital and contribute to the breadth and depth of our offerings, expand our expertise in engineering and other functional areas, and build strong partnerships around strategic initiatives.\nTraffic Acquisition Costs Growth and Rate Changes: We expect traffic acquisition costs (\"TAC\") paid to our distribution partners and Google Network partners to increase as our advertising revenues grow. Our overall TAC as a percentage of our advertising revenues (\"TAC rate\") has been decreasing primarily due to a revenue mix\n28.\nTable of Contents | Alphabet Inc.\nshift from Google Network properties to Google Search & other properties. Our TAC rate will continue to be affected by changes in device mix; geographic mix; partner agreement terms; partner mix; the percentage of queries channeled through paid access points; product mix; the relative revenue growth rates of advertising revenues from different channels; and revenue share terms.\n\u2022We have raised capital through external financing in the form of debt and we may continue to seek debt or other forms of financing in the future to support our capital and operating needs.\nIn 2025, we raised capital through the issuance of debt and we expect to continue to assess the use of debt and other forms of financing in the future. We expect to continue to enter into finance leases, primarily for data centers. Additionally, in 2025, we provided credit support, such as through backstops and guarantees, to certain infrastructure related counterparties and may continue to provide additional credit support in the future.\n\u2022We face an evolving regulatory environment, and we are subject to claims, lawsuits, investigations, and other forms of potential legal liability, which could affect our business practices and financial results.\nChanges in social, political, economic, tax, and regulatory conditions or in laws and policies governing a wide range of topics and related legal matters, including investigations, lawsuits, and regulatory actions, have resulted in fines and caused us to change our business practices. As the regulatory environment continues to evolve, we may continue to incur fines and we expect increased costs associated with compliance, modifications to our products and services, and limitations on our ability to pursue certain business practices. For additional information, see Part I, Item 1A Risk Factors and Legal Matters in Note 10 of the Notes to Consolidated Financial Statements included in Item 8 of this Annual Report on Form 10-K.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm"
+    },
+    {
+     "id": "GOOGL-0077",
+     "company": "Alphabet Inc.",
+     "section": "Item 7 \u00b7 MD&A",
+     "text": "As of December 31, 2025, we have entered into leases primarily related to data centers that have not yet commenced with short-term and long-term future lease payments of $5.8 billion and $52.7 billion, respectively. These leases will commence between 2026 and 2031 with non-cancelable lease terms primarily between one and 25 years.\nIn January 2026, we executed a power purchase agreement which we expect to be accounted for as a lease resulting in future payments depending on certain agreement terms of $9.9 billion between 2027 and 2047. If certain contractual conditions for the project are not met, we would instead make a one-time payment of approximately $3.5 billion and assume ownership of the power generating assets.\n38.\nTable of Contents | Alphabet Inc.\nFor additional information on leases, see Note 4 of the Notes to Consolidated Financial Statements included in Item 8 of this Annual Report on Form 10-K.\nFinancing\nAs of December 31, 2025, we had senior unsecured notes outstanding with a total carrying value of $48.5 billion, of which $2.0 billion was short-term. The associated short-term and long-term future interest payments were $1.8 billion and $35.7 billion, respectively.\nDuring 2025, we issued $22.5 billion of US dollar-denominated senior unsecured notes and \u20ac13.25 billion of euro-denominated senior unsecured notes for general corporate purposes, comprised of the following:\n\u2022May 2025: We issued $5.0 billion of US dollar-denominated fixed-rate senior unsecured notes with a weighted-average coupon rate of 4.89%, and a weighted-average maturity of approximately 24 years. We also issued \u20ac6.75 billion of euro-denominated fixed-rate senior unsecured notes with a weighted-average coupon rate of 3.31%, and a weighted-average maturity of approximately 14 years.\n\u2022November 2025: We issued $500 million of US dollar-denominated floating-rate senior unsecured notes and $17.0 billion of US dollar-denominated fixed-rate senior unsecured notes with a weighted-average coupon rate of 4.92% and a weighted-average maturity of approximately 20 years. We also issued \u20ac6.5 billion of euro-denominated fixed-rate senior unsecured notes with a weighted-average coupon rate of 3.44% and a weighted-average maturity of approximately 16 years.\nAs of December 31, 2025, we had $10.0 billion of revolving credit facilities, $4.0 billion expiring in April 2026 and $6.0 billion expiring in April 2030. No amounts have been borrowed under the credit facilities. We also have a commercial paper program of up to $25.0 billion, which is used for general corporate purposes. As of December 31, 2025, we had no commercial paper outstanding.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm"
+    }
+   ],
+   "retrieved": [
+    "GOOGL-0068",
+    "GOOGL-0072",
+    "GOOGL-0071",
+    "GOOGL-0077",
+    "GOOGL-0110",
+    "GOOGL-0062"
+   ],
+   "note": "A real miss, and the useful kind. The figure is in the filing: $91,447 million, labelled \"Purchases of property and equipment\" in the cash-flow statement (GOOGL-0095). The words \"capital expenditures\" never sit next to the number, so search didn't return that passage, and the assistant declined instead of guessing. Fix: expand finance synonyms in the query.",
+   "cost_usd": 0.00399,
+   "tokens": 4243
+  },
+  {
+   "question": "Which firm audits Apple's financial statements?",
+   "found": true,
+   "answer": "Apple\u2019s financial statements are audited by Ernst & Young LLP for fiscal year 2025. The audit reports are signed by Ernst & Young LLP. [AAPL-0081] [AAPL-0083]",
+   "value_usd_millions": null,
+   "citations": [
+    {
+     "id": "AAPL-0081",
+     "company": "Apple Inc.",
+     "section": "Item 8 \u00b7 Financial Statements",
+     "text": "We have audited the accompanying consolidated balance sheets of Apple Inc. (the \u201cCompany\u201d) as of September 27, 2025 and September 28, 2024, the related consolidated statements of operations, comprehensive income, shareholders\u2019 equity and cash flows for each of the three years in the period ended September 27, 2025, and the related notes (collectively referred to as the \u201cfinancial statements\u201d). In our opinion, the financial statements present fairly, in all material respects, the financial position of the Company at September 27, 2025 and September 28, 2024, and the results of its operations and its cash flows for each of the three years in the period ended September 27, 2025, in conformity with U.S. generally accepted accounting principles (\u201cGAAP\u201d).\nWe also have audited, in accordance with the standards of the Public Company Accounting Oversight Board (United States) (\u201cPCAOB\u201d), the Company\u2019s internal control over financial reporting as of September 27, 2025, based on criteria established in Internal Control \u2013 Integrated Framework issued by the Committee of Sponsoring Organizations of the Treadway Commission (2013 framework) and our report dated October 31, 2025 expressed an unqualified opinion thereon.\nBasis for Opinion\nThese financial statements are the responsibility of the Company\u2019s management. Our responsibility is to express an opinion on the Company\u2019s financial statements based on our audits. We are a public accounting firm registered with the PCAOB and are required to be independent with respect to the Company in accordance with the U.S. federal securities laws and the applicable rules and regulations of the Securities and Exchange Commission and the PCAOB.\nWe conducted our audits in accordance with the standards of the PCAOB. Those standards require that we plan and perform the audit to obtain reasonable assurance about whether the financial statements are free of material misstatement, whether due to error or fraud. Our audits included performing procedures to assess the risks of material misstatement of the financial statements, whether due to error or fraud, and performing procedures that respond to those risks. Such procedures included examining, on a test basis, evidence regarding the amounts and disclosures in the financial statements. Our audits also included evaluating the accounting principles used and significant estimates made by management, as well as evaluating the overall presentation of the financial statements. We believe that our audits provide a reasonable basis for our opinion.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    },
+    {
+     "id": "AAPL-0083",
+     "company": "Apple Inc.",
+     "section": "Item 8 \u00b7 Financial Statements",
+     "text": "Apple Inc. | 2025 Form 10-K | 49\nHow We Addressed theMatter in Our Audit | We tested controls relating to the evaluation of uncertain tax positions, including controls over management\u2019s assessment as to whether tax positions are more likely than not to be sustained, management\u2019s process to measure the benefit of its tax positions that qualify for recognition, and the related disclosures.We evaluated the Company\u2019s assessment of which tax positions are more likely than not to be sustained and the related measurement of the amount of tax benefit that qualifies for recognition. Our audit procedures included, among others, reading and evaluating management\u2019s assumptions and analysis, and, as applicable, the Company\u2019s communications with taxing authorities, that detailed the basis and technical merits of the uncertain tax positions. We involved our tax subject matter resources in assessing the technical merits of certain of the Company\u2019s tax positions based on our knowledge of relevant tax laws and experience with related taxing authorities. In addition, we evaluated the Company\u2019s disclosure in relation to these matters included in Note 7 to the financial statements.\n/s/ Ernst & Young LLP\nWe have served as the Company\u2019s auditor since 2009.\nSan Jose, California\nOctober 31, 2025\nApple Inc. | 2025 Form 10-K | 50\nReport of Independent Registered Public Accounting Firm\nTo the Shareholders and the Board of Directors of Apple Inc.\nOpinion on Internal Control Over Financial Reporting\nWe have audited Apple Inc.\u2019s internal control over financial reporting as of September 27, 2025, based on criteria established in Internal Control \u2013 Integrated Framework issued by the Committee of Sponsoring Organizations of the Treadway Commission (2013 framework) (the \u201cCOSO criteria\u201d). In our opinion, Apple Inc. (the \u201cCompany\u201d) maintained, in all material respects, effective internal control over financial reporting as of September 27, 2025, based on the COSO criteria.\nWe also have audited, in accordance with the standards of the Public Company Accounting Oversight Board (United States) (\u201cPCAOB\u201d), the consolidated balance sheets of the Company as of September 27, 2025 and September 28, 2024, the related consolidated statements of operations, comprehensive income, shareholders\u2019 equity and cash flows for each of the three years in the period ended September 27, 2025, and the related notes and our report dated October 31, 2025 expressed an unqualified opinion thereon.",
+     "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    }
+   ],
+   "retrieved": [
+    "AAPL-0083",
+    "AAPL-0081",
+    "AAPL-0080",
+    "AAPL-0085",
+    "AAPL-0082",
+    "AAPL-0093"
+   ],
+   "note": null,
+   "cost_usd": 0.00267,
+   "tokens": 3026
+  },
+  {
+   "question": "How many employees does Tesla have?",
+   "found": false,
+   "answer": "The filings provided do not state how many employees Tesla has.",
+   "value_usd_millions": null,
+   "citations": [
+    {
+     "id": "NVDA-0023",
+     "company": "NVIDIA CORP",
+     "section": "Item 1 \u00b7 Business",
+     "text": "Additionally, restrictions imposed by the Chinese government on the duration of gaming activities and access to games may adversely affect our Gaming revenue, and even if we are able to participate in the China data center compute market, increased oversight of digital platform companies may adversely affect our Data Center revenue. The Chinese government has encouraged customers to purchase from our China-based competitors and discouraged customers from purchasing, importing, or using our data center products, including any China-specific product designed to comply with U.S. export controls.\nWhile we work to enhance the resiliency and redundancy of our supply chain, which is currently concentrated in Asia, new and existing export controls or changes to existing export controls could limit alternative manufacturing locations and negatively impact our business. Refer to \u201cItem 1A. Risk Factors \u2013 Risks Related to Regulatory, Legal, Our Stock, and Other Matters\u201d for a discussion of this potential impact.\nCompliance with laws, rules, and regulations has not otherwise had a material effect upon our capital expenditures, results of operations, or competitive position and we do not currently anticipate material capital expenditures for environmental control facilities. Compliance with existing or future governmental regulations, including, but not limited to, those pertaining to IP ownership and infringement, taxes, import and export requirements and tariffs, anti-corruption, business acquisitions, foreign exchange controls and cash repatriation restrictions, data privacy requirements, competition and antitrust, advertising, employment, product regulations, cybersecurity, environmental, health and safety requirements, the responsible use of AI, climate change, cryptocurrency, and consumer laws, could further increase our costs, impact our competitive position, and otherwise may have a material adverse impact on our business, financial condition and results of operations in subsequent periods. Refer to \u201cItem 1A. Risk Factors\u201d for a discussion of these potential impacts.\nHuman Capital Management\nAs of the end of fiscal year 2026, we had approximately 42,000 employees in 38 countries; 31,000 were engaged in research and development and 11,000 were engaged in sales, marketing, operations, and administrative positions.\nTo execute our business strategy successfully, we focus on recruiting, developing, and retaining top global talent.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+    },
+    {
+     "id": "AMZN-0006",
+     "company": "AMAZON COM INC",
+     "section": "Item 1 \u00b7 Business",
+     "text": "Intellectual Property\nWe regard our trademarks, service marks, copyrights, patents, domain names, trade dress, trade secrets, proprietary technologies, and similar intellectual property as critical to our success, and we rely on trademark, copyright, and patent law, trade-secret protection, and confidentiality and/or license agreements with our employees, customers, partners, and others to protect our proprietary rights. We have registered, or applied for the registration of, a number of U.S. and international domain names, trademarks, service marks, and copyrights. Additionally, we have filed U.S. and international patent applications covering certain of our proprietary technology.\nSeasonality\nOur business is affected by seasonality, which historically has resulted in higher sales volume during our fourth quarter, which ends December 31.\nHuman Capital\nOur employees are critical to our mission of being Earth\u2019s most customer-centric company. As of December 31, 2025, we employed approximately 1,576,000 full-time and part-time employees. Additionally, we use independent contractors and temporary personnel to supplement our workforce. Competition for qualified personnel is intense, particularly for software engineers, computer scientists, and other technical staff (including for artificial intelligence and machine learning technologies), and constrained labor markets have increased competition for personnel across other parts of our business.\nWe strive to be Earth\u2019s best employer. We rely on numerous and evolving initiatives to implement this objective and invent mechanisms for talent development, including competitive pay and benefits, flexible work arrangements, and skills training and educational programs such as Amazon Career Choice (education funding for eligible employees). Over 300,000 Amazon employees around the world have participated in Career Choice. We also continue to inspect and refine the mechanisms we use to hire, develop, evaluate, and retain our employees. In addition, safety is integral to everything we do at Amazon and we continue to invest in safety improvements such as capital improvements, new safety technology, vehicle safety controls, and engineering ergonomic solutions. Our safety team is dedicated to using the science of safety to solve complex problems and establish new industry best practices. We also provide mentorship and support resources to our employees, and have deployed numerous programs that advance employee engagement, communication, and feedback.",
+     "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+    }
+   ],
+   "retrieved": [
+    "NVDA-0023",
+    "NVDA-0111",
+    "NVDA-0026",
+    "NVDA-0110",
+    "NVDA-0139",
+    "AMZN-0006"
+   ],
+   "note": "Correct refusal: Tesla isn't one of the five filings.",
+   "cost_usd": 0.00332,
+   "tokens": 4077
+  }
+ ],
+ "eval": {
+  "model": "gpt-5.4-mini",
+  "questions": 30,
+  "seconds": 50.2,
+  "cost_usd": 0.1006,
+  "in_tokens": 115794,
+  "out_tokens": 3191,
+  "number_correct": "20/20",
+  "fact_correct": "5/5",
+  "unanswerable_correct": "5/5",
+  "number_citation_supports": "20/20",
+  "overall_correct_pct": 100.0
+ },
+ "retrieval": [
+  {
+   "mode": "keyword",
+   "k": 6,
+   "hits": 14,
+   "of": 25,
+   "recall_pct": 56.0
+  },
+  {
+   "mode": "vector",
+   "k": 6,
+   "hits": 25,
+   "of": 25,
+   "recall_pct": 100.0
+  },
+  {
+   "mode": "hybrid",
+   "k": 6,
+   "hits": 21,
+   "of": 25,
+   "recall_pct": 84.0
+  }
+ ]
+}

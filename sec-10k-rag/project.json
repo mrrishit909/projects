@@ -1,0 +1,57 @@
+{
+  "title": "Ask the 10-K",
+  "tagline": "An LLM assistant that answers questions from five companies' SEC annual reports, cites the passage behind every fact, and says when the answer isn't there.",
+  "kind": "LLM · RAG",
+  "tech": [
+    "Python",
+    "OpenAI API",
+    "gpt-5.4-mini",
+    "Embeddings",
+    "BM25",
+    "SEC EDGAR",
+    "XBRL"
+  ],
+  "date": "2026-10",
+  "order": 0,
+  "repo": "https://github.com/mrrishit909/sec-10k-rag",
+  "demo": "demo/",
+  "demo_label": "Try the recorded demo",
+  "cover": "cover.jpg",
+  "note": "The demo shows recorded answers. This site is static, so it never calls the API or holds a key.",
+  "problem": "<p>A 10-K annual report runs to hundreds of pages, and analysts search them constantly: <em>what was operating income, what are the export-control risks, who's the auditor?</em> A chatbot can answer fluently, but a fluent wrong number is worse than no answer. The question here is whether an LLM can answer <b>only</b> from the filings, show exactly where each fact came from, and admit when the answer isn't there.</p>",
+  "built": "<p>A retrieval-augmented generation (RAG) pipeline over the latest 10-Ks of Apple, Microsoft, Amazon, Alphabet and NVIDIA, pulled from SEC EDGAR:</p><ul><li><b>Parsing:</b> HTML to clean text with 10-K sections labelled and every table row kept on one line, cut into 730 passages.</li><li><b>Search:</b> keyword (BM25), meaning (OpenAI embeddings) and a hybrid of the two, compared on a test set.</li><li><b>Answering:</b> gpt-5.4-mini answers from the top 6 passages only, cites passage ids, returns figures in millions, and says <code>found: false</code> when it can't find the answer.</li><li><b>Grading:</b> 30 questions, with right answers taken from the SEC's structured XBRL data, which the model never sees.</li><li><b>A static demo</b> of recorded answers, with each cited passage and the figure highlighted.</li></ul>",
+  "steps": [
+    {
+      "title": "Download five 10-Ks from the SEC",
+      "body": "<p>EDGAR's submissions API gives each company's latest 10-K. The SEC asks automated clients to identify themselves, so requests carry a contact address. The same script pulls each company's XBRL \"company facts\", the SEC's machine-readable financial numbers, which are later used only to grade answers.</p>"
+    },
+    {
+      "title": "Turn HTML into passages that keep tables readable",
+      "body": "<p>Filings are inline-XBRL HTML: a hidden data header, then text and tables. The parser skips the hidden part, labels sections (Item 1A Risk Factors, Item 7 MD&A, Item 8 Financial Statements…), and keeps each table row on one line. My first version put every table cell on its own line, which loses which number belongs to which row and year, so financial questions would have failed.</p>",
+      "code": "Year Ended June 30, | 2026 | 2025 | 2024\nTotal revenue | 331,839 | 281,724 | 245,122\nOperating income | 155,237 | 128,528 | 109,433\nNet income | 133,749 | 101,832 | 88,136"
+    },
+    {
+      "title": "Embed every passage",
+      "body": "<p>Each passage (with its company and section prepended) became a 1,536-number vector with OpenAI's <code>text-embedding-3-small</code>: 365,819 tokens for $0.0073. Questions are embedded the same way, and the closest passages by cosine similarity are the \"meaning\" search.</p>"
+    },
+    {
+      "title": "Search: keyword, meaning or both",
+      "body": "<p>BM25 is written from scratch, reciprocal rank fusion merges the two rankings, and a company filter keeps \"Apple's…\" questions inside Apple's filing. I expected the hybrid to win. Tested on the 25 answerable questions, top 6 passages:</p><table><tr><th>Search</th><th class=\"num\">Answer in the top 6</th></tr><tr><td>Keyword (BM25)</td><td class=\"num\">56.0%</td></tr><tr><td>Hybrid</td><td class=\"num\">84.0%</td></tr><tr><td>Meaning (embeddings)</td><td class=\"num\">100.0%</td></tr></table><p>Words like \"revenue\" and \"income\" appear in hundreds of passages, so keyword matching mostly added noise. The assistant uses meaning search.</p>"
+    },
+    {
+      "title": "Answer only from the passages, with citations",
+      "body": "<p>The six passages go to <code>gpt-5.4-mini</code> with strict rules (use only these passages, cite their ids, give money in millions, never guess) and a JSON schema the reply must match. Citations to anything not actually retrieved are dropped.</p>",
+      "code": "{\n  \"found\": true,\n  \"answer\": \"In fiscal year 2026, NVIDIA spent $18,497 million on research and development.\",\n  \"value_usd_millions\": 18497,\n  \"citations\": [\"NVDA-0109\"]\n}"
+    },
+    {
+      "title": "Grade it against data the model never sees",
+      "body": "<p>20 money questions (revenue, net income, operating income and total assets for each company) are graded against XBRL values: right if within 0.5%, and the citation must contain the figure. Five fact questions need specific words (\"Deloitte\", \"North America, International, AWS\"…). Five questions must be refused: Tesla isn't in the set, 2030 is the future, and so on.</p>"
+    },
+    {
+      "title": "Record a demo, including a miss",
+      "body": "<p>Eight showcase questions were recorded for the website (2.7 cents). One is a real miss worth showing: Alphabet's 2025 capital expenditures are in the filing as \"purchases of property and equipment\" ($91,447 million), so a question saying \"capital expenditures\" didn't retrieve that passage, and the assistant declined instead of inventing a number. That vocabulary gap is the next thing to fix.</p>"
+    }
+  ],
+  "results": "<table><tr><th>Test</th><th class=\"num\">Score</th></tr><tr><td>Money answers within 0.5% of XBRL</td><td class=\"num\">20/20</td></tr><tr><td>Their citations contain the figure</td><td class=\"num\">20/20</td></tr><tr><td>Fact questions</td><td class=\"num\">5/5</td></tr><tr><td>Correct refusals</td><td class=\"num\">5/5</td></tr><tr><td>Cost and time for all 30</td><td class=\"num\">$0.10 · 50 s</td></tr></table><p>That's about a third of a cent per question. Honest limits: 30 fairly direct questions is a small, friendly test, and the capex example shows how unusual wording can still miss.</p>",
+  "next": "<ul><li>Expand finance synonyms in the query (\"capex\" → \"purchases of property and equipment\") and re-test.</li><li>Add a reranker and harder questions: comparisons across companies, ratios, multi-step reasoning.</li><li>A small server so the demo can take live questions without exposing the key.</li></ul>"
+}

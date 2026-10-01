@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the 10-K</title>
+<meta name="description" content="Recorded answers from a retrieval-augmented assistant over five companies' 10-K filings, with cited passages and a graded test set.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d;--ok:#3aa876;--no:#d95926}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.55;padding:32px 40px 60px;-webkit-font-smoothing:antialiased}
+main{max-width:1180px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:3px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:28px;margin-bottom:6vh}nav a{text-decoration:none}
+h1{margin:10px 0 14px;font-size:clamp(44px,8vw,96px);line-height:.95;font-weight:500;letter-spacing:-.045em}
+.lede{margin:0;max-width:64ch;color:var(--dim);font-size:clamp(16px,1.7vw,19px)}
+.lede b{color:var(--fg);font-weight:500}
+.app{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:28px;margin-top:44px;padding-top:24px;border-top:1px solid var(--line)}
+.qs{list-style:none;margin:0;padding:0;display:grid;gap:6px;align-content:start}
+.qs button{width:100%;text-align:left;font:inherit;font-size:15px;line-height:1.4;color:var(--dim);background:none;border:1px solid transparent;border-radius:10px;padding:10px 12px;cursor:pointer}
+.qs button:hover{color:var(--fg)}
+.qs button[aria-pressed="true"]{color:var(--fg);background:var(--card);border-color:var(--line)}
+.panel{min-width:0}
+.badge{display:inline-flex;align-items:center;gap:8px}
+.badge i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.badge.no i{background:var(--no)}
+.q{margin:10px 0 14px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;font-weight:500;letter-spacing:-.02em}
+.a{margin:0;font-size:18px;line-height:1.55}
+.meta{margin-top:10px}
+.note{margin:16px 0 0;padding-left:14px;border-left:1px solid var(--faint);color:var(--dim);font-size:14px}
+.cites{margin-top:26px;display:grid;gap:12px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+summary{cursor:pointer;font-size:14px;color:var(--fg)}
+summary span{color:var(--dim)}
+pre{margin:10px 0 0;white-space:pre-wrap;font:13px/1.55 "Geist Mono",ui-monospace,Menlo,monospace;color:#c9c9c6;max-height:320px;overflow:auto}
+mark{background:#3aa87633;color:var(--fg);border-radius:3px;padding:0 2px}
+.score{margin-top:52px;padding-top:24px;border-top:1px solid var(--line)}
+.score h2{margin:0 0 6px;font-size:24px;font-weight:500;letter-spacing:-.02em}
+.score p{max-width:72ch;color:#c9c9c6}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.tile b{display:block;font-size:30px;font-weight:500;letter-spacing:-.02em;margin-top:4px}
+table{border-collapse:collapse;font-size:14px;margin-top:8px}
+th,td{padding:7px 18px 7px 0;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+footer{margin-top:48px;color:var(--faint)}
+@media (max-width:820px){body{padding:20px 20px 40px}.app{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/sec-10k-rag/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">LLM · RAG · SEC EDGAR</p>
+<h1>Ask the 10-K</h1>
+<p class="lede">An assistant that answers questions from five companies' latest annual reports (Apple, Microsoft, Amazon,
+Alphabet, NVIDIA) and <b>cites the passage behind every fact</b>, or says the filings don't contain the answer.
+These are <b>recorded</b> answers: this page is static, so it never calls the API or holds a key.</p>
+
+<section class="app">
+  <ul class="qs" id="qs" aria-label="Questions"></ul>
+  <div class="panel" id="panel" aria-live="polite"></div>
+</section>
+
+<section class="score">
+  <h2>How it scores</h2>
+  <p>30 test questions: 20 money questions graded against the SEC's own structured financial data (XBRL, which the assistant never
+  sees), 5 fact questions, and 5 it should refuse. A money answer counts if it's within 0.5% and the cited passage contains the figure.</p>
+  <div class="tiles" id="tiles"></div>
+  <p class="cap" style="margin-top:22px">Search: share of answerable test questions with the answer in the top 6 passages</p>
+  <table id="ret"><thead><tr><th>Search method</th><th class="n">Recall</th></tr></thead><tbody></tbody></table>
+  <p style="margin-top:14px">Meaning search beat the hybrid I expected to win, so the assistant uses it. 30 direct questions is a small test: a real
+  question with unusual wording can still miss, like the Alphabet capital-expenditures example above.</p>
+</section>
+<footer class="cap" id="foot"></footer>
+</main>
+<script>
+(async function () {
+  const d = await (await fetch("demo.json")).json();
+  const qs = document.getElementById("qs"), panel = document.getElementById("panel");
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  // passage text with the answer's figures highlighted, built from text nodes (never innerHTML)
+  function highlighted(text, answer) {
+    const nums = [...new Set((answer.match(/\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{4,}/g) || []))].filter(n => !/^20\d\d$/.test(n));
+    const pre = el("pre");
+    if (!nums.length) { pre.textContent = text; return pre; }
+    const re = new RegExp("(" + nums.map(n => n.replace(/[.,]/g, m => "\\" + m)).join("|") + ")", "g");
+    text.split(re).forEach((part, i) => pre.appendChild(i % 2 ? el("mark", null, part) : document.createTextNode(part)));
+    return pre;
+  }
+
+  function show(i) {
+    const it = d.items[i];
+    [...qs.querySelectorAll("button")].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+    panel.replaceChildren();
+    const badge = el("p", "cap badge" + (it.found ? "" : " no")); badge.append(el("i"), it.found ? "Answered from the filings" : "Not in the passages found");
+    panel.append(badge, el("p", "q", it.question), el("p", "a", it.answer.replace(/\s*\[[A-Z]+-\d{4}\]/g, "")));
+    panel.append(el("p", "cap meta", `${it.citations.length} cited passage${it.citations.length === 1 ? "" : "s"} · ${it.tokens.toLocaleString()} tokens · $${it.cost_usd.toFixed(4)}`));
+    if (it.note) panel.append(el("p", "note", it.note));
+    const cites = el("div", "cites");
+    it.citations.forEach((c, j) => {
+      const det = el("details"); if (j === 0) det.open = true;
+      const sum = el("summary"); sum.append(c.id + "  ", el("span", null, `${c.company} 10-K · ${c.section}`));
+      const src = el("p", "cap"); const a = el("a", null, "Open the filing on SEC.gov ↗"); a.href = c.url; a.target = "_blank"; a.rel = "noopener"; src.append(a);
+      det.append(sum, highlighted(c.text, it.answer), src);
+      cites.append(det);
+    });
+    panel.append(cites);
+    // bring each passage's first highlighted figure into view
+    requestAnimationFrame(() => cites.querySelectorAll("pre").forEach(pre => {
+      const m = pre.querySelector("mark"); if (m) pre.scrollTop = Math.max(0, m.offsetTop - pre.offsetTop - 60);
+    }));
+  }
+
+  d.items.forEach((it, i) => { const li = el("li"); const b = el("button", null, it.question); b.type = "button"; b.onclick = () => show(i); li.append(b); qs.append(li); });
+  show(0);
+
+  const e = d.eval, tiles = document.getElementById("tiles");
+  [["Money answers right", e.number_correct], ["Citations contain the figure", e.number_citation_supports],
+   ["Correct refusals", e.unanswerable_correct], ["Cost for all 30", "$" + e.cost_usd.toFixed(2)]]
+    .forEach(([l, v]) => { const t = el("div", "tile"); t.append(el("span", "cap", l), el("b", null, v)); tiles.append(t); });
+  const names = { keyword: "Keyword (BM25)", vector: "Meaning (embeddings)", hybrid: "Hybrid (both, rank-fused)" };
+  const tb = document.querySelector("#ret tbody");
+  d.retrieval.forEach(r => { const tr = el("tr"); tr.append(el("td", null, names[r.mode]), el("td", "n", r.recall_pct + "%")); tb.append(tr); });
+  document.getElementById("foot").textContent = `Answers: ${d.model} · search: ${d.embed_model} · filings from SEC EDGAR · Rishit Raj Mathur`;
+})();
+</script>
+</body></html>
