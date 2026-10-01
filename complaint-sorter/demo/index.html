@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complaint Sorter</title>
+<meta name="description" content="Recorded results: an LLM sorts 480 real NHTSA vehicle-safety complaints into 12 components, compared with the owners' own filing and a classic classifier.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d;--ok:#3aa876;--no:#d95926}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.55;padding:32px 40px 60px;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:3px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:28px;margin-bottom:6vh}nav a{text-decoration:none}
+h1{margin:10px 0 14px;font-size:clamp(44px,8vw,96px);line-height:.95;font-weight:500;letter-spacing:-.045em}
+.lede{margin:0;max-width:66ch;color:var(--dim);font-size:clamp(16px,1.7vw,19px)}.lede b{color:var(--fg);font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:34px 0 10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.tile b{display:block;font-size:30px;font-weight:500;letter-spacing:-.02em;margin-top:4px}
+.tile span{color:var(--dim);font-size:13px}
+.note{margin:8px 0 0;max-width:80ch;color:#c9c9c6;font-size:15px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:40px 0 16px;padding-top:22px;border-top:1px solid var(--line)}
+select,input[type=search]{font:inherit;font-size:14px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+input[type=search]{flex:1;min-width:180px}
+label.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--dim);cursor:pointer}
+#count{margin:0 0 12px}
+.list{display:grid;gap:12px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+.k{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-right:6px}
+.v{font-size:14px}
+.v i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--ok)}
+.v.bad i{background:var(--no)}
+.sum{margin:10px 0 0;font-size:17px;line-height:1.45}
+.txt{margin:10px 0 0;color:#b9b9b6;font-size:14px;white-space:pre-wrap}
+.txt.clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.more{font:inherit;font-size:12px;color:var(--dim);background:none;border:0;padding:4px 0 0;cursor:pointer;text-decoration:underline}
+.rev{margin:10px 0 0;padding-left:12px;border-left:1px solid var(--faint);color:var(--dim);font-size:14px}
+.rev b{color:var(--fg);font-weight:500}
+#load{margin:18px 0 0;font:inherit;font-size:14px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 16px;cursor:pointer}
+footer{margin-top:48px;color:var(--faint)}
+@media (max-width:820px){body{padding:20px 20px 40px}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/complaint-sorter/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">LLM · Text classification · NHTSA complaints</p>
+<h1>Complaint Sorter</h1>
+<p class="lede">480 real vehicle-safety complaints filed with NHTSA in 2026. An LLM read each one and picked the part
+that failed (12 categories), flagged crashes or fires, and wrote a one-line summary, <b>with no labelled examples</b>.
+It is compared with the category the <b>owner filed it under</b> and with a classic word-count model trained on
+35,000 older complaints. These are <b>recorded</b> results; this page never calls the API.</p>
+<div class="tiles" id="tiles"></div>
+<p class="note" id="note"></p>
+
+<div class="controls">
+  <label class="cap" for="cat">Owner filed under</label>
+  <select id="cat"><option value="">All 12 categories</option></select>
+  <label class="chk"><input type="checkbox" id="dis"> LLM disagrees with the owner</label>
+  <input type="search" id="q" placeholder="Search the complaints…" aria-label="Search the complaints">
+</div>
+<p class="cap" id="count" aria-live="polite"></p>
+<div class="list" id="list"></div>
+<button id="load" hidden>Show more</button>
+<footer class="cap">Data: NHTSA Office of Defects Investigation complaints (public domain) · model gpt-5.4-mini · code github.com/mrrishit909/complaint-sorter</footer>
+</main>
+<script>
+(async function () {
+  const d = await (await fetch("demo.json")).json();
+  const ev = d.evaluation, rv = d.review;
+  const pct = (x, k = 1) => (100 * x).toFixed(k) + "%";
+  const nice = (s) => s.charAt(0) + s.slice(1).toLowerCase().replace("adas", "ADAS");
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+  document.getElementById("tiles").innerHTML = [
+    ["LLM matches the owner", pct(ev.llm.accuracy), "no labelled examples"],
+    ["Classic model matches", pct(ev.baseline.accuracy), "trained on 35,187 complaints"],
+    ["Crash / fire flag agrees", pct(ev.crash_or_fire.agreement), `${ev.crash_or_fire.owner_ticked} owners ticked it`],
+    ["LLM cost", "$" + ev.llm_cost_per_1000.toFixed(2), "per 1,000 complaints"],
+  ].map(([k, v, s]) => `<div class="tile"><span class="cap">${k}</span><b>${v}</b><span>${s}</span></div>`).join("");
+  const vd = rv.verdicts;
+  document.getElementById("note").innerHTML =
+    `The LLM's lead is not proven: it won ${ev.paired.llm_right_baseline_wrong} complaints the classic model missed and lost ` +
+    `${ev.paired.baseline_right_llm_wrong} (exact McNemar p = ${ev.paired.mcnemar_exact_p.toFixed(2)}). Each of its ${rv.disagreements} disagreements ` +
+    `with the owner was read: <b>${vd.label}</b> are LLM mistakes, <b>${vd.llm}</b> fit the LLM's category better than the owner's, ` +
+    `<b>${vd.both}</b> could go either way, and <b>${vd.no_info}</b> don't say what failed.`;
+
+  const sel = document.getElementById("cat");
+  d.categories.forEach((c) => sel.insertAdjacentHTML("beforeend", `<option value="${esc(c)}">${esc(nice(c))}</option>`));
+  const VERDICT = {llm: "fits the LLM's category better", label: "LLM mistake", both: "either is reasonable", no_info: "text doesn't say what failed"};
+  let shown = 0, rows = [];
+  const card = (r) => {
+    const ok = r.llm === r.owner, bok = r.base === r.owner;
+    return `<article class="c">
+      <div class="row"><span class="v"><span class="k">Owner filed</span>${esc(nice(r.owner))}</span>
+      <span class="v ${ok ? "" : "bad"}"><i></i><span class="k">LLM</span>${esc(nice(r.llm))}</span>
+      <span class="v ${bok ? "" : "bad"}"><i></i><span class="k">Classic model</span>${esc(nice(r.base))}</span>
+      <span class="v"><span class="k">Crash/fire</span>owner ${r.owner_crash_fire ? "yes" : "no"} · LLM ${r.llm_crash_fire ? "yes" : "no"}</span></div>
+      <p class="sum">${esc(r.llm_summary)}</p>
+      <p class="txt clip">${esc(r.text)}</p><button class="more" type="button">Show the owner's full text</button>
+      ${r.verdict ? `<p class="rev"><b>Review: ${VERDICT[r.verdict]}.</b> ${esc(r.reason)}</p>` : ""}
+      <p class="cap" style="margin:10px 0 0">${esc(r.make)} · filed ${esc(r.filed)} · NHTSA ${r.id}</p></article>`;
+  };
+  const list = document.getElementById("list"), more = document.getElementById("load");
+  function page() {
+    list.insertAdjacentHTML("beforeend", rows.slice(shown, shown + 30).map(card).join(""));
+    shown = Math.min(shown + 30, rows.length);
+    more.hidden = shown >= rows.length;
+  }
+  function render() {
+    const c = sel.value, dis = document.getElementById("dis").checked, q = document.getElementById("q").value.trim().toLowerCase();
+    rows = d.complaints.filter((r) => (!c || r.owner === c) && (!dis || r.llm !== r.owner) && (!q || r.text.toLowerCase().includes(q) || r.llm_summary.toLowerCase().includes(q)));
+    const right = rows.filter((r) => r.llm === r.owner).length;
+    document.getElementById("count").textContent = rows.length ? `${rows.length} complaints · LLM matches the owner on ${right}` : "No complaints match";
+    list.innerHTML = ""; shown = 0; page();
+  }
+  list.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("more")) return;
+    const t = e.target.previousElementSibling; t.classList.toggle("clip");
+    e.target.textContent = t.classList.contains("clip") ? "Show the owner's full text" : "Show less";
+  });
+  more.addEventListener("click", page);
+  sel.addEventListener("change", render);
+  document.getElementById("dis").addEventListener("change", render);
+  document.getElementById("q").addEventListener("input", render);
+  render();
+})();
+</script>
+</body>
+</html>
