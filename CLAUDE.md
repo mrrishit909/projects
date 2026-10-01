@@ -34,7 +34,7 @@ and reads the card's shape from the video, so nothing is declared in `project.js
 ## How the home page works (so it can be changed safely)
 
 * `index.template.html` is the markup and CSS; `home.js` is the WebGL carousel; `build.py` fills in the project list and writes `index.html`.
-* All text and cards are drawn by one three.js canvas so a single swirl, driven by scroll speed, bends everything. The feel is a few
-  constants at the top of `home.js` (`SWIRL`, `FOLLOW`, `MOMENTUM`, ...).
+* All text and cards are drawn by one three.js canvas; while you scroll the row of cards bends into a shallow curve (text stays still). The feel is a few
+  constants at the top of `home.js` (`BEND`, `SHRINK`, `FOLLOW`, `MOMENTUM`, ...).
 * `vendor/` holds three.js and the Geist font (self-hosted; licences alongside).
 * Case-study pages use `site.css`. A project marked `"frozen": true` in its `project.json` is never rebuilt.
