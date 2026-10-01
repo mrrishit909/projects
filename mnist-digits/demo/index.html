@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw a Digit</title>
+<meta name="description" content="Draw a digit and watch a neural network trained on MNIST read it, with the 28x28 image it actually sees.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d;--up:#3987e5}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:980px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:24px;margin-bottom:28px}nav a{text-decoration:none}
+h1{margin:6px 0 6px;font-size:clamp(32px,5vw,56px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:70ch}
+.app{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;margin-top:26px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+#pad{display:block;width:280px;height:280px;background:#000;border:1px solid #2a2a2a;border-radius:10px;touch-action:none;cursor:crosshair}
+button{font:inherit;font-size:14px;color:var(--fg);background:#111;border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;margin-top:10px}
+.guess{font-size:96px;line-height:1;font-weight:500;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.conf{color:var(--dim)}
+.bars{display:grid;gap:4px;margin-top:14px;font-size:13px}
+.bars div{display:grid;grid-template-columns:16px minmax(0,1fr) 48px;gap:8px;align-items:center}
+.bars i{display:block;height:8px;border-radius:2px;background:#222}.bars i b{display:block;height:100%;border-radius:2px;background:var(--up)}
+.bars span:last-child{text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+.sees{display:flex;gap:14px;align-items:center;margin-top:16px}
+#seen{width:112px;height:112px;image-rendering:pixelated;border:1px solid #2a2a2a;border-radius:6px;background:#000}
+.note{margin-top:14px;color:var(--dim);font-size:13px}
+footer{margin-top:28px;color:var(--faint);font-size:12px}
+@media (max-width:700px){body{padding:18px 16px 40px}.app{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/mnist-digits/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Neural network in your browser · MNIST</p>
+<h1>Draw a digit</h1>
+<p class="lede">Draw one digit, 0-9, in the black square. A small neural network (one hidden layer, <span id="acc">98%</span> accurate on
+MNIST's 10,000 test images) reads it as you draw. On the right is the 28 × 28 image it actually sees, prepared the way
+MNIST's digits were.</p>
+<div class="app">
+  <section class="card"><canvas id="pad" width="280" height="280" aria-label="Drawing area"></canvas><button id="clear" type="button">Clear</button></section>
+  <section class="card" aria-live="polite">
+    <span class="cap">The network reads</span>
+    <div class="guess" id="guess">–</div><div class="conf" id="conf">Draw something</div>
+    <div class="bars" id="bars"></div>
+    <div class="sees"><canvas id="seen" width="28" height="28"></canvas><p class="note" style="margin:0">What the model sees: your drawing cropped, scaled into a 20 × 20 box and centred by its
+    centre of mass in a 28 × 28 frame, exactly as MNIST was prepared.</p></div>
+    <p class="note">Handwriting from a mouse or finger looks different from 1990s pen on paper, so expect more mistakes than on the test
+    set: thin strokes, very small digits or a crossed 7 often confuse it.</p>
+  </section>
+</div>
+<footer>Model: scikit-learn MLP (784 → 128 → 10) trained on MNIST (LeCun, Cortes and Burges; CC BY-SA 3.0); weights stored as 16-bit integers in model.json. Runs entirely in your browser.</footer>
+</main>
+<script>
+(async function () {
+  const M = await (await fetch("model.json")).json();
+  const unpack = (p) => { const b = atob(p.data), a = new Int16Array(b.length / 2);
+    for (let i = 0; i < a.length; i++) { const v = b.charCodeAt(2 * i) | (b.charCodeAt(2 * i + 1) << 8); a[i] = v > 32767 ? v - 65536 : v; }
+    return Float32Array.from(a, (v) => v * p.scale); };
+  const W1 = unpack(M.W1), W2 = unpack(M.W2), b1 = unpack(M.b1), b2 = unpack(M.b2);
+  const H = M.b1.shape[0];
+  document.getElementById("acc").textContent = (100 * M.accuracy).toFixed(1) + "%";
+
+  const pad = document.getElementById("pad"), ctx = pad.getContext("2d");
+  const reset = () => { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 280, 280); };
+  reset();
+  ctx.lineCap = ctx.lineJoin = "round"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 20;
+  let drawing = false, last = null;
+  const pos = (e) => { const r = pad.getBoundingClientRect(); return [(e.clientX - r.left) * 280 / r.width, (e.clientY - r.top) * 280 / r.height]; };
+  pad.addEventListener("pointerdown", (e) => { drawing = true; last = pos(e); pad.setPointerCapture(e.pointerId); stroke(last); });
+  pad.addEventListener("pointermove", (e) => { if (drawing) stroke(pos(e)); });
+  const end = () => { drawing = false; last = null; };
+  pad.addEventListener("pointerup", end); pad.addEventListener("pointercancel", end);
+  function stroke(p) { ctx.beginPath(); ctx.moveTo(...last); ctx.lineTo(...p); ctx.stroke(); last = p; predict(); }
+  document.getElementById("clear").onclick = () => { reset(); show(null); seen.getContext("2d").clearRect(0, 0, 28, 28); };
+
+  const seen = document.getElementById("seen");
+  function toMnist() {
+    const px = ctx.getImageData(0, 0, 280, 280).data;
+    let x0 = 280, y0 = 280, x1 = -1, y1 = -1;
+    for (let y = 0; y < 280; y++) for (let x = 0; x < 280; x++) if (px[4 * (y * 280 + x)] > 30) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    if (x1 < 0) return null;
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, s = 20 / Math.max(bw, bh);
+    const tmp = document.createElement("canvas"); tmp.width = tmp.height = 28;
+    const t = tmp.getContext("2d"); t.fillStyle = "#000"; t.fillRect(0, 0, 28, 28); t.imageSmoothingQuality = "high";
+    t.drawImage(pad, x0, y0, bw, bh, (28 - bw * s) / 2, (28 - bh * s) / 2, bw * s, bh * s);
+    const g = t.getImageData(0, 0, 28, 28).data;
+    let sum = 0, cx = 0, cy = 0;
+    for (let i = 0; i < 784; i++) { const v = g[4 * i]; sum += v; cx += v * (i % 28); cy += v * Math.floor(i / 28); }
+    const dx = Math.round(13.5 - cx / sum), dy = Math.round(13.5 - cy / sum);
+    const s2 = seen.getContext("2d"); s2.fillStyle = "#000"; s2.fillRect(0, 0, 28, 28); s2.drawImage(tmp, dx, dy);
+    const out = s2.getImageData(0, 0, 28, 28).data;
+    return Float32Array.from({ length: 784 }, (_, i) => out[4 * i] / 255);
+  }
+  function predict() {
+    const x = toMnist();
+    if (!x) return show(null);
+    const h = new Float32Array(H);
+    for (let j = 0; j < H; j++) { let s = b1[j]; for (let i = 0; i < 784; i++) if (x[i]) s += x[i] * W1[i * H + j]; h[j] = s > 0 ? s : 0; }
+    const z = Array.from({ length: 10 }, (_, k) => { let s = b2[k]; for (let j = 0; j < H; j++) s += h[j] * W2[j * 10 + k]; return s; });
+    const m = Math.max(...z), e = z.map((v) => Math.exp(v - m)), tot = e.reduce((a, b) => a + b, 0);
+    show(e.map((v) => v / tot));
+  }
+  function show(p) {
+    const bars = document.getElementById("bars");
+    if (!p) { document.getElementById("guess").textContent = "–"; document.getElementById("conf").textContent = "Draw something"; bars.innerHTML = ""; return; }
+    const best = p.indexOf(Math.max(...p));
+    document.getElementById("guess").textContent = best;
+    document.getElementById("conf").textContent = `${(100 * p[best]).toFixed(0)}% sure`;
+    bars.innerHTML = p.map((v, d) => `<div><span>${d}</span><i><b style="width:${(100 * v).toFixed(1)}%"></b></i><span>${(100 * v).toFixed(1)}%</span></div>`).join("");
+  }
+})();
+</script>
+</body>
+</html>
