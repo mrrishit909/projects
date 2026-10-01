@@ -1,0 +1,51 @@
+{
+  "title": "How Chicago Rides",
+  "tagline": "A year of Chicago bike-share trips (6.1 million rides) in SQL: how members and casual riders differ, and where a membership campaign should go.",
+  "kind": "SQL · Analysis",
+  "tech": [
+    "SQL",
+    "SQLite",
+    "Window functions",
+    "CTEs",
+    "Python",
+    "SVG charts"
+  ],
+  "date": "2026-10",
+  "order": 1,
+  "repo": "https://github.com/mrrishit909/chicago-bike-share",
+  "demo": "report.html",
+  "demo_label": "Read the SQL report",
+  "cover": "cover.jpg",
+  "problem": "<p>Chicago's Divvy bike-share has two kinds of riders: <b>members</b> with an annual pass and <b>casual</b> riders who pay per ride or per day. A classic question for a bike-share analyst: <em>how do the two groups use the bikes differently, and where would a campaign to turn casual riders into members reach the most of them?</em> Divvy publishes every trip, so the answer can come straight from the data.</p>",
+  "built": "<p>A SQLite database of every Divvy trip from September 2025 to August 2026, a set of SQL files that each answer one question, and a one-page report that shows each answer with the SQL behind it.</p><ul><li><b>Data:</b> 6,115,982 raw rides, 5,951,516 after four documented cleaning rules.</li><li><b>SQL:</b> CTEs, window functions (<code>ROW_NUMBER</code> for medians, <code>RANK</code>, <code>LAG</code> for month-over-month change, windowed <code>SUM</code> for shares), <code>CASE</code>, date functions and indexes.</li><li><b>A second opinion:</b> a plain-Python script that recounts the answers from the raw files without SQL and must agree exactly.</li><li><b>Report:</b> question, answer in plain words, SQL, result table and chart, built from the saved results.</li></ul>",
+  "steps": [
+    {
+      "title": "Download a year of trips",
+      "body": "<p>Divvy publishes one zip per month on a public server. Twelve months (September 2025 to August 2026, about 230 MB) download in parallel in under a minute. The raw files stay out of the repo; the script can always fetch them again.</p>"
+    },
+    {
+      "title": "Load it into SQLite and clean it",
+      "body": "<p>Python's built-in <code>sqlite3</code> and <code>csv</code> modules load all 6,115,982 rows in about a minute. The clean <code>trips</code> table is built in SQL with four rules: one row per ride ID, rides between 1 minute and 24 hours, a known rider type, and a start date inside the year studied. Rides with no station, mostly e-bikes parked outside a dock, are kept; only the station questions leave them out.</p>",
+      "code": "WHERE copy_no = 1\n  AND ROUND((julianday(ended_at) - julianday(started_at)) * 86400000) BETWEEN 60000 AND 86400000\n  AND member_casual IN ('member', 'casual')\n  AND started_at >= '2025-09-01' AND started_at < '2026-09-01'"
+    },
+    {
+      "title": "Profile the data before trusting it",
+      "body": "<p>One SQL query counts what each rule removed: 35 duplicate IDs, 158,904 rides under a minute, 5,302 over a day, and 225 rides that started on August 31 but sat in the September file (caught when the month query showed a stray August). The counts add up exactly to the 5,951,516 rides kept.</p>"
+    },
+    {
+      "title": "Answer six questions in SQL",
+      "body": "<p>Each question is its own <code>.sql</code> file: rider types, hour of day, day of week, month, where casual riders start, their routes, and ride length. SQLite has no <code>MEDIAN</code>, so the median comes from numbering each group's rides by duration and averaging the middle one or two.</p>",
+      "code": "WITH ranked AS (\n  SELECT member_casual, duration_min,\n         ROW_NUMBER() OVER (PARTITION BY member_casual ORDER BY duration_min) AS rn,\n         COUNT(*)     OVER (PARTITION BY member_casual)                       AS n\n  FROM trips)\nSELECT member_casual, AVG(duration_min) AS median_min\nFROM ranked WHERE rn IN ((n + 1) / 2, (n + 2) / 2)\nGROUP BY member_casual;"
+    },
+    {
+      "title": "Recount everything without SQL",
+      "body": "<p><code>check.py</code> re-reads the raw zips in plain Python, applies the same rules, and asserts its counts equal the SQL results: totals, both rider types, all 12 months, all 24 hours and the top stations. On its first run it disagreed by <b>one ride</b>. A trip lasting exactly 60.000 seconds came out as 0.99999994 minutes in SQL's floating-point date math, so SQL dropped it as \"under a minute\". Durations now use whole milliseconds, and the two agree exactly.</p>"
+    },
+    {
+      "title": "Build the report",
+      "body": "<p><code>report.py</code> turns the saved results into one page: for each question, the answer in plain words (every number filled in from the results), the SQL, the table, and a chart drawn as plain SVG with no charting library. Member and casual colors were checked for color-blind separation.</p>"
+    }
+  ],
+  "results": "<table><tr><th></th><th class=\"num\">Members</th><th class=\"num\">Casual</th></tr><tr><td>Share of rides</td><td class=\"num\">65.0%</td><td class=\"num\">35.0%</td></tr><tr><td>Median ride</td><td class=\"num\">8.7 min</td><td class=\"num\">11.3 min</td></tr><tr><td>Rides on weekends</td><td class=\"num\">23.3%</td><td class=\"num\">37.1%</td></tr><tr><td>Round trips</td><td class=\"num\">2.2%</td><td class=\"num\">7.5%</td></tr></table><ul><li><b>Commuters vs leisure:</b> members peak at 8:00 and 17:00; casual riders have no morning peak, and Saturday holds 21.1% of their rides.</li><li><b>Summer business:</b> the casual share runs from 17.9% in January to 40.8% in July.</li><li><b>Where:</b> the lakefront and museums. Navy Pier alone had 50,768 casual rides (75.9% of its rides).</li><li><b>Recommendation:</b> a membership push at lakefront stations on summer weekends, pitched on long leisure rides. That's a recommendation from the patterns, not a tested result.</li></ul>",
+  "next": "<ul><li>Join daily weather to explain the day-to-day swings.</li><li>Add pricing to estimate what converting casual riders is worth.</li><li>Compare against the previous year once station IDs are matched.</li></ul>"
+}
