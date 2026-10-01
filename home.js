@@ -2,7 +2,7 @@
  *
  * A flat row of project cards (video loops, or a slow pan over the cover when a project has no loop yet) that you drag, scroll or
  * arrow through forever. Everything on screen is drawn by one WebGL canvas: the cards, and also the text, so that the whole
- * picture can be bent by one swirl whose strength follows how fast you are moving. The DOM underneath only provides layout,
+ * row can bend as one gentle curve whose depth follows how fast you are moving. The DOM underneath only provides layout,
  * hit areas, focus and screen-reader text.
  *
  * Adding a project needs nothing here: build.py lists it in #projects-data, and it appears as another card.
@@ -10,8 +10,8 @@
 import * as THREE from "./vendor/three.module.min.js";
 
 /* ---------- the feel: tweak here ---------- */
-const SWIRL = 1.25;        // twist in radians at the centre of the screen when moving at full speed
-const CHROMA = 0.009;      // colour fringing at full speed
+const BEND = 0.09;         // how far the row curves at full speed, as a share of the screen height (0 = stays flat)
+const SHRINK = 0.05;       // how much the cards ease back (scale down) at full speed
 const FOLLOW = 6.5;        // how quickly the row catches up with the wheel / your finger (per second)
 const WHEEL = 1.0;         // wheel pixels -> row pixels
 const MOMENTUM = 0.32;     // seconds of drag speed carried on after you let go
@@ -109,12 +109,25 @@ async function buildCarousel() {
   R.setClearColor(0x000000, 1);
   const scene = new THREE.Scene();
   const cam = new THREE.OrthographicCamera(0, 1, 0, 1, -10, 10);   // 1 unit = 1 CSS pixel, y down, so planes sit exactly on their DOM boxes
-  const plane = new THREE.PlaneGeometry(1, 1);
+  const plane = new THREE.PlaneGeometry(1, 1), cardPlane = new THREE.PlaneGeometry(1, 1, 24, 24);   // cards need vertices to bend
   const BLANK = Object.assign(new THREE.DataTexture(new Uint8Array([16, 16, 16, 255]), 1, 1), { needsUpdate: true });
   await Promise.all([document.fonts.load("500 16px Geist"), document.fonts.load("400 16px Geist")]);
 
   /* ---- shaders ---- */
   const VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+  // While the row moves it bends into one shallow arc across the screen (and the cards ease back a touch), then settles flat.
+  const CARD_VERT = `
+    uniform vec2 uView; uniform float uBend, uShrink, uAxis; varying vec2 vUv;
+    void main(){
+      vUv = uv;
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vec2 c = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xy;
+      w.xy = c + (w.xy - c) * (1.0 - uShrink);
+      float along = uAxis < 0.5 ? w.x / uView.x : w.y / uView.y, t = along * 2.0 - 1.0;
+      float arc = uBend * (1.0 - t * t);
+      if (uAxis < 0.5) w.y += arc * uView.y; else w.x += arc * uView.x;
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }`;
   const CARD = `
     precision highp float;
     uniform sampler2D uVideo, uCover, uLabel;
@@ -152,26 +165,6 @@ async function buildCarousel() {
   const TEXT = `
     precision highp float; uniform sampler2D uMap; uniform float uAlpha; varying vec2 vUv;
     void main(){ vec4 t = texture2D(uMap, vec2(vUv.x, 1.0 - vUv.y)); gl_FragColor = vec4(t.rgb, t.a * uAlpha); }`;
-  const POST = `
-    precision highp float;
-    uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uVel, uAxis; varying vec2 vUv;
-    void main(){
-      float asp = uRes.x / uRes.y;
-      vec2 p = (vUv - 0.5) * vec2(asp, 1.0);
-      float fall = smoothstep(1.0, 0.0, length(p));            // strongest in the middle, nothing at the corners
-      float ang = uVel * ${SWIRL.toFixed(3)} * fall * fall;    // the swirl: the picture twists around the centre
-      float s = sin(ang), c = cos(ang);
-      vec2 q = mat2(c, -s, s, c) * p;
-      vec2 uv = q / vec2(asp, 1.0) + 0.5;
-      vec2 dir = mix(vec2(1.0, 0.0), vec2(0.0, 1.0), uAxis);
-      float ab = abs(uVel) * ${CHROMA.toFixed(4)} * fall;
-      gl_FragColor = vec4(texture2D(tDiffuse, uv + dir * ab).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - dir * ab).b, 1.0);
-    }`;
-  const postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  const postMat = new THREE.ShaderMaterial({ vertexShader: `varying vec2 vUv; void main(){ vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`, fragmentShader: POST, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-    uniforms: { tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uVel: { value: 0 }, uAxis: { value: 0 } } });
-  postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMat));
-  let rt = null;
 
   /* ---- cards ---- */
   const dprCap = () => Math.min(devicePixelRatio || 1, 2);
@@ -183,11 +176,11 @@ async function buildCarousel() {
     if (r) el.setAttribute("aria-hidden", "true");
     el.innerHTML = `<a class="sr" href="${p.slug}/"${r ? ' tabindex="-1"' : ""}>${p.title.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</a>`;
     rowEl.append(el);
-    const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: CARD, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-      uniforms: { uVideo: { value: BLANK }, uCover: { value: BLANK }, uLabel: { value: BLANK }, uSize: { value: new THREE.Vector2(1, 1) }, uRadius: { value: 20 }, uStrip: { value: 60 },
+    const mat = new THREE.ShaderMaterial({ vertexShader: CARD_VERT, fragmentShader: CARD, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+      uniforms: { uView: { value: new THREE.Vector2(1, 1) }, uBend: { value: 0 }, uShrink: { value: 0 }, uAxis: { value: 0 }, uVideo: { value: BLANK }, uCover: { value: BLANK }, uLabel: { value: BLANK }, uSize: { value: new THREE.Vector2(1, 1) }, uRadius: { value: 20 }, uStrip: { value: 60 },
         uAlpha: { value: 0 }, uHover: { value: 0 }, uVid: { value: 0 }, uHasVideo: { value: 0 }, uHasCover: { value: 0 }, uTime: { value: 0 }, uSeed: { value: (i * 1.731) % 6.28 },
         uVidAspect: { value: p.aspect || 1.7 }, uCoverAspect: { value: 1.7 }, uLabelT: { value: 0 } } });
-    const mesh = new THREE.Mesh(plane, mat); mesh.frustumCulled = false; mesh.renderOrder = 1; scene.add(mesh);
+    const mesh = new THREE.Mesh(cardPlane, mat); mesh.frustumCulled = false; mesh.renderOrder = 1; scene.add(mesh);
     const c = { p, i, r, el, mat, mesh, aspect: p.aspect || 1.7, w: 1, h: 1, base: 0, x: 0, y: 0, hover: 0, hovering: false, vid: 0, video: null, vtex: null, cover: false, label: null, labelT: 0, near: false };
     el.addEventListener("pointerenter", () => { if (hoverMQ.matches) c.hovering = true; wake(); });
     el.addEventListener("pointerleave", () => { c.hovering = false; });
@@ -212,9 +205,6 @@ async function buildCarousel() {
     for (const c of cards) paintLabel(c);
     R.setPixelRatio(dprCap()); R.setSize(vw, vh, false);
     cam.left = 0; cam.right = vw; cam.top = 0; cam.bottom = vh; cam.updateProjectionMatrix();
-    rt && rt.dispose();
-    rt = new THREE.WebGLRenderTarget(Math.round(vw * dprCap()), Math.round(vh * dprCap()), { samples: 4, depthBuffer: false });
-    postMat.uniforms.uRes.value.set(vw, vh); postMat.uniforms.uAxis.value = mobile ? 1 : 0;
     forceText = true;
   }
 
@@ -361,7 +351,7 @@ async function buildCarousel() {
 
   function openCard(c) {
     if (opening) return;
-    opening = { c, t0: performance.now() }; sv = clamp(sv + 0.9, -1.4, 1.4); wake(900);
+    opening = { c, t0: performance.now() }; sv = clamp(sv + 0.5, -1, 1); wake(900);
     setTimeout(() => { location.href = `${c.p.slug}/`; }, reduce ? 0 : 520);
   }
   addEventListener("pageshow", (e) => { if (e.persisted) { opening = null; openT = 0; wake(); } });   // back button from a project
@@ -384,6 +374,7 @@ async function buildCarousel() {
     const showCards = smooth(featT) * (1 - 0.95 * smooth(panelT)) * (1 - smooth(openT));
     const titlesAlways = !hoverMQ.matches;
 
+    const bend = reduce ? 0 : clamp(sv, -1, 1);                        // signed: the row curves against the direction of travel
     let nearest = -1, bestD = 1e9;
     for (const c of cards) {
       const along = mod(c.base - pos - lead + pad, total) - pad + lead;       // where this card starts along the row
@@ -406,16 +397,12 @@ async function buildCarousel() {
       c.mesh.position.set(c.x + c.w / 2, c.y + c.h / 2, 0); c.mesh.scale.set(c.w, c.h, 1);
       u.uSize.value.set(c.w, c.h); u.uAlpha.value = showCards * smooth(stagger); u.uHover.value = reduce ? 0 : c.hover; u.uVid.value = c.vid; u.uTime.value = reduce ? 0 : time;
       c.labelT = damp(c.labelT, titlesAlways ? 1 : c.hover, 12, dt); u.uLabelT.value = c.labelT;
+      u.uView.value.set(vw, vh); u.uAxis.value = mobile ? 1 : 0; u.uBend.value = bend * BEND; u.uShrink.value = Math.abs(bend) * SHRINK;
     }
     if (nearest !== lastNow && nearest >= 0) { lastNow = nearest; $("now").textContent = `${PROJECTS[nearest].title}, ${nearest + 1} of ${PROJECTS.length}`; }
     syncText();
 
-    // the swirl: render the whole picture off-screen and twist it, but only while it is moving, so everything at rest is razor sharp
-    const swirl = reduce ? 0 : sv * (mobile ? -1 : 1);
-    if (Math.abs(swirl) > 0.004) {
-      postMat.uniforms.uVel.value = swirl; R.setRenderTarget(rt); R.render(scene, cam); R.setRenderTarget(null);
-      postMat.uniforms.tDiffuse.value = rt.texture; R.render(postScene, postCam);
-    } else R.render(scene, cam);
+    R.render(scene, cam);
 
     const busy = mode === "featured" || now < idleUntil || Math.abs(sv) > 0.002 || Math.abs(featT - wantFeat) > 0.003 || Math.abs(panelT - wantPanel) > 0.003 || openT > 0 && openT < 1;
     if (busy && !document.hidden) rafId = requestAnimationFrame(frame);
@@ -428,8 +415,8 @@ async function buildCarousel() {
   await new Promise((r) => requestAnimationFrame(r));
 
   return {
-    setMode(m) { wantFeat = m === "featured" ? 1 : 0; sv = clamp(sv + 0.8 * (m === "featured" ? -1 : 1), -1.4, 1.4); wake(1400); },
-    setPanel(open) { wantPanel = open ? 1 : 0; sv = clamp(sv + (open ? 0.5 : -0.5), -1.4, 1.4); wake(1400); },
+    setMode(m) { wantFeat = m === "featured" ? 1 : 0; sv = clamp(sv + 0.4 * (m === "featured" ? -1 : 1), -1, 1); wake(1400); },
+    setPanel(open) { wantPanel = open ? 1 : 0;  wake(1400); },
     ready() { wake(); },
   };
 }
