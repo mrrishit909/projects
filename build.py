@@ -5,6 +5,7 @@
 Text fields in project.json are trusted HTML fragments (we write them ourselves).
 Stdlib only, so GitHub never needs to run anything: we commit the built HTML.
 """
+import hashlib
 import json
 import struct
 from collections import Counter
@@ -158,11 +159,14 @@ def index_page(projects):
     # "Python, Statistics, LLM ...": the most common first word of each project's kind, so it follows new projects
     heads = Counter(p["kind"].split("·")[0].strip() for p in projects)
     kinds = ", ".join(escape(k) for k, _ in heads.most_common(5))
+    # home.js?v=<hash of its contents>: a changed script gets a new URL, so browsers never run a stale cached copy
+    version = hashlib.sha1((ROOT / "home.js").read_bytes()).hexdigest()[:10]
     tpl = (ROOT / "index.template.html").read_text()
     assert "<!--LIST-->" in tpl and "/*PROJECTS*/[]" in tpl
     # json.dumps output is safe inside <script> once "</" can't appear
     return (tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
-               .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS}}", kinds))
+               .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS}}", kinds)
+               .replace("{{V}}", version))
 
 
 if __name__ == "__main__":
