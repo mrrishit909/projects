@@ -16,7 +16,7 @@
   "repo": "https://github.com/mrrishit909/mortgage-denials",
   "cover": "cover.jpg",
   "note": "The target is lenders' past decisions, not whether anyone would repay, and public HMDA has no credit scores. So this is a triage aid for housing counsellors, never an underwriting tool, and the group gaps it finds are not proof of discrimination.",
-  "problem": "<p>About one in ten home-purchase applications in Tampa Bay is denied, and the applicant usually finds out after paying for an appraisal and a credit pull. Housing counsellors can help people fix a debt-to-income or down-payment problem first, but only if they know whom to help. <em>Can public data flag the applications most likely to be denied, and does such a model treat groups differently?</em></p>",
+  "problem": "<p>In Tampa Bay, about one in ten applications to buy a home to live in is denied, often after the applicant has paid application and appraisal fees. Housing counsellors can help people fix a debt-to-income or down-payment problem first, but only if they know whom to help. <em>Can public data flag the applications most likely to be denied, and does such a model treat groups differently?</em></p>",
   "built": "<p>A predictive model on the CFPB's public mortgage data (HMDA) for Hillsborough, Pinellas, Pasco and Hernando counties:</p><ul><li><b>A cleaning funnel</b> that tracks the denial rate at every step.</li><li><b>A leakage demo:</b> fields filled in after the decision push AUC to 0.975.</li><li><b>An allowlist</b> of facts known when someone applies; race, ethnicity, sex, age and neighbourhood proxies are excluded.</li><li><b>Logistic regression vs gradient boosting</b>, trained on 2022–23 and tested on 2024.</li><li><b>An audit by group</b>: recall, calibration, the gap at the same score, and lenders' stated reasons.</li></ul>",
   "steps": [
     {
@@ -40,7 +40,7 @@
     },
     {
       "title": "See what drives it",
-      "body": "<p>Shuffling one input at a time and measuring the drop in AUC shows what the model relies on. Debt-to-income dominates (0.193), then loan type (FHA and VA loans are denied more), loan-to-value and loan amount. Income adds little once debt-to-income is known.</p><img src=\"charts/03_importance.jpg\" alt=\"Bar chart of permutation importance: debt-to-income 0.193, loan type 0.050, loan-to-value 0.037, loan amount 0.036, channel 0.013, income 0.009, others near zero\">"
+      "body": "<p>Shuffling one input at a time and measuring the drop in AUC shows what the model relies on. Debt-to-income dominates (0.193), then loan type (FHA loans were denied 14.8% of the time, against 9.4% for conventional and 9.2% for VA), loan-to-value and loan amount. Income adds little once debt-to-income is known.</p><img src=\"charts/03_importance.jpg\" alt=\"Bar chart of permutation importance: debt-to-income 0.193, loan type 0.050, loan-to-value 0.037, loan amount 0.036, channel 0.013, income 0.009, others near zero\">"
     },
     {
       "title": "Audit it by group",
