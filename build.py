@@ -5,13 +5,81 @@
 Text fields in project.json are trusted HTML fragments (we write them ourselves).
 Stdlib only, so GitHub never needs to run anything: we commit the built HTML.
 """
+import hashlib
 import json
+import struct
+from collections import Counter
 from html import escape
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 PORTFOLIO = "https://mrrishit909.github.io/"
 REQUIRED = ["title", "tagline", "kind", "tech", "date", "repo", "problem", "built", "steps", "results", "next"]
+
+
+# ---- motion tiles -------------------------------------------------------------------------------------------
+# A project's card on the home page plays <slug>/loop.mp4 (+ loop.webm) when those files exist; otherwise it shows a
+# slow pan over cover.jpg. Nothing has to be declared in project.json: files are found by name, and the card's shape
+# (aspect ratio) is read from the media itself.
+LOOPS = ["loop.mp4", "loop.webm"]
+
+
+def mp4_aspect(path):
+    """Width / height from the track header (tkhd) of an .mp4, or None."""
+    data = path.read_bytes()
+
+    def walk(lo, hi):
+        i = lo
+        while i + 8 <= hi:
+            size, kind = struct.unpack(">I4s", data[i:i + 8])
+            if size == 1:
+                size = struct.unpack(">Q", data[i + 8:i + 16])[0]
+            if size < 8:
+                return None
+            end = min(hi, i + size)
+            if kind == b"tkhd":
+                w, h = struct.unpack(">II", data[end - 8:end])
+                if w and h:
+                    return (w >> 16) / (h >> 16)
+            elif kind in (b"moov", b"trak"):
+                found = walk(i + 8, end)
+                if found:
+                    return found
+            i += size
+        return None
+    return walk(0, len(data))
+
+
+def image_aspect(path):
+    """Width / height of a .jpg or .png, or None."""
+    d = path.read_bytes()
+    if d[:8] == b"\x89PNG\r\n\x1a\n":
+        w, h = struct.unpack(">II", d[16:24])
+        return w / h
+    i = 2
+    while d[:2] == b"\xff\xd8" and i + 9 < len(d):
+        if d[i] != 0xFF:
+            i += 1
+            continue
+        m = d[i + 1]
+        if m in (0xC0, 0xC1, 0xC2):
+            h, w = struct.unpack(">HH", d[i + 5:i + 9])
+            return w / h
+        i += 2 + struct.unpack(">H", d[i + 2:i + 4])[0]
+    return None
+
+
+def tile_media(folder, p):
+    """-> (existing loop files, card aspect ratio). Cards keep a calm range of shapes so the row stays balanced."""
+    loops = [f for f in LOOPS if (folder / f).exists()]
+    aspect = None
+    if (folder / "loop.mp4").exists():
+        aspect = mp4_aspect(folder / "loop.mp4")
+    if aspect is None and p.get("cover") and (folder / p["cover"]).exists():
+        aspect = image_aspect(folder / p["cover"])
+        if aspect:                       # a screenshot is cropped to fit the card, so keep it in a sane range
+            aspect = min(1.9, max(1.3, aspect))
+    return loops, round(aspect or 1.7, 3)
 
 
 def load():
@@ -22,6 +90,7 @@ def load():
         assert not missing, f"{f}: missing {missing}"
         assert all(s.get("title") and s.get("body") for s in p["steps"]), f"{f}: every step needs title + body"
         p["slug"] = f.parent.name
+        p["loops"], p["aspect"] = tile_media(f.parent, p)
         if p.get("cover"):
             assert (f.parent / p["cover"]).exists(), f"{f}: cover {p['cover']} not found"
         projects.append(p)
@@ -86,11 +155,18 @@ def index_page(projects):
     """The 3D carousel page (index.template.html). The list of real links is rendered here, so it works without JS."""
     items = '<span class="sep" aria-hidden="true">·</span>'.join(
         f'<a class="item" href="{p["slug"]}/" data-slug="{p["slug"]}">{escape(p["title"])}</a>' for p in projects)
-    data = [{k: p.get(k) for k in ("slug", "title", "kind", "date", "cover")} for p in projects]
+    data = [{k: p.get(k) for k in ("slug", "title", "kind", "date", "cover", "aspect", "loops")} for p in projects]
+    # "Python, Statistics, LLM ...": the most common first word of each project's kind, so it follows new projects
+    heads = Counter(p["kind"].split("·")[0].strip() for p in projects)
+    kinds = ", ".join(escape(k) for k, _ in heads.most_common(5))
+    # home.js?v=<hash of its contents>: a changed script gets a new URL, so browsers never run a stale cached copy
+    version = hashlib.sha1((ROOT / "home.js").read_bytes()).hexdigest()[:10]
     tpl = (ROOT / "index.template.html").read_text()
     assert "<!--LIST-->" in tpl and "/*PROJECTS*/[]" in tpl
     # json.dumps output is safe inside <script> once "</" can't appear
-    return tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
+    return (tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
+               .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS}}", kinds)
+               .replace("{{V}}", version))
 
 
 if __name__ == "__main__":
@@ -100,4 +176,5 @@ if __name__ == "__main__":
             continue
         (ROOT / p["slug"] / "index.html").write_text(project_page(p, projects[(i + 1) % len(projects)]))
     (ROOT / "index.html").write_text(index_page(projects))
-    print(f"built {sum(not p.get("frozen") for p in projects)} project pages (+{sum(bool(p.get("frozen")) for p in projects)} frozen) + index.html")
+    nfrozen = sum(bool(p.get("frozen")) for p in projects)
+    print(f"built {len(projects) - nfrozen} project pages (+{nfrozen} frozen) + index.html")

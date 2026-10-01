@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>motion lab</title>
+<style>
+@font-face{font-family:Geist;font-weight:400;src:url(../vendor/fonts/Geist-Regular.woff2) format("woff2")}
+@font-face{font-family:Geist;font-weight:500;src:url(../vendor/fonts/Geist-Medium.woff2) format("woff2")}
+@font-face{font-family:"Geist Mono";font-weight:400;src:url(../vendor/fonts/GeistMono-Regular.woff2) format("woff2")}
+html,body{margin:0;background:#000}canvas{display:block}
+</style>
+<canvas id="c"></canvas>
+<script src="../us-jobs-dashboard/dashboard/vendor/d3.min.js"></script>
+<script src="../us-jobs-dashboard/dashboard/vendor/topojson-client.min.js"></script>
+<script src="toolkit.js"></script>
+<script>
+/* lab.html?slug=<project folder> loads motion/scenes/<slug>.js and exposes frame(i) / sheet(us) for render.cjs.
+   A scene: scene({ slug, aspect, bg:[centre,edge], seconds, init?(W,H,T)->state, draw(g,u,W,H,S,T) }). */
+const FPS = 30, HEIGHT = 720;
+const slug = new URLSearchParams(location.search).get("slug");
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+let def, W, H, S, frames;
+
+function paint(u) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.clearRect(0, 0, W, H);
+  const r = g.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.62);
+  r.addColorStop(0, def.bg[0]); r.addColorStop(1, def.bg[1]);
+  g.fillStyle = r; g.fillRect(0, 0, W, H);
+  g.globalAlpha = Math.min(T.ease.smooth(T.seg(u, 0, 0.05)), 1 - T.ease.smooth(T.seg(u, 0.95, 1)));   // loop seam: fade from/to the background
+  def.draw(g, u, W, H, S, T);
+  g.globalAlpha = 1;
+}
+window.frame = (i) => { paint(i / frames); return cv.toDataURL("image/png"); };
+window.sheet = (us, cols = 2, scale = 0.5) => {                 // contact sheet of several phases, for eyeballing a scene
+  const w = Math.round(W * scale), h = Math.round(H * scale), rows = Math.ceil(us.length / cols);
+  const out = document.createElement("canvas"); out.width = w * cols; out.height = h * rows;
+  const o = out.getContext("2d");
+  us.forEach((u, k) => { paint(u); o.drawImage(cv, (k % cols) * w, Math.floor(k / cols) * h, w, h); });
+  return out.toDataURL("image/png");
+};
+
+(async () => {
+  await Promise.all([document.fonts.load("500 20px Geist"), document.fonts.load("400 20px Geist"), document.fonts.load('400 20px "Geist Mono"')]);
+  await new Promise((res, rej) => { const s = document.createElement("script"); s.src = `scenes/${slug}.js`; s.onload = res; s.onerror = () => rej(new Error("no scene " + slug)); document.head.append(s); });
+  def = SCENES[slug];
+  H = HEIGHT; W = Math.round((H * def.aspect) / 2) * 2;           // even width: H.264 needs it
+  cv.width = W; cv.height = H;
+  frames = Math.round((def.seconds || 6) * FPS);
+  S = def.init ? await def.init(W, H, T) : {};
+  window.info = { W, H, fps: FPS, frames, aspect: def.aspect };
+  window.ready = true;
+})().catch((e) => { window.failed = String(e); });
+</script>
