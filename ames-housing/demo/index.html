@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ames Price Estimator</title>
+<meta name="description" content="Estimate a 2006-2010 sale price in Ames, Iowa from 12 house features, using a linear model fitted to 2,925 real sales.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d;--up:#3987e5;--down:#d95926}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:1080px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:24px;margin-bottom:28px}nav a{text-decoration:none}
+h1{margin:6px 0 6px;font-size:clamp(32px,5vw,56px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:72ch}
+.app{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;margin-top:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.field{display:grid;gap:5px}.field.wide{grid-column:1/-1}
+label{font-size:13px;color:var(--dim)}
+input[type=number],select{font:inherit;font-size:15px;color:var(--fg);background:#050505;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input[type=range]{width:100%;accent-color:var(--up)}
+.row{display:flex;justify-content:space-between;align-items:baseline}.row b{font-weight:500;font-variant-numeric:tabular-nums}
+.price{font-size:clamp(40px,6vw,64px);font-weight:500;letter-spacing:-.03em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.range{color:var(--dim)}
+.drivers{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:6px;font-size:13px}
+.drivers li{display:grid;grid-template-columns:minmax(0,1fr) 110px 70px;gap:8px;align-items:center}
+.drivers .b{height:8px;border-radius:2px}.drivers .v{text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+.note{margin-top:16px;padding-left:12px;border-left:1px solid var(--faint);color:var(--dim);font-size:13px}
+footer{margin-top:28px;color:var(--faint);font-size:12px}
+@media (max-width:820px){body{padding:18px 16px 40px}.app{grid-template-columns:minmax(0,1fr)}.form{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/ames-housing/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Price estimator · Ames, Iowa · 2006-2010 sales</p>
+<h1>What would this house have sold for?</h1>
+<p class="lede">Describe a house and see the price a simple model, fitted to 2,925 real Ames sales, would expect.
+It's the 12-input linear model from the project: typically within about 7% in testing. The best model there (gradient
+boosting on every feature) gets to about 6%.</p>
+<div class="app">
+  <section class="card"><form class="form" id="form" onsubmit="return false"></form></section>
+  <section class="card" aria-live="polite">
+    <span class="cap">Estimated sale price</span>
+    <div class="price" id="price">–</div>
+    <div class="range" id="range"></div>
+    <p class="cap" style="margin:18px 0 0">What moves it, vs a typical Ames house</p>
+    <ul class="drivers" id="drivers"></ul>
+    <p class="note">80% of real sales were within the range shown when the model was tested on houses it hadn't seen.
+    Prices are 2006-2010 dollars in one Iowa town; this is a teaching model, not an appraisal.</p>
+  </section>
+</div>
+<footer>Data: Dean De Cock, "Ames, Iowa: Alternative to the Boston Housing Data Set", Journal of Statistics Education (2011), from the Ames Assessor's Office.
+The model runs in your browser from model.json; nothing is sent anywhere.</footer>
+</main>
+<script>
+const HOODS = {Blmngtn:"Bloomington Heights",Blueste:"Bluestem",BrDale:"Briardale",BrkSide:"Brookside",ClearCr:"Clear Creek",CollgCr:"College Creek",
+  Crawfor:"Crawford",Edwards:"Edwards",Gilbert:"Gilbert",Greens:"Greens",GrnHill:"Green Hills",IDOTRR:"Iowa DOT and Rail Road",Landmrk:"Landmark",
+  MeadowV:"Meadow Village",Mitchel:"Mitchell",NAmes:"North Ames",NoRidge:"Northridge",NPkVill:"Northpark Villa",NridgHt:"Northridge Heights",
+  NWAmes:"Northwest Ames",OldTown:"Old Town",SWISU:"South & West of Iowa State Univ.",Sawyer:"Sawyer",SawyerW:"Sawyer West",Somerst:"Somerset",
+  StoneBr:"Stone Brook",Timber:"Timberland",Veenker:"Veenker"};
+const FIELDS = [   // model feature, label, input kind, extra
+  ["Overall Qual", "Overall quality (1-10)", "range", {min: 1, max: 10, step: 1}],
+  ["Gr Liv Area", "Living area above ground (sq ft)", "number", {min: 400, max: 4000, step: 10}],
+  ["Total Bsmt SF", "Basement area (sq ft)", "number", {min: 0, max: 3000, step: 10}],
+  ["Year Built", "Year built", "number", {min: 1872, max: 2010, step: 1}],
+  ["Year Remod/Add", "Year remodelled (same as built if never)", "number", {min: 1950, max: 2010, step: 1}],
+  ["Garage Cars", "Garage size (cars)", "range", {min: 0, max: 4, step: 1}],
+  ["Full Bath", "Full bathrooms", "range", {min: 0, max: 4, step: 1}],
+  ["Fireplaces", "Fireplaces", "range", {min: 0, max: 3, step: 1}],
+  ["Kitchen Qual", "Kitchen quality", "select", {options: [[5, "Excellent"], [4, "Good"], [3, "Typical"], [2, "Fair"], [1, "Poor"]]}],
+  ["Lot Area (log)", "Lot size (sq ft)", "number", {min: 1300, max: 200000, step: 100, log: true}],
+  ["Central Air", "Central air conditioning", "select", {options: [[1, "Yes"], [0, "No"]]}],
+];
+(async function () {
+  const M = await (await fetch("model.json")).json();
+  const num = Object.fromEntries(M.numeric.map((n) => [n.name, n]));
+  const form = document.getElementById("form");
+  const hoodNames = Object.keys(M.neighborhoods).sort((a, b) => (HOODS[a] || a).localeCompare(HOODS[b] || b));
+  form.innerHTML = `<div class="field wide"><label for="hood">Neighbourhood</label><select id="hood">${hoodNames.map((h) => `<option value="${h}" ${h === "NAmes" ? "selected" : ""}>${HOODS[h] || h}</option>`).join("")}</select></div>` +
+    FIELDS.map(([key, label, kind, o], i) => {
+      const n = num[key], def = o.log ? Math.round(Math.exp(n.median) / 100) * 100 : Math.round(n.median);
+      if (kind === "select") return `<div class="field"><label for="f${i}">${label}</label><select id="f${i}">${o.options.map(([v, t]) => `<option value="${v}" ${v === def ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
+      if (kind === "range") return `<div class="field"><div class="row"><label for="f${i}">${label}</label><b id="o${i}">${def}</b></div><input type="range" id="f${i}" min="${o.min}" max="${o.max}" step="${o.step}" value="${def}"></div>`;
+      return `<div class="field"><label for="f${i}">${label}</label><input type="number" id="f${i}" min="${o.min}" max="${o.max}" step="${o.step}" value="${def}"></div>`;
+    }).join("");
+  const fmt = (x) => "$" + (Math.round(x / 500) * 500).toLocaleString("en-US");
+  function update() {
+    let logp = M.intercept;
+    const parts = [];
+    FIELDS.forEach(([key, label, kind, o], i) => {
+      const el = document.getElementById("f" + i);
+      let v = +el.value;
+      if (kind === "range") document.getElementById("o" + i).textContent = v;
+      if (key === "Year Remod/Add") v = Math.max(v, +document.getElementById("f3").value);
+      if (o.log) v = Math.log(Math.max(v, 1));
+      const n = num[key], c = n.coef * (v - n.mean) / n.scale, typical = n.coef * (n.median - n.mean) / n.scale;
+      logp += c;
+      parts.push([label.replace(/ \(.*\)/, ""), c - typical]);
+    });
+    const h = document.getElementById("hood").value;
+    logp += M.neighborhoods[h] ?? 0;
+    parts.push(["Neighbourhood vs North Ames", (M.neighborhoods[h] ?? 0) - (M.neighborhoods.NAmes ?? 0)]);
+    const price = Math.exp(logp);
+    document.getElementById("price").textContent = fmt(price);
+    document.getElementById("range").textContent = `80% range: ${fmt(price * Math.exp(M.range_log[0]))} to ${fmt(price * Math.exp(M.range_log[1]))}`;
+    const top = parts.filter((p) => Math.abs(p[1]) > 0.005).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 6);
+    const max = Math.max(0.05, ...top.map((p) => Math.abs(p[1])));
+    document.getElementById("drivers").innerHTML = top.length ? top.map(([k, d]) => `<li><span>${k}</span><span class="b" style="width:${Math.max(3, 110 * Math.abs(d) / max)}px;background:${d < 0 ? "var(--down)" : "var(--up)"}"></span><span class="v">${d >= 0 ? "+" : ""}${(100 * (Math.exp(d) - 1)).toFixed(0)}%</span></li>`).join("")
+      : `<li><span style="color:var(--dim)">A typical house: nothing stands out</span></li>`;
+  }
+  form.addEventListener("input", update);
+  update();
+})();
+</script>
+</body>
+</html>
