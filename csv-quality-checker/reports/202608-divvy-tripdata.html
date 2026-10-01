@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data quality: 202608-divvy-tripdata.csv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--line:#1d1d1d;--err:#e66767;--warn:#c98500;--info:#3987e5}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:32px 40px 60px}
+main{max-width:1180px;margin:0 auto}.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+h1{margin:8px 0 6px;font-size:clamp(30px,5vw,56px);font-weight:500;letter-spacing:-.035em;line-height:1.05;word-break:break-all}
+h2{margin:34px 0 10px;font-size:20px;font-weight:500}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+li b{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;min-width:62px}
+li.error b{color:var(--err)}li.warning b{color:var(--warn)}li.info b{color:var(--info)}
+li span{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;color:var(--fg)}
+.tw{overflow-x:auto}table{border-collapse:collapse;font-size:13px;min-width:100%}
+th,td{padding:7px 12px 7px 0;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+td:first-child{font-family:"Geist Mono",ui-monospace,monospace}.n{text-align:right;font-variant-numeric:tabular-nums}
+td.bar{width:110px}td.bar i{display:block;height:6px;border-radius:3px;background:var(--info);min-width:1px}
+@media (max-width:640px){body{padding:20px}}
+</style></head><body><main>
+<p class="cap">CSV data-quality report</p><h1>202608-divvy-tripdata.csv</h1><p class="cap">868,191 rows · 13 columns · 0 malformed · 0 duplicate rows · checked in 7.6 s</p>
+<h2>Findings</h2><ul>
+<li class=warning><b>warning</b><span>start_station_name</span>21.8% of values are empty (189,327)</li>
+<li class=warning><b>warning</b><span>start_station_id</span>21.8% of values are empty (189,327)</li>
+<li class=warning><b>warning</b><span>end_station_name</span>22.8% of values are empty (197,920)</li>
+<li class=warning><b>warning</b><span>end_station_id</span>22.8% of values are empty (197,920)</li>
+<li class=info><b>info</b><span>ride_id</span>every value is unique: a likely ID / key column</li>
+<li class=info><b>info</b><span>start_lat</span>38,041 values outside the usual range [41.812, 42.0047]</li>
+<li class=info><b>info</b><span>start_lng</span>31,877 values outside the usual range [-87.705, -87.585]</li>
+<li class=info><b>info</b><span>end_lat</span>683 empty values (0.08%)</li>
+<li class=info><b>info</b><span>end_lat</span>38,230 values outside the usual range [41.812, 42.0047]</li>
+<li class=info><b>info</b><span>end_lng</span>683 empty values (0.08%)</li>
+<li class=info><b>info</b><span>end_lng</span>33,418 values outside the usual range [-87.705, -87.585]</li>
+</ul>
+<h2>Columns</h2><div class="tw"><table><thead><tr><th>Column</th><th>Type</th><th class=n>Empty</th><th class=n>Empty %</th><th></th><th class=n>Distinct</th><th class=n>Type misfits</th><th>Range</th><th class=n>Mean</th><th class=n>Outliers</th></tr></thead><tbody>
+<tr><td>ride_id</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>868,191</td><td class=n>0</td><td>16–16 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>rideable_type</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>2</td><td class=n>0</td><td>12–13 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>started_at</td><td>datetime</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>867,912</td><td class=n>0</td><td>2026-07-30 23:01:41.716 – 2026-08-31 23:55:36.979</td><td class=n></td><td class=n></td></tr>
+<tr><td>ended_at</td><td>datetime</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>867,903</td><td class=n>0</td><td>2026-08-01 00:00:03.314 – 2026-08-31 23:59:43.005</td><td class=n></td><td class=n></td></tr>
+<tr><td>start_station_name</td><td>text</td><td class=n>189,327</td><td class=n>21.8%</td><td class=bar><i style="width:21.8%"></i></td><td class=n>1,581</td><td class=n>0</td><td>9–53 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>start_station_id</td><td>text</td><td class=n>189,327</td><td class=n>21.8%</td><td class=bar><i style="width:21.8%"></i></td><td class=n>1,574</td><td class=n>0</td><td>8–8 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>end_station_name</td><td>text</td><td class=n>197,920</td><td class=n>22.8%</td><td class=bar><i style="width:22.8%"></i></td><td class=n>1,584</td><td class=n>0</td><td>9–64 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>end_station_id</td><td>text</td><td class=n>197,920</td><td class=n>22.8%</td><td class=bar><i style="width:22.8%"></i></td><td class=n>1,577</td><td class=n>0</td><td>8–8 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>start_lat</td><td>decimal</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>1,612</td><td class=n>0</td><td>41.6485 – 42.07</td><td class=n>41.9072</td><td class=n>38,041</td></tr>
+<tr><td>start_lng</td><td>decimal</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>1,610</td><td class=n>0</td><td>-87.91 – -87.52</td><td class=n>-87.6469</td><td class=n>31,877</td></tr>
+<tr><td>end_lat</td><td>decimal</td><td class=n>683</td><td class=n>0.1%</td><td class=bar><i style="width:0.1%"></i></td><td class=n>1,629</td><td class=n>0</td><td>41.59 – 42.19</td><td class=n>41.9076</td><td class=n>38,230</td></tr>
+<tr><td>end_lng</td><td>decimal</td><td class=n>683</td><td class=n>0.1%</td><td class=bar><i style="width:0.1%"></i></td><td class=n>1,622</td><td class=n>0</td><td>-87.92 – -87.52</td><td class=n>-87.6473</td><td class=n>33,418</td></tr>
+<tr><td>member_casual</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>2</td><td class=n>0</td><td>6–6 chars</td><td class=n></td><td class=n></td></tr>
+</tbody></table></div>
+<p class="cap" style="margin-top:28px">Generated by dq.jar · Java 21, standard library only</p>
+</main></body></html>

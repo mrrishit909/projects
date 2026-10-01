@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data quality: FactFlights.csv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--line:#1d1d1d;--err:#e66767;--warn:#c98500;--info:#3987e5}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:32px 40px 60px}
+main{max-width:1180px;margin:0 auto}.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+h1{margin:8px 0 6px;font-size:clamp(30px,5vw,56px);font-weight:500;letter-spacing:-.035em;line-height:1.05;word-break:break-all}
+h2{margin:34px 0 10px;font-size:20px;font-weight:500}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+li b{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;min-width:62px}
+li.error b{color:var(--err)}li.warning b{color:var(--warn)}li.info b{color:var(--info)}
+li span{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;color:var(--fg)}
+.tw{overflow-x:auto}table{border-collapse:collapse;font-size:13px;min-width:100%}
+th,td{padding:7px 12px 7px 0;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+td:first-child{font-family:"Geist Mono",ui-monospace,monospace}.n{text-align:right;font-variant-numeric:tabular-nums}
+td.bar{width:110px}td.bar i{display:block;height:6px;border-radius:3px;background:var(--info);min-width:1px}
+@media (max-width:640px){body{padding:20px}}
+</style></head><body><main>
+<p class="cap">CSV data-quality report</p><h1>FactFlights.csv</h1><p class="cap">635,459 rows · 17 columns · 0 malformed · 13 duplicate rows · checked in 2.8 s</p>
+<h2>Findings</h2><ul>
+<li class=warning><b>warning</b>13 rows repeat an earlier row exactly; with no ID column, check whether they are copies or different records that look alike</li>
+<li class=warning><b>warning</b><span>CancelCode</span>98.2% of values are empty (624,088)</li>
+<li class=warning><b>warning</b><span>CarrierDelay</span>76.0% of values are empty (482,984)</li>
+<li class=warning><b>warning</b><span>WeatherDelay</span>76.0% of values are empty (482,984)</li>
+<li class=warning><b>warning</b><span>NASDelay</span>76.0% of values are empty (482,984)</li>
+<li class=warning><b>warning</b><span>SecurityDelay</span>76.0% of values are empty (482,984)</li>
+<li class=warning><b>warning</b><span>LateAircraftDelay</span>76.0% of values are empty (482,984)</li>
+<li class=info><b>info</b><span>DepDelay</span>11,056 empty values (1.74%)</li>
+<li class=info><b>info</b><span>DepDelay</span>76,483 values outside the usual range [-36, 44]</li>
+<li class=info><b>info</b><span>ArrDelay</span>13,351 empty values (2.10%)</li>
+<li class=info><b>info</b><span>ArrDelay</span>58,017 values outside the usual range [-61, 59]</li>
+<li class=info><b>info</b><span>ArrDel15</span>13,351 empty values (2.10%)</li>
+<li class=info><b>info</b><span>Distance</span>38,879 values outside the usual range [-8.5, 1,747.5]</li>
+<li class=info><b>info</b><span>CarrierDelay</span>16,730 values outside the usual range [-27, 45]</li>
+<li class=info><b>info</b><span>NASDelay</span>13,550 values outside the usual range [-28.5, 47.5]</li>
+<li class=info><b>info</b><span>LateAircraftDelay</span>13,909 values outside the usual range [-57, 95]</li>
+</ul>
+<h2>Columns</h2><div class="tw"><table><thead><tr><th>Column</th><th>Type</th><th class=n>Empty</th><th class=n>Empty %</th><th></th><th class=n>Distinct</th><th class=n>Type misfits</th><th>Range</th><th class=n>Mean</th><th class=n>Outliers</th></tr></thead><tbody>
+<tr><td>DateKey</td><td>integer</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>365</td><td class=n>0</td><td>20,250,801 – 20,260,731</td><td class=n>20,256,715.542</td><td class=n></td></tr>
+<tr><td>CarrierCode</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>13</td><td class=n>0</td><td>2–2 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>OriginCode</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>20</td><td class=n>0</td><td>3–3 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>DestCode</td><td>text</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>158</td><td class=n>0</td><td>3–3 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>DepHour</td><td>integer</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>20</td><td class=n>0</td><td>0 – 23</td><td class=n>13.1392</td><td class=n></td></tr>
+<tr><td>DepDelay</td><td>integer</td><td class=n>11,056</td><td class=n>1.7%</td><td class=bar><i style="width:1.7%"></i></td><td class=n>1,245</td><td class=n>0</td><td>-75 – 2,905</td><td class=n>15.9055</td><td class=n>76,483</td></tr>
+<tr><td>ArrDelay</td><td>integer</td><td class=n>13,351</td><td class=n>2.1%</td><td class=bar><i style="width:2.1%"></i></td><td class=n>1,270</td><td class=n>0</td><td>-87 – 2,907</td><td class=n>10.5206</td><td class=n>58,017</td></tr>
+<tr><td>ArrDel15</td><td>integer</td><td class=n>13,351</td><td class=n>2.1%</td><td class=bar><i style="width:2.1%"></i></td><td class=n>2</td><td class=n>0</td><td>0 – 1</td><td class=n>0.2451</td><td class=n></td></tr>
+<tr><td>Cancelled</td><td>integer</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>2</td><td class=n>0</td><td>0 – 1</td><td class=n>0.0179</td><td class=n></td></tr>
+<tr><td>CancelCode</td><td>text</td><td class=n>624,088</td><td class=n>98.2%</td><td class=bar><i style="width:98.2%"></i></td><td class=n>4</td><td class=n>0</td><td>1–1 chars</td><td class=n></td><td class=n></td></tr>
+<tr><td>Diverted</td><td>integer</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>2</td><td class=n>0</td><td>0 – 1</td><td class=n>0.0031</td><td class=n></td></tr>
+<tr><td>Distance</td><td>integer</td><td class=n>0</td><td class=n>0.0%</td><td class=bar><i style="width:0.0%"></i></td><td class=n>585</td><td class=n>0</td><td>104 – 2,724</td><td class=n>937.8053</td><td class=n>38,879</td></tr>
+<tr><td>CarrierDelay</td><td>integer</td><td class=n>482,984</td><td class=n>76.0%</td><td class=bar><i style="width:76.0%"></i></td><td class=n>980</td><td class=n>0</td><td>0 – 2,905</td><td class=n>22.1265</td><td class=n>16,730</td></tr>
+<tr><td>WeatherDelay</td><td>integer</td><td class=n>482,984</td><td class=n>76.0%</td><td class=bar><i style="width:76.0%"></i></td><td class=n>487</td><td class=n>0</td><td>0 – 1,508</td><td class=n>4.4061</td><td class=n></td></tr>
+<tr><td>NASDelay</td><td>integer</td><td class=n>482,984</td><td class=n>76.0%</td><td class=bar><i style="width:76.0%"></i></td><td class=n>502</td><td class=n>0</td><td>0 – 1,272</td><td class=n>16.3402</td><td class=n>13,550</td></tr>
+<tr><td>SecurityDelay</td><td>integer</td><td class=n>482,984</td><td class=n>76.0%</td><td class=bar><i style="width:76.0%"></i></td><td class=n>104</td><td class=n>0</td><td>0 – 686</td><td class=n>0.1329</td><td class=n></td></tr>
+<tr><td>LateAircraftDelay</td><td>integer</td><td class=n>482,984</td><td class=n>76.0%</td><td class=bar><i style="width:76.0%"></i></td><td class=n>702</td><td class=n>0</td><td>0 – 1,881</td><td class=n>31.723</td><td class=n>13,909</td></tr>
+</tbody></table></div>
+<p class="cap" style="margin-top:28px">Generated by dq.jar · Java 21, standard library only</p>
+</main></body></html>
