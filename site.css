@@ -66,3 +66,10 @@ footer a{text-decoration:none}
   ol.steps > li{grid-template-columns:34px minmax(0,1fr);gap:0 10px}
 }
 @media (prefers-reduced-motion:reduce){.next .t{transition:none}}
+
+/* page changes cross-fade, like the home page (browsers without cross-document view transitions simply cut) */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:vt-out .35s cubic-bezier(.23,1,.32,1) both}
+::view-transition-new(root){animation:vt-in .6s cubic-bezier(.23,1,.32,1) both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0}}

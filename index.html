@@ -1,310 +1,140 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="grabbable boot">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Analyst projects by Rishit Raj Mathur, each with a step-by-step build log.">
 <title>Projects · Rishit Mathur</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<link rel="preload" as="font" type="font/woff2" href="vendor/fonts/Geist-Medium.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="vendor/fonts/Geist-Regular.woff2" crossorigin>
+<link rel="modulepreload" href="vendor/three.module.min.js">
+<link rel="modulepreload" href="home.js">
+<script>
+/* Hold the Full list back while the carousel boots, so it doesn't flash; give up (and show it) if that takes too long. */
+if (location.hash !== "#full" && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(function () { document.documentElement.classList.remove("boot"); }, 6000);
+else document.documentElement.classList.remove("boot");
+</script>
 <style>
-:root{--fg:#f2f2f0;--dim:#7d7d7a;--bg:#000}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
-body.featured{overflow:hidden}
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:1px solid var(--fg);outline-offset:4px}
+@font-face{font-family:Geist;font-weight:400;font-style:normal;font-display:swap;src:url(vendor/fonts/Geist-Regular.woff2) format("woff2")}
+@font-face{font-family:Geist;font-weight:500;font-style:normal;font-display:swap;src:url(vendor/fonts/Geist-Medium.woff2) format("woff2")}
 
-.corner{position:fixed;z-index:4;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;line-height:1}
-.tl{top:32px;left:40px}.tr{top:32px;right:40px}.bl{bottom:32px;left:40px}.br{bottom:32px;right:40px}
-.corner a:hover{opacity:.6}
-.bl button{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--dim);background:none;border:0;padding:0;cursor:pointer}
-.bl button[aria-pressed="true"]{color:var(--fg)}
-.bl .slash{color:var(--dim);margin:0 .4em}
-.hint{position:fixed;z-index:4;bottom:32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);transition:opacity .6s;white-space:nowrap}
-.hint.gone,body.full .hint{opacity:0;pointer-events:none}
+/* Opening a project fades this page out and the next one in (browsers without cross-document view transitions just cut) */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:vt-out .35s cubic-bezier(.23,1,.32,1) both}
+::view-transition-new(root){animation:vt-in .6s cubic-bezier(.23,1,.32,1) both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0}}
 
-#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-body.full #stage{display:none}
+/* The whole page is sized in rem, and rem follows the viewport width (1rem = 10px at 1500px wide, 10px at 390px on a phone),
+   so every size below scales together. */
+:root{--size:390;--ease:cubic-bezier(.23,1,.32,1);--dim:#7d7d7a}
+@media(min-width:650px){:root{--size:1500}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:clamp(5px,20px,10 * 100vw / var(--size));-webkit-text-size-adjust:none;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;background:#000;color-scheme:dark}
+body{background:#000;color:#fff;font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:1.4rem;font-weight:400;line-height:1.4;min-height:100%}
+a{text-decoration:none;color:inherit}
+button{background:none;border:0;cursor:pointer;font:inherit;color:inherit}
+:focus-visible{outline:1px solid #fff;outline-offset:4px}
+.label{font-size:max(1rem,10px);font-weight:500;text-transform:uppercase}   /* = the reference at 1500px+; just never smaller than 10px */
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-#full{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:110px 24px}
-#full p.list{max-width:1120px;margin:0;text-align:center;font-size:clamp(26px,3.3vw,46px);line-height:1.28;font-weight:400;letter-spacing:-.025em}
+html.grabbable{cursor:grab}
+html.grabbing,html.grabbing *{cursor:grabbing!important;-webkit-user-select:none!important;user-select:none!important}
+html.featured-lock,html.featured-lock body{height:100%;overflow:hidden;touch-action:none;overscroll-behavior:none}
+html.featured-lock body{position:fixed;inset:0;width:100%}
+
+/* ---- the carousel: a WebGL layer that follows these boxes ---- */
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:10;pointer-events:none;display:none}
+html.gl #gl{display:block}
+#row{position:fixed;inset:0;overflow:hidden}
+.card{position:absolute;left:0;top:0;cursor:pointer;border-radius:2rem;will-change:transform}
+.card:focus-within{outline:1px solid #fff;outline-offset:4px}
+body.full #row{display:none}
+@media(max-width:649.98px){.card{border-radius:1.5rem}}
+
+/* ---- labels: real text for layout, hit areas and screen readers; WebGL draws the pixels so the swirl can bend them ---- */
+html.gl [data-gl]{-webkit-text-fill-color:transparent}
+.ui{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:space-between;padding:2.5rem 4rem;pointer-events:none}
+@media(min-width:650px){.ui{padding:4rem 8rem}}
+.ui .row{display:flex;align-items:flex-start;justify-content:space-between}
+.ui .row.bottom{align-items:flex-end}
+.ui a,.ui button{display:block;position:relative;pointer-events:auto;cursor:pointer;transition:opacity .3s ease-out}
+.ui a::before,.ui button::before{content:"";position:absolute;inset:-1.5rem}
+.modes{display:flex;gap:.5rem;pointer-events:auto}
+.modes button{transition:opacity .5s ease-out;opacity:.5}
+.modes button[aria-pressed="true"]{opacity:1}
+.modes .slash{pointer-events:none}
+.links{display:flex;gap:1.6rem}
+@media(hover:hover) and (pointer:fine){.ui a:hover,.ui button:hover{opacity:.6}.modes button:hover{opacity:1}}
+
+/* ---- Profile panel ---- */
+.panel{position:fixed;left:50%;top:50%;z-index:40;width:42rem;transform:translate(-50%,-50%);pointer-events:none}
+@media(min-width:650px){.panel{width:60rem}}
+.panel .inner{position:absolute;left:2rem;right:2rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;text-align:center}
+.panel [data-gl]{opacity:0;transition:opacity .7s var(--ease) var(--d,0s)}
+body[data-panel="profile"] .panel [data-gl]{opacity:1}
+body[data-panel="profile"] .panel .stat{opacity:.6}
+.panel .bio{font-size:1.4rem;line-height:1.4;letter-spacing:-.02em;max-width:35rem}
+@media(min-width:650px){.panel .bio{max-width:45rem}}
+.panel .stat{margin-top:2.5rem}
+.panel ul{display:flex;list-style:none;flex-wrap:wrap;justify-content:center;gap:.8rem 2rem;margin-top:2.5rem}
+@media(min-width:650px){.panel .stat,.panel ul{margin-top:3rem}}
+.panel a{display:block;pointer-events:none}
+body[data-panel="profile"] .panel a{pointer-events:auto}
+
+/* ---- Full: every project by name (kept from the earlier version) ---- */
+html.boot body.full #full{visibility:hidden}
+#full{position:relative;z-index:20;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:110px 24px;transition:opacity .6s var(--ease)}
+#full p.list{max-width:1120px;text-align:center;font-size:clamp(26px,3.3vw,46px);line-height:1.28;font-weight:400;letter-spacing:-.025em}
 #full .item{display:inline-block;transition:opacity .25s ease,transform .35s cubic-bezier(.2,.7,.2,1)}
 #full p.list:hover .item{opacity:.3}
 #full p.list .item:hover,#full p.list .item:focus-visible{opacity:1;transform:skewX(-9deg)}
 #full .sep{color:var(--dim);margin:0 .28em}
 #cap{margin:28px 0 0;min-height:1em;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
 /* Featured mode keeps the list for screen readers and keyboards; tabbing into it switches to Full */
-body.featured #full{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;padding:0}
-
-#peek{position:fixed;left:0;top:0;z-index:3;width:340px;aspect-ratio:16/10;object-fit:cover;border-radius:14px;pointer-events:none;opacity:0;will-change:transform}
-body.featured #peek{display:none}
-
-@media (max-width:640px){
-  .tl,.tr{top:20px}.bl,.br{bottom:22px}.tl,.bl{left:20px}.tr,.br{right:20px}
-  .hint{display:none}
-  #peek{width:220px}
-}
-@media (prefers-reduced-motion:reduce){#full .item,.hint{transition:none}}
+body.featured #full{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;padding:0;min-height:0;opacity:0}
+#peek,#peekv{position:fixed;left:0;top:0;z-index:30;width:340px;aspect-ratio:16/10;object-fit:cover;border-radius:14px;pointer-events:none;opacity:0;will-change:transform;background:#101010}
+body.featured #peek,body.featured #peekv{display:none}
+@media(max-width:649.98px){#peek,#peekv{width:220px}}
+@media (prefers-reduced-motion:reduce){#full .item{transition:none}}
 </style>
 </head>
 <body class="full">
-<div class="corner tl"><a href="https://mrrishit909.github.io/">Rishit Mathur</a></div>
-<div class="corner tr"><a href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></div>
-<div class="corner bl" id="modes" hidden><button type="button" id="m-featured" aria-pressed="false">Featured</button><span class="slash">/</span><button type="button" id="m-full" aria-pressed="true">Full</button></div>
-<div class="corner br"><a href="https://mrrishit909.github.io/resume.pdf" target="_blank" rel="noopener">Resume</a></div>
-<div class="hint" id="hint" aria-hidden="true">Drag · Scroll · ← →</div>
-
-<canvas id="stage" tabindex="0" aria-label="Projects carousel. Left and right arrow keys move, Enter opens the project in the middle."></canvas>
-<p id="now" class="sr" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
+<canvas id="gl" aria-hidden="true"></canvas>
+<main id="row" aria-label="Featured projects"></main>
 
 <main id="full">
-  <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Projects</h1>
+  <h1 class="sr">Projects</h1>
   <p class="list"><a class="item" href="sec-10k-rag/" data-slug="sec-10k-rag">Ask the 10-K</a><span class="sep" aria-hidden="true">·</span><a class="item" href="chicago-bike-share/" data-slug="chicago-bike-share">How Chicago Rides</a><span class="sep" aria-hidden="true">·</span><a class="item" href="us-retail-forecast/" data-slug="us-retail-forecast">US Retail Sales Forecast</a><span class="sep" aria-hidden="true">·</span><a class="item" href="csv-quality-checker/" data-slug="csv-quality-checker">CSV Data-Quality Checker</a><span class="sep" aria-hidden="true">·</span><a class="item" href="flight-delay-model/" data-slug="flight-delay-model">Will My Flight Be Disrupted?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="email-ab-test/" data-slug="email-ab-test">E-mail A/B Test Readout</a><span class="sep" aria-hidden="true">·</span><a class="item" href="complaint-sorter/" data-slug="complaint-sorter">Complaint Sorter</a><span class="sep" aria-hidden="true">·</span><a class="item" href="retail-dbt/" data-slug="retail-dbt">Retail Pipeline in dbt</a><span class="sep" aria-hidden="true">·</span><a class="item" href="customer-clv/" data-slug="customer-clv">Who Will Buy Again?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="excel-model/" data-slug="excel-model">Costco Model in Excel</a><span class="sep" aria-hidden="true">·</span><a class="item" href="ca-fast-food-wage/" data-slug="ca-fast-food-wage">California&#x27;s $20 Fast-Food Wage</a><span class="sep" aria-hidden="true">·</span><a class="item" href="us-jobs-dashboard/" data-slug="us-jobs-dashboard">Where America&#x27;s Jobs Grew</a><span class="sep" aria-hidden="true">·</span><a class="item" href="titanic-survival/" data-slug="titanic-survival">Titanic: The Missing-Data Problem</a><span class="sep" aria-hidden="true">·</span><a class="item" href="ames-housing/" data-slug="ames-housing">Ames House Prices</a><span class="sep" aria-hidden="true">·</span><a class="item" href="world-happiness/" data-slug="world-happiness">World Happiness</a><span class="sep" aria-hidden="true">·</span><a class="item" href="mnist-digits/" data-slug="mnist-digits">Handwritten Digits</a><span class="sep" aria-hidden="true">·</span><a class="item" href="spotify-tracks/" data-slug="spotify-tracks">Spotify: What Makes a Hit?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="nyc-building-energy/" data-slug="nyc-building-energy">NYC Building Energy</a><span class="sep" aria-hidden="true">·</span><a class="item" href="fuel-economy/" data-slug="fuel-economy">Where Did the Fuel-Economy Gains Go?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="mortgage-denials/" data-slug="mortgage-denials">Who Gets Denied a Mortgage?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="food-inspections/" data-slug="food-inspections">Which Kitchens to Inspect First?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="process-mining/" data-slug="process-mining">Where a Loan Process Loses Time</a><span class="sep" aria-hidden="true">·</span><a class="item" href="digital-divide/" data-slug="digital-divide">Who Is Still Offline?</a><span class="sep" aria-hidden="true">·</span><a class="item" href="jira-flow-analytics/" data-slug="jira-flow-analytics">Jira Flow Analytics</a><span class="sep" aria-hidden="true">·</span><a class="item" href="faa-aircraft-db/" data-slug="faa-aircraft-db">FAA Aircraft Registry Database</a><span class="sep" aria-hidden="true">·</span><a class="item" href="florida-flight-delays/" data-slug="florida-flight-delays">Florida Flight Delays</a><span class="sep" aria-hidden="true">·</span><a class="item" href="business-finder/" data-slug="business-finder">Business Finder</a><span class="sep" aria-hidden="true">·</span><a class="item" href="trading-bot/" data-slug="trading-bot">Trading Bot</a></p>
   <p id="cap" aria-hidden="true"></p>
 </main>
 <img id="peek" alt="">
+<video id="peekv" muted loop playsinline tabindex="-1" aria-hidden="true"></video>
+<p id="now" class="sr" aria-live="polite"></p>
 
-<script type="module">
-const PROJECTS = [{"slug": "sec-10k-rag", "title": "Ask the 10-K", "kind": "LLM \u00b7 RAG", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "chicago-bike-share", "title": "How Chicago Rides", "kind": "SQL \u00b7 Analysis", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "us-retail-forecast", "title": "US Retail Sales Forecast", "kind": "Python \u00b7 Forecasting", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "csv-quality-checker", "title": "CSV Data-Quality Checker", "kind": "Java \u00b7 Data quality", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "flight-delay-model", "title": "Will My Flight Be Disrupted?", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "email-ab-test", "title": "E-mail A/B Test Readout", "kind": "Statistics \u00b7 A/B testing", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "complaint-sorter", "title": "Complaint Sorter", "kind": "LLM \u00b7 Text classification", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "retail-dbt", "title": "Retail Pipeline in dbt", "kind": "Analytics engineering \u00b7 dbt", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "customer-clv", "title": "Who Will Buy Again?", "kind": "Python \u00b7 Customer analytics", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "excel-model", "title": "Costco Model in Excel", "kind": "Excel \u00b7 Financial modelling", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "ca-fast-food-wage", "title": "California's $20 Fast-Food Wage", "kind": "Statistics \u00b7 Causal inference", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "us-jobs-dashboard", "title": "Where America's Jobs Grew", "kind": "Dashboard \u00b7 Data visualization", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "titanic-survival", "title": "Titanic: The Missing-Data Problem", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "ames-housing", "title": "Ames House Prices", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "world-happiness", "title": "World Happiness", "kind": "Social science \u00b7 Statistics", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "mnist-digits", "title": "Handwritten Digits", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "spotify-tracks", "title": "Spotify: What Makes a Hit?", "kind": "Python \u00b7 Exploratory analysis", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "nyc-building-energy", "title": "NYC Building Energy", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "fuel-economy", "title": "Where Did the Fuel-Economy Gains Go?", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "mortgage-denials", "title": "Who Gets Denied a Mortgage?", "kind": "Python \u00b7 Predictive modeling", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "food-inspections", "title": "Which Kitchens to Inspect First?", "kind": "Python \u00b7 Predictive modeling", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "process-mining", "title": "Where a Loan Process Loses Time", "kind": "Python \u00b7 Process mining", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "digital-divide", "title": "Who Is Still Offline?", "kind": "Python \u00b7 Digital transformation", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "jira-flow-analytics", "title": "Jira Flow Analytics", "kind": "Python \u00b7 Jira & Confluence", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "faa-aircraft-db", "title": "FAA Aircraft Registry Database", "kind": "SQL \u00b7 Database management", "date": "2026-10", "cover": "cover.jpg"}, {"slug": "florida-flight-delays", "title": "Florida Flight Delays", "kind": "Power BI \u00b7 DAX", "date": "2026-09", "cover": "cover.jpg"}, {"slug": "business-finder", "title": "Business Finder", "kind": "Python \u00b7 Data pipeline", "date": "2026-08", "cover": "cover.jpg"}, {"slug": "trading-bot", "title": "Trading Bot", "kind": "Python \u00b7 Automation", "date": "2026-08", "cover": "cover.jpg"}];
-const $ = (id) => document.getElementById(id);
-const body = document.body, canvas = $("stage"), peek = $("peek"), cap = $("cap");
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let gl = null;          // the carousel, once WebGL is up
+<div class="ui" id="ui">
+  <div class="row top">
+    <a class="label" data-gl="text" href="https://mrrishit909.github.io/">Rishit Mathur</a>
+    <button class="label" data-gl="text" id="btn-profile" type="button" aria-expanded="false" aria-controls="panel-profile">Profile</button>
+  </div>
+  <div class="row bottom">
+    <nav class="label modes" id="modes" aria-label="Project views" hidden><button type="button" data-gl="text" id="m-featured" aria-pressed="false">Featured</button><span class="slash" data-gl="text" aria-hidden="true">/</span><button type="button" data-gl="text" id="m-full" aria-pressed="true">Full</button></nav>
+    <div class="label links"><a data-gl="text" href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a><a data-gl="text" href="https://mrrishit909.github.io/resume.pdf" target="_blank" rel="noopener">Resume</a></div>
+  </div>
+</div>
 
-function setMode(mode) {
-  const full = mode === "full" || !gl;
-  body.classList.toggle("full", full);
-  body.classList.toggle("featured", !full);
-  $("m-featured").setAttribute("aria-pressed", String(!full));
-  $("m-full").setAttribute("aria-pressed", String(full));
-  try { history.replaceState(null, "", full ? "#full" : location.pathname); } catch (e) {}
-  if (!full) { gl.start(); canvas.focus({ preventScroll: true }); } else if (gl) gl.stop();
-}
-$("m-featured").onclick = () => setMode("featured");
-$("m-full").onclick = () => setMode("full");
-$("full").addEventListener("focusin", () => { if (body.classList.contains("featured")) setMode("full"); });
+<div class="panel" id="panel-profile" role="dialog" aria-label="Profile" inert>
+  <div class="inner">
+    <p class="bio" data-gl="text" style="--d:.05s">Rishit Raj Mathur, data analyst. Every project here comes with the problem, a step-by-step log of how it was built, and what it found.</p>
+    <p class="label stat" data-gl="text" style="--d:.12s">28 projects — Python, LLM, SQL, Statistics, Java</p>
+    <ul>
+      <li><a class="label" data-gl="text" style="--d:.19s" href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a class="label" data-gl="text" style="--d:.24s" href="https://mrrishit909.github.io/resume.pdf" target="_blank" rel="noopener">Resume</a></li>
+    </ul>
+  </div>
+</div>
 
-/* ---------- Full view: hover preview that trails the cursor ---------- */
-let px = 0, py = 0, tx = 0, ty = 0, showing = false, raf = 0;
-function trail() {
-  const vx = tx - px; px += vx * 0.16; py += (ty - py) * 0.16;
-  peek.style.transform = `translate(${px}px,${py}px) translate(-50%,calc(-100% - 36px)) rotate(${Math.max(-8, Math.min(8, vx * 0.08))}deg)`;
-  raf = showing || Math.abs(vx) > 0.5 ? requestAnimationFrame(trail) : 0;
-}
-document.querySelectorAll("#full .item").forEach((a) => {
-  const p = PROJECTS.find((q) => q.slug === a.dataset.slug);
-  a.addEventListener("mouseenter", (e) => {
-    cap.textContent = `${p.kind} — ${p.date}`;
-    if (!p.cover || matchMedia("(hover: none)").matches) return;
-    if (!showing) { px = tx = e.clientX; py = ty = e.clientY; }
-    peek.src = `${p.slug}/${p.cover}`; showing = true;
-    peek.animate([{ opacity: peek.style.opacity || 0 }, { opacity: 1 }], { duration: reduce ? 0 : 220, fill: "forwards" });
-    if (!raf) raf = requestAnimationFrame(trail);
-  });
-  a.addEventListener("mouseleave", () => {
-    cap.textContent = ""; showing = false;
-    peek.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 0 : 180, fill: "forwards" });
-  });
-  a.addEventListener("focus", () => { cap.textContent = `${p.kind} — ${p.date}`; });
-});
-addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
-
-/* ---------- Featured view: cards bent around a cylinder, over a grid floor ---------- */
-async function buildCarousel() {
-  const THREE = await import("https://cdnjs.cloudflare.com/ajax/libs/three.js/0.170.0/three.module.min.js");
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });   // throws without WebGL
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 1);
-
-  const R = 6, W = 3.6, H = 2.25, RAD = 0.1;         // cylinder radius, card size (16:10), corner radius
-  const angW = W / R, STEP = angW + 0.06;             // a card's angular width, and card-to-card spacing
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x000000, 3, 20);
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60);
-  camera.position.set(0, 0, 0); camera.lookAt(0, 0, -1);
-
-  const grid = new THREE.GridHelper(80, 80, 0x3a3a3a, 0x262626);
-  grid.position.y = -1.75;
-  scene.add(grid);
-
-  await document.fonts.load("500 64px Geist");
-  const textures = await Promise.all(PROJECTS.map(cardTexture));
-  renderer.initTexture && textures.forEach((t) => renderer.initTexture(t));
-
-  const vert = `
-    uniform float uAngle, uR, uBend;
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      float a = uAngle + position.x / uR;
-      float r = uR - uBend * sin(uv.x * 3.14159265);      // cards bow toward you while moving
-      vec3 w = vec3(r * sin(a), position.y * (1.0 + 0.08 * abs(uBend)), -r * cos(a));
-      gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
-    }`;
-  const frag = `
-    uniform sampler2D uTex; uniform float uDim, uW, uH, uRad;
-    varying vec2 vUv;
-    void main() {
-      vec2 size = vec2(uW, uH);
-      vec2 q = abs(vUv - 0.5) * size - (size * 0.5 - uRad);
-      float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uRad;   // rounded-rectangle edge
-      vec4 c = texture2D(uTex, vUv);
-      gl_FragColor = vec4(c.rgb * uDim, 1.0 - smoothstep(-0.006, 0.006, d));
-      #include <colorspace_fragment>
-    }`;
-
-  // enough copies to fill the view; with few projects the copies only show up as you pass the end
-  const hfovMax = 1.5, minCards = Math.ceil((hfovMax + 2 * angW) / STEP) + 1;
-  const reps = Math.max(1, Math.ceil(minCards / PROJECTS.length));
-  const N = PROJECTS.length * reps;
-  const geo = new THREE.PlaneGeometry(W, H, 64, 1);
-  const cards = [];
-  for (let i = 0; i < N; i++) {
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { uTex: { value: textures[i % PROJECTS.length] }, uAngle: { value: 0 }, uR: { value: R }, uBend: { value: 0 },
-                  uDim: { value: 1 }, uW: { value: W }, uH: { value: H }, uRad: { value: RAD } },
-      vertexShader: vert, fragmentShader: frag, transparent: true, fog: false,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.frustumCulled = false;
-    scene.add(mesh);
-    cards.push({ mesh, project: PROJECTS[i % PROJECTS.length], angle: 0 });
-  }
-
-  let target = 0, cur = 0, bend = 0, hovered = -1, running = false, lastNow = -1;
-  const wrap = (x) => ((x % N) + N) % N;
-  const hfov = () => 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-  const pxPerCard = () => innerWidth * STEP / hfov();
-  const centre = () => wrap(Math.round(cur));
-
-  function resize() {
-    renderer.setSize(innerWidth, innerHeight, false);
-    camera.aspect = innerWidth / innerHeight;
-    const want = camera.aspect >= 1 ? 1.34 : 1.0;            // how much of the ring is visible across
-    camera.fov = Math.min(80, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(want / 2) / camera.aspect)));
-    camera.updateProjectionMatrix();
-  }
-  addEventListener("resize", resize); resize();
-
-  function frame() {
-    const prev = cur;
-    cur += (target - cur) * (reduce ? 1 : 0.085);
-    const vel = cur - prev;
-    bend += ((reduce ? 0 : Math.max(-0.9, Math.min(0.9, vel * 7))) - bend) * 0.18;
-    for (let i = 0; i < N; i++) {
-      let rel = wrap(i - cur); if (rel > N / 2) rel -= N;
-      const c = cards[i]; c.angle = rel * STEP;
-      const u = c.mesh.material.uniforms;
-      u.uAngle.value = c.angle; u.uBend.value = bend;
-      const edge = Math.min(1, Math.max(0, (Math.abs(c.angle) - 0.18) / 0.7));
-      u.uDim.value = i === hovered ? 1 : 1 - 0.5 * edge;
-      c.mesh.visible = Math.abs(c.angle) < Math.PI * 0.85;
-    }
-    grid.rotation.y = -cur * STEP;
-    renderer.render(scene, camera);
-    const now = centre();
-    if (now !== lastNow) { lastNow = now; const p = cards[now].project; $("now").textContent = `${p.title}, ${PROJECTS.indexOf(p) + 1} of ${PROJECTS.length}`; }
-    if (running) requestAnimationFrame(frame);
-  }
-
-  // which card is under the pointer: exact for the unbent cylinder, which is how cards sit when clicked
-  function hit(x, y) {
-    const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), th = tv * camera.aspect;
-    const theta = Math.atan(((x / innerWidth) * 2 - 1) * th);
-    const phi = Math.atan((1 - (y / innerHeight) * 2) * tv);
-    for (let i = 0; i < N; i++) {
-      const a = cards[i].angle;
-      if (Math.abs(theta - a) < angW / 2 && Math.abs(phi) < Math.atan(H / 2 / (R * Math.cos(theta - a)))) return i;
-    }
-    return -1;
-  }
-  const open = (i) => { location.href = `${cards[i].project.slug}/`; };
-  const gone = () => $("hint").classList.add("gone");
-
-  let down = null, snapT = 0;
-  const snapSoon = (ms) => { clearTimeout(snapT); snapT = setTimeout(() => { target = Math.round(target); }, ms); };
-  canvas.addEventListener("pointerdown", (e) => { down = { x: e.clientX, last: e.clientX, moved: 0 }; canvas.setPointerCapture(e.pointerId); clearTimeout(snapT); });
-  canvas.addEventListener("pointermove", (e) => {
-    if (down) { const dx = e.clientX - down.last; down.last = e.clientX; down.moved += Math.abs(dx); target -= dx / pxPerCard(); if (down.moved > 6) gone(); }
-    else { hovered = hit(e.clientX, e.clientY); canvas.style.cursor = hovered >= 0 ? "pointer" : "grab"; }
-  });
-  const release = (e) => {
-    const wasClick = down.moved < 6; down = null;
-    if (wasClick) {
-      const i = hit(e.clientX, e.clientY);
-      if (i >= 0) { if (i === centre()) open(i); else { let d = wrap(i - Math.round(cur)); if (d > N / 2) d -= N; target = Math.round(cur) + d; } }
-    } else snapSoon(120);
-  };
-  canvas.addEventListener("pointerup", (e) => { if (down) release(e); });
-  // a drag released outside the window, or a lost capture, still settles on a card
-  canvas.addEventListener("lostpointercapture", (e) => { if (down) { down.moved = Math.max(down.moved, 6); release(e); } });
-  canvas.addEventListener("pointercancel", () => { down = null; snapSoon(120); });
-  canvas.addEventListener("wheel", (e) => {
-    e.preventDefault(); gone();
-    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    target += (e.deltaMode === 1 ? d * 40 : d) * 1.6 / pxPerCard();
-    snapSoon(160);
-  }, { passive: false });
-  addEventListener("keydown", (e) => {
-    if (!running) return;
-    if (e.key === "ArrowRight") { target = Math.round(target) + 1; gone(); }
-    else if (e.key === "ArrowLeft") { target = Math.round(target) - 1; gone(); }
-    else if (e.key === "Enter" && document.activeElement === canvas) open(centre());
-  });
-  canvas.addEventListener("pointerleave", () => { hovered = -1; });
-
-  return {
-    start() { if (!running) { running = true; resize(); requestAnimationFrame(frame); } },
-    stop() { running = false; },
-  };
-}
-
-// one canvas per project: the cover image, a dark fade, the kind, the title and an arrow button
-async function cardTexture(p) {
-  const THREE = await import("https://cdnjs.cloudflare.com/ajax/libs/three.js/0.170.0/three.module.min.js");
-  const w = 1280, h = 800, c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  const x = c.getContext("2d");
-  x.fillStyle = "#101010"; x.fillRect(0, 0, w, h);
-  if (p.cover) {
-    const img = new Image(); img.src = `${p.slug}/${p.cover}`;
-    await img.decode();
-    const s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-    const iw = img.naturalWidth * s, ih = img.naturalHeight * s;
-    x.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
-  } else {                                   // no screenshot yet: a plain typographic card
-    x.strokeStyle = "#222"; x.lineWidth = 1;
-    for (let gx = 0; gx <= w; gx += 64) { x.beginPath(); x.moveTo(gx, 0); x.lineTo(gx, h); x.stroke(); }
-    for (let gy = 0; gy <= h; gy += 64) { x.beginPath(); x.moveTo(0, gy); x.lineTo(w, gy); x.stroke(); }
-  }
-  const g = x.createLinearGradient(0, h * 0.45, 0, h);
-  g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,0.82)");
-  x.fillStyle = g; x.fillRect(0, 0, w, h);
-  x.fillStyle = "rgba(255,255,255,0.72)"; x.font = "500 24px Geist";
-  if ("letterSpacing" in x) x.letterSpacing = "2px";
-  x.fillText(p.kind.toUpperCase(), 60, h - 150);
-  if ("letterSpacing" in x) x.letterSpacing = "-1.5px";
-  x.fillStyle = "#fff"; x.font = "500 76px Geist";
-  x.fillText(p.title, 56, h - 70);
-  x.beginPath(); x.arc(w - 96, h - 96, 40, 0, Math.PI * 2); x.fillStyle = "#fff"; x.fill();
-  x.strokeStyle = "#000"; x.lineWidth = 4; x.lineCap = "round"; x.lineJoin = "round";
-  x.beginPath(); x.moveTo(w - 112, h - 96); x.lineTo(w - 80, h - 96); x.moveTo(w - 92, h - 108); x.lineTo(w - 80, h - 96); x.lineTo(w - 92, h - 84); x.stroke();
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-  return t;
-}
-
-// Featured by default; Full when asked for (#full), when motion is reduced, or when WebGL isn't there
-try {
-  gl = await buildCarousel();
-  $("modes").hidden = false;
-  setMode(location.hash === "#full" || reduce ? "full" : "featured");
-} catch (err) {
-  console.warn("carousel unavailable, showing the list", err);
-  gl = null; setMode("full");
-}
-</script>
+<script type="application/json" id="projects-data">[{"slug": "sec-10k-rag", "title": "Ask the 10-K", "kind": "LLM \u00b7 RAG", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.614, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "chicago-bike-share", "title": "How Chicago Rides", "kind": "SQL \u00b7 Analysis", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.839, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "us-retail-forecast", "title": "US Retail Sales Forecast", "kind": "Python \u00b7 Forecasting", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "csv-quality-checker", "title": "CSV Data-Quality Checker", "kind": "Java \u00b7 Data quality", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.661, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "flight-delay-model", "title": "Will My Flight Be Disrupted?", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.839, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "email-ab-test", "title": "E-mail A/B Test Readout", "kind": "Statistics \u00b7 A/B testing", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "complaint-sorter", "title": "Complaint Sorter", "kind": "LLM \u00b7 Text classification", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.528, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "retail-dbt", "title": "Retail Pipeline in dbt", "kind": "Analytics engineering \u00b7 dbt", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.614, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "customer-clv", "title": "Who Will Buy Again?", "kind": "Python \u00b7 Customer analytics", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.736, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "excel-model", "title": "Costco Model in Excel", "kind": "Excel \u00b7 Financial modelling", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "ca-fast-food-wage", "title": "California's $20 Fast-Food Wage", "kind": "Statistics \u00b7 Causal inference", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "us-jobs-dashboard", "title": "Where America's Jobs Grew", "kind": "Dashboard \u00b7 Data visualization", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "titanic-survival", "title": "Titanic: The Missing-Data Problem", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.736, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "ames-housing", "title": "Ames House Prices", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.747, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "world-happiness", "title": "World Happiness", "kind": "Social science \u00b7 Statistics", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.614, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "mnist-digits", "title": "Handwritten Digits", "kind": "Python \u00b7 Machine learning", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.528, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "spotify-tracks", "title": "Spotify: What Makes a Hit?", "kind": "Python \u00b7 Exploratory analysis", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.839, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "nyc-building-energy", "title": "NYC Building Energy", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "fuel-economy", "title": "Where Did the Fuel-Economy Gains Go?", "kind": "Python \u00b7 Regression", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "mortgage-denials", "title": "Who Gets Denied a Mortgage?", "kind": "Python \u00b7 Predictive modeling", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "food-inspections", "title": "Which Kitchens to Inspect First?", "kind": "Python \u00b7 Predictive modeling", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "process-mining", "title": "Where a Loan Process Loses Time", "kind": "Python \u00b7 Process mining", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "digital-divide", "title": "Who Is Still Offline?", "kind": "Python \u00b7 Digital transformation", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.739, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "jira-flow-analytics", "title": "Jira Flow Analytics", "kind": "Python \u00b7 Jira & Confluence", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "faa-aircraft-db", "title": "FAA Aircraft Registry Database", "kind": "SQL \u00b7 Database management", "date": "2026-10", "cover": "cover.jpg", "aspect": 1.7, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "florida-flight-delays", "title": "Florida Flight Delays", "kind": "Power BI \u00b7 DAX", "date": "2026-09", "cover": "cover.jpg", "aspect": 1.614, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "business-finder", "title": "Business Finder", "kind": "Python \u00b7 Data pipeline", "date": "2026-08", "cover": "cover.jpg", "aspect": 1.614, "loops": ["loop.mp4", "loop.webm"]}, {"slug": "trading-bot", "title": "Trading Bot", "kind": "Python \u00b7 Automation", "date": "2026-08", "cover": "cover.jpg", "aspect": 1.661, "loops": ["loop.mp4", "loop.webm"]}]</script>
+<script type="module" src="home.js"></script>
 </body>
 </html>
