@@ -1,0 +1,49 @@
+{
+  "title": "Hospital Data Warehouse",
+  "tagline": "Seven years of quarterly CMS hospital releases rebuilt into a star schema with full history: ownership changes, hospitals that turned into a new kind of rural ER, and a durable key that survives ID changes.",
+  "kind": "SQL · Data warehousing",
+  "tech": [
+    "DuckDB",
+    "SQL",
+    "Kimball star schema",
+    "Slowly changing dimensions (Type 1 & 2)",
+    "Idempotent ETL",
+    "CMS data"
+  ],
+  "date": "2026-10",
+  "order": 26,
+  "repo": "https://github.com/mrrishit909/hospital-warehouse",
+  "cover": "cover.jpg",
+  "note": "The links between old and new facility IDs come from a matching rule, not from CMS's own records; all 104 are published for review. Star-rating methods changed in 2021, so ratings across years aren't strictly comparable.",
+  "problem": "<p>Every quarter CMS publishes a fresh file of every US hospital: name, type, ownership, emergency services and overall star rating. Each file replaces the last, so the questions that matter for health-system analysts disappear. <em>Which hospitals changed ownership, and when? Which became a new kind of hospital? What did the ratings look like for hospitals as they were at the time?</em></p>",
+  "built": "<p>A Kimball star schema in DuckDB, loaded from 33 quarterly CMS releases (March 2019 – August 2026):</p><ul><li><b>A slowly changing hospital dimension:</b> Type 2 history for ownership, type and emergency services; Type 1 for name and address.</li><li><b>A durable hospital key</b> and a lineage table, for hospitals that change their CMS ID.</li><li><b>A periodic snapshot fact</b> of star ratings.</li><li><b>An idempotent, release-by-release ETL</b> with an audit table, checked against the raw files.</li></ul>",
+  "steps": [
+    {
+      "title": "Collect seven years of snapshots",
+      "body": "<p>CMS's catalog has an archive API listing every quarterly zip. <code>download.py</code> pulls 34 of them and keeps the General Information file from each. That needs care:</p><ul><li><b>File names changed:</b> in 2020 the files were named only by dataset ID.</li><li><b>Columns were renamed:</b> \"Provider ID\" became \"Facility ID\", for example, so one mapping gives every year the same names.</li><li><b>One partial update</b> (September 2026) doesn't include this dataset, leaving 33 releases.</li></ul>",
+      "code": "names = [n for n in zf.namelist() if (\"general\" in n.lower() or \"xubh\" in n.lower())"
+    },
+    {
+      "title": "Decide what deserves history",
+      "body": "<p>I measured how often each attribute changes between releases before designing the dimension. Ownership changed 860 times, emergency services 411 and names 2,081, but many name changes are cosmetic (\"ST VINCENT'S\" → \"ST. VINCENT'S\"). So ownership, type and emergency services get Type 2 history (a new dated row), while name and address are Type 1 (overwritten).</p><img src=\"charts/01_star_schema.jpg\" alt=\"Star schema: dim_date and dim_hospital around fact_rating, with dim_hospital columns labelled surrogate key, durable key, business key, Type 1, Type 2 and SCD dates, and a dashed link to hospital_lineage for ID changes\">",
+      "code": "hospital_key       integer NOT NULL,             -- durable key: same hospital across versions and ID changes"
+    },
+    {
+      "title": "Keep one hospital one hospital",
+      "body": "<p>When a rural hospital becomes a Rural Emergency Hospital, or an acute hospital becomes a critical access hospital, CMS gives it a new ID. Keyed on the ID alone, it would look like a closure plus an opening. A lineage rule links them: the old ID left the data in the same city before the new one appeared, and either the names share at least half their distinctive words, or the new one is a Rural Emergency Hospital with a single candidate in its city. That gives 104 links, including Fannin Regional Hospital becoming Blue Ridge Medical Center.</p><img src=\"charts/02_one_hospital.jpg\" alt=\"Timeline of one hospital, Ira Davenport Memorial in New York: four versions under ID 330144 as emergency services and ownership change, then a fifth under ID 330800 after converting to a Rural Emergency Hospital\">",
+      "code": "WHERE name_overlap >= 0.5 OR (new_type = 'Rural Emergency Hospital' AND candidates = 1)"
+    },
+    {
+      "title": "Load release by release, safely",
+      "body": "<p>For each release in order, <code>warehouse.py</code>:</p><ul><li>stages and normalises the file;</li><li>overwrites Type 1 attributes;</li><li>closes changed versions and opens new ones;</li><li>closes hospitals that left the data and reopens returners;</li><li>adds new hospitals, carrying the durable key across ID changes;</li><li>appends the ratings.</li></ul><p>A release that's already loaded is skipped, so running the job again changes nothing. The audit table also exposes the source: 581 \"new\" hospitals in July 2019 are CMS adding psychiatric hospitals, 139 in July 2023 are VA hospitals, and three releases repeated the previous one exactly.</p><img src=\"charts/03_releases.jpg\" alt=\"ETL audit bar chart by release: new hospitals, new Type 2 versions and hospitals leaving the data, with spikes labelled psychiatric hospitals added (July 2019) and VA hospitals added (July 2023)\">",
+      "code": "UPDATE dim_hospital SET valid_to = DATE '{snap}', is_current = false WHERE hospital_sk IN (SELECT hospital_sk FROM changed);"
+    },
+    {
+      "title": "Check it against the raw files",
+      "body": "<p><code>check.py</code> re-runs the job and confirms nothing changes. It also confirms:</p><ul><li>no hospital has two current versions or overlapping dates;</li><li>every one of 175,908 facts points at the version valid on its date;</li><li>for 500 random hospital-release pairs, ownership, type and emergency services as stored match the raw snapshot file exactly.</li></ul>",
+      "code": "return False                                                   # already loaded: idempotent"
+    }
+  ],
+  "results": "<table><tr><th>Recorded ownership changes</th><th class=\"num\">Count</th></tr><tr><td>Total versions</td><td class=\"num\">859</td></tr><tr><td>Relabel within a group</td><td class=\"num\">378</td></tr><tr><td>Undone next release</td><td class=\"num\">79</td></tr><tr><td>Real moves that stuck</td><td class=\"num\">431</td></tr></table><ul><li><b>Ownership moves both ways.</b> Of hospitals in both the first and last releases, 63 non-profits became for-profit and 75 for-profits became non-profit. 93 government hospitals became non-profit.</li><li><b>A new kind of hospital:</b> 45 Rural Emergency Hospitals (rural hospitals that stop inpatient care but keep the ER), listed by CMS only from November 2025. Lineage traces 42 to an earlier hospital: 23 acute-care and 19 critical access.</li><li><b>As-was vs as-is:</b> the 4–5-star share by ownership in 2019 moves by under a point whether hospitals are grouped by their ownership then or now (non-profit 40.8% vs 40.5%). For that question a simpler design would do; for \"who converted, and when\" only Type 2 works.</li></ul><img src=\"charts/04_ownership.jpg\" alt=\"Three by three matrix of hospitals by ownership group in March 2019 and August 2026: 2,580 stayed non-profit, 656 for-profit, 907 government, with off-diagonal counts such as 63 non-profit to for-profit and 93 government to non-profit\"><img src=\"charts/05_reh.jpg\" alt=\"Two panels: Rural Emergency Hospitals listed by CMS rising from 0 to 43 after November 2025, and their previous types, 23 acute care, 19 critical access and 3 with no earlier ID found\">",
+  "next": "<ul><li>Confirm lineage links with CMS's Provider of Services file, which records related provider numbers.</li><li>Add readmission and patient-experience facts on the same dimensions.</li><li>Follow star ratings before and after ownership changes.</li></ul>"
+}
