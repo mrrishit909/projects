@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US Jobs Dashboard</title>
+<meta name="description" content="Interactive dashboard of US employment and wages by state, county and industry, 2019-2025, from the BLS Quarterly Census of Employment and Wages.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d;--up:#3987e5;--down:#d95926;--na:#1c1c1c}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:1320px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:24px;margin-bottom:28px}nav a{text-decoration:none}
+h1{margin:6px 0 6px;font-size:clamp(32px,5vw,56px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:80ch}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:end;margin:24px 0 16px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ctl{display:grid;gap:4px}
+select,button{font:inherit;font-size:14px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button{cursor:pointer}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--card);color:var(--dim)}
+.seg button[aria-pressed="true"]{background:#1f2937;color:var(--fg)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile b{display:block;font-size:28px;font-weight:500;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile span{color:var(--dim);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.card h2{margin:0 0 8px;font-size:15px;font-weight:500}
+.card .sub{margin:-6px 0 8px;color:var(--dim);font-size:13px}
+#map svg{width:100%;height:auto;display:block}
+#map path.state{stroke:#000;stroke-width:.7;cursor:pointer}
+#map path.state:hover,#map path.county:hover{stroke:var(--fg);stroke-width:1.2}
+#map path.county{stroke:#000;stroke-width:.25}
+#map path:focus{outline:none}#map path.state:focus-visible{stroke:var(--fg);stroke-width:2}
+#map path.border{fill:none;stroke:#000;stroke-width:.8;pointer-events:none}
+.legend{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--dim)}
+.legend .bar{height:8px;width:180px;border-radius:4px}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px}
+.rank li button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 120px 58px;gap:8px;align-items:center;text-align:left;background:none;border:0;padding:3px 4px;border-radius:6px;color:var(--fg)}
+.rank li button:hover{background:#151515}
+.rank .b{height:8px;border-radius:2px}
+.rank .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.rank .gap{color:var(--faint);font-size:12px;padding:2px 4px}
+.bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
+svg text{fill:var(--dim);font-family:Geist,sans-serif;font-size:11px}
+.axis line,.axis path{stroke:#2a2a2a}.gridl line{stroke:#1a1a1a}
+#tip{position:fixed;pointer-events:none;z-index:10;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.4;max-width:260px;display:none}
+#tip b{font-weight:500}
+.note{color:var(--faint);font-size:12px;margin-top:6px}
+footer{margin-top:30px;color:var(--faint);font-size:12px}
+@media (max-width:900px){body{padding:18px 16px 40px}.grid,.bottom{grid-template-columns:minmax(0,1fr)}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:22px}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/us-jobs-dashboard/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Interactive dashboard · BLS QCEW · 2019-2025</p>
+<h1>Where America's jobs grew</h1>
+<p class="lede">Employment and pay for every state and county, by industry. Click a state to drill into its counties;
+click an industry to filter everything. Figures are annual averages of jobs covered by unemployment insurance.</p>
+
+<div class="controls" role="group" aria-label="Filters">
+  <div class="ctl"><label class="cap" for="area">Area</label><select id="area"></select></div>
+  <div class="ctl"><label class="cap" for="year">Year</label><select id="year"></select></div>
+  <div class="ctl"><label class="cap" for="base">Compared with</label>
+    <select id="base"><option value="prev">the year before</option><option value="2019">2019 (pre-pandemic)</option></select></div>
+  <div class="ctl"><label class="cap" for="ind">Industry</label><select id="ind"></select></div>
+  <div class="ctl"><span class="cap" id="measure-label">Map shows</span>
+    <div class="seg" role="group" aria-labelledby="measure-label"><button type="button" data-m="change" aria-pressed="true">Job change</button><button type="button" data-m="wage" aria-pressed="false">Weekly wage</button></div></div>
+  <button type="button" id="reset">Reset</button>
+</div>
+
+<div class="tiles" id="tiles" aria-live="polite"></div>
+<div class="grid">
+  <section class="card"><h2 id="map-title"></h2><p class="sub" id="map-sub"></p><div id="map"></div>
+    <div class="legend"><span id="lg-lo"></span><span class="bar" id="lg-bar"></span><span id="lg-hi"></span><span id="lg-na" style="margin-left:10px"></span></div>
+    <p class="note" id="map-note"></p></section>
+  <section class="card"><h2 id="rank-title"></h2><p class="sub" id="rank-sub"></p><ul class="rank" id="rank"></ul></section>
+</div>
+<div class="bottom">
+  <section class="card"><h2 id="trend-title"></h2><p class="sub">Jobs, indexed to 2019 = 100</p><div id="trend"></div></section>
+  <section class="card"><h2 id="ind-title"></h2><p class="sub">Click a bar to filter the dashboard by that industry</p><div id="inds"></div></section>
+</div>
+<footer>Source: U.S. Bureau of Labor Statistics, Quarterly Census of Employment and Wages (annual averages). Industry groups are
+private-sector NAICS supersectors; "All industries" includes government. Some state and county figures are not published by BLS
+to protect individual employers and show as gaps. Connecticut replaced its counties with planning regions in 2024, so its county map
+covers 2019-2023 only. Boundaries: US Census via us-atlas.</footer>
+<div id="tip" role="tooltip"></div>
+</main>
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
+<script>
+(async function () {
+  const [D, topo] = await Promise.all([
+    fetch("data.json").then((r) => r.json()),
+    fetch("vendor/counties-albers-10m.json").then((r) => r.json()),
+  ]);
+  const stateGeo = topojson.feature(topo, topo.objects.states).features.filter((f) => D.states[f.id]);
+  const countyGeo = topojson.feature(topo, topo.objects.counties).features;
+  const borders = topojson.mesh(topo, topo.objects.states, (a, b) => a !== b);
+  const IND = Object.fromEntries(D.industries.map((i) => [i.key, i.name]));
+  const S = { year: 2025, base: "prev", ind: "total", measure: "change", sel: null };
+
+  // ---------- numbers ----------
+  const series = (area, ind) => area === "US" ? D.us[ind] : D.states[area]?.data[ind];
+  const val = (area, ind, y, k = 0) => { const s = series(area, ind); return s && s[y] ? s[y][k] : null; };
+  const baseYear = () => S.base === "prev" ? S.year - 1 : 2019;
+  const change = (now, then) => (now == null || then == null) ? null : now / then - 1;
+  const areaChange = (area, ind) => change(val(area, ind, S.year), val(area, ind, baseYear()));
+  const countyVal = (c, y, k = 0) => { const d = D.counties[c]?.data[y]; return d ? d[k] : null; };
+  const metric = (area, ind) => S.measure === "change" ? areaChange(area, ind) : val(area, ind, S.year, 1);
+  const countyMetric = (c) => S.measure === "change" ? change(countyVal(c, S.year), countyVal(c, baseYear())) : countyVal(c, S.year, 1);
+  const fmtPct = (x) => x == null ? "not published" : (x >= 0 ? "+" : "") + (100 * x).toFixed(1) + "%";
+  const fmtInt = d3.format(",.0f"), fmtUsd = (x) => x == null ? "not published" : "$" + fmtInt(x);
+  const fmtM = (x) => x == null ? "–" : Math.abs(x) >= 1e6 ? (x / 1e6).toFixed(2) + "M" : fmtInt(x);
+  const fmtMetric = (x) => S.measure === "change" ? fmtPct(x) : fmtUsd(x);
+  const areaName = (a) => a === "US" ? "United States" : D.states[a].name;
+
+  // ---------- colour ----------
+  function scale(values) {
+    const v = values.filter((x) => x != null);
+    if (S.measure === "change") {
+      const m = Math.max(0.005, d3.quantile(v.map(Math.abs).sort(d3.ascending), 0.95));
+      const s = d3.scaleDiverging([-m, 0, m], (t) => t < 0.5 ? d3.interpolateRgb("#d95926", "#3a3a3a")(t * 2) : d3.interpolateRgb("#3a3a3a", "#3987e5")((t - 0.5) * 2)).clamp(true);
+      return { s, lo: -m, hi: m, grad: "linear-gradient(90deg,#d95926,#3a3a3a,#3987e5)" };
+    }
+    const [lo, hi] = [d3.quantile(v.sort(d3.ascending), 0.05), d3.quantile(v, 0.95)];
+    return { s: d3.scaleSequential([lo, hi], d3.interpolateRgb("#16243a", "#8fc0ff")).clamp(true), lo, hi, grad: "linear-gradient(90deg,#16243a,#8fc0ff)" };
+  }
+
+  // ---------- tooltip ----------
+  const tip = document.getElementById("tip");
+  const showTip = (e, html) => { tip.innerHTML = html; tip.style.display = "block"; tip.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px"; tip.style.top = e.clientY + 14 + "px"; };
+  const hideTip = () => { tip.style.display = "none"; };
+
+  // ---------- controls ----------
+  const areaSel = document.getElementById("area"), yearSel = document.getElementById("year"), baseSel = document.getElementById("base"), indSel = document.getElementById("ind");
+  areaSel.innerHTML = `<option value="US">United States</option>` + Object.entries(D.states).sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([f, s]) => `<option value="${f}">${s.name}</option>`).join("");
+  yearSel.innerHTML = D.years.slice(1).reverse().map((y) => `<option>${y}</option>`).join("");
+  indSel.innerHTML = D.industries.map((i) => `<option value="${i.key}">${i.name}</option>`).join("");
+  areaSel.onchange = () => { S.sel = areaSel.value === "US" ? null : areaSel.value; render(); };
+  yearSel.onchange = () => { S.year = +yearSel.value; render(); };
+  baseSel.onchange = () => { S.base = baseSel.value; render(); };
+  indSel.onchange = () => { S.ind = indSel.value; render(); };
+  document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { S.measure = b.dataset.m; render(); });
+  document.getElementById("reset").onclick = () => { Object.assign(S, { year: 2025, base: "prev", ind: "total", measure: "change", sel: null }); render(); };
+
+  // ---------- map ----------
+  const svg = d3.select("#map").append("svg").attr("viewBox", "0 0 975 610").attr("role", "img");
+  const g = svg.append("g");
+  const path = d3.geoPath();
+  svg.on("click", (e) => { if (e.target === svg.node()) { S.sel = null; render(); } });
+
+  function renderMap() {
+    const atState = S.sel !== null;
+    const sc = atState ? scale(countyGeo.filter((c) => c.id.slice(0, 2) === S.sel).map((c) => countyMetric(c.id)))
+                       : scale(stateGeo.map((f) => metric(f.id, S.ind)));
+    const what = S.measure === "change" ? `Change in jobs, ${baseYear()} to ${S.year}` : `Average weekly wage, ${S.year}`;
+    document.getElementById("map-title").textContent = atState ? `${areaName(S.sel)}: counties` : "States";
+    document.getElementById("map-sub").textContent = atState ? `${what} · all industries · click outside the state to go back` : `${what} · ${IND[S.ind]} · click a state for its counties`;
+    document.getElementById("map-note").textContent = atState && S.ind !== "total" ? "County figures are all industries: BLS withholds most county industry detail." : "";
+    document.getElementById("lg-lo").textContent = fmtMetric(sc.lo);
+    document.getElementById("lg-hi").textContent = fmtMetric(sc.hi);
+    document.getElementById("lg-bar").style.background = sc.grad;
+    document.getElementById("lg-na").innerHTML = `<span style="display:inline-block;width:10px;height:10px;background:var(--na);border:1px solid #333;vertical-align:-1px"></span> not published`;
+
+    const st = g.selectAll("path.state").data(stateGeo, (d) => d.id).join("path").attr("class", "state").attr("d", path)
+      .attr("fill", (d) => { if (atState) return d.id === S.sel ? "none" : "#0f0f0f"; const v = metric(d.id, S.ind); return v == null ? "var(--na)" : sc.s(v); })
+      .attr("tabindex", 0).attr("aria-label", (d) => `${areaName(d.id)}: ${fmtMetric(metric(d.id, S.ind))}`)
+      .on("mousemove", (e, d) => showTip(e, `<b>${areaName(d.id)}</b><br>${IND[S.ind]}<br>Jobs ${S.year}: ${fmtM(val(d.id, S.ind, S.year))}<br>Change since ${baseYear()}: ${fmtPct(areaChange(d.id, S.ind))}<br>Weekly wage: ${fmtUsd(val(d.id, S.ind, S.year, 1))}`))
+      .on("mouseleave", hideTip)
+      .on("click", (e, d) => { e.stopPropagation(); S.sel = S.sel === d.id ? null : d.id; render(); })
+      .on("keydown", (e, d) => { if (e.key === "Enter") { S.sel = d.id; render(); } });
+
+    const cs = atState ? countyGeo.filter((c) => c.id.slice(0, 2) === S.sel) : [];
+    g.selectAll("path.county").data(cs, (d) => d.id).join("path").attr("class", "county").attr("d", path)
+      .attr("fill", (d) => { const v = countyMetric(d.id); return v == null ? "var(--na)" : sc.s(v); })
+      .on("mousemove", (e, d) => { const c = D.counties[d.id]; showTip(e, `<b>${c ? c.name : d.properties.name}</b><br>All industries<br>Jobs ${S.year}: ${fmtM(countyVal(d.id, S.year))}<br>Change since ${baseYear()}: ${fmtPct(change(countyVal(d.id, S.year), countyVal(d.id, baseYear())))}<br>Weekly wage: ${fmtUsd(countyVal(d.id, S.year, 1))}`); })
+      .on("mouseleave", hideTip);
+    g.selectAll("path.border").data([borders]).join("path").attr("class", "border").attr("d", path);
+
+    let t = d3.zoomIdentity;
+    if (atState) {
+      const [[x0, y0], [x1, y1]] = path.bounds(stateGeo.find((f) => f.id === S.sel));
+      const k = Math.min(8, 0.9 / Math.max((x1 - x0) / 975, (y1 - y0) / 610));
+      t = d3.zoomIdentity.translate(975 / 2, 610 / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    }
+    g.attr("transform", t);
+    g.selectAll("path.county").style("stroke-width", 0.6 / t.k);
+    g.selectAll("path.border,path.state").style("stroke-width", 0.8 / t.k);
+  }
+
+  // ---------- ranking ----------
+  function renderRanking() {
+    const atState = S.sel !== null;
+    let rows = atState
+      ? Object.entries(D.counties).filter(([c]) => c.slice(0, 2) === S.sel).map(([c, v]) => ({ id: c, name: v.name.replace(/, [^,]+$/, ""), v: countyMetric(c) }))
+      : Object.keys(D.states).map((f) => ({ id: f, name: areaName(f), v: metric(f, S.ind) }));
+    const hidden = rows.filter((r) => r.v == null).length;
+    rows = rows.filter((r) => r.v != null).sort((a, b) => b.v - a.v);
+    document.getElementById("rank-title").textContent = atState ? `Counties in ${areaName(S.sel)}` : "States, ranked";
+    document.getElementById("rank-sub").textContent = (S.measure === "change" ? `Job change ${baseYear()}-${S.year}` : `Weekly wage ${S.year}`) + (atState ? " · all industries" : ` · ${IND[S.ind]}`) + (hidden ? ` · ${hidden} not published` : "");
+    const show = rows.length > 20 ? [...rows.slice(0, 10), null, ...rows.slice(-10)] : rows;
+    const max = d3.max(rows, (r) => Math.abs(r.v)) || 1;
+    document.getElementById("rank").innerHTML = show.map((r) => r === null ? `<li class="gap">… ${rows.length - 20} more …</li>` :
+      `<li><button type="button" data-id="${r.id}"><span>${r.name}</span><span class="b" style="width:${Math.max(2, 120 * Math.abs(r.v) / max)}px;background:${S.measure === "change" && r.v < 0 ? "var(--down)" : "var(--up)"}"></span><span class="v">${fmtMetric(r.v)}</span></button></li>`).join("");
+    document.querySelectorAll("#rank button").forEach((b) => b.onclick = () => { if (!atState) { S.sel = b.dataset.id; render(); } });
+  }
+
+  // ---------- trend ----------
+  function renderTrend() {
+    const area = S.sel ?? "US";
+    document.getElementById("trend-title").textContent = `${IND[S.ind]}: ${areaName(area)}${area === "US" ? "" : " vs United States"}`;
+    const lines = [{ name: "United States", color: "#8a8a87", area: "US" }];
+    if (area !== "US") lines.push({ name: areaName(area), color: "#3987e5", area });
+    lines.forEach((l) => { const b = val(l.area, S.ind, 2019); l.pts = D.years.map((y) => ({ y, v: b && val(l.area, S.ind, y) ? 100 * val(l.area, S.ind, y) / b : null })); });
+    const W = Math.max(300, document.getElementById("trend").clientWidth), H = 230, m = { l: 36, r: Math.min(110, W * 0.3), t: 10, b: 24 };   // drawn at real width so text stays readable on phones
+    const all = lines.flatMap((l) => l.pts.map((p) => p.v)).filter((v) => v != null);
+    const x = d3.scalePoint(D.years, [m.l + 12, W - m.r]), y = d3.scaleLinear().domain(d3.extent([...all, 100])).nice().range([H - m.b, m.t]);   // one-argument scaleLinear() means range, not domain
+    const s = d3.select("#trend").html("").append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%");
+    s.append("g").attr("class", "gridl").selectAll("line").data(y.ticks(5)).join("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y).attr("y2", y);
+    s.append("g").attr("transform", `translate(0,${H - m.b})`).attr("class", "axis").call(d3.axisBottom(x).tickSize(0)).select(".domain").remove();
+    s.append("g").attr("transform", `translate(${m.l},0)`).attr("class", "axis").call(d3.axisLeft(y).ticks(5).tickSize(0)).select(".domain").remove();
+    lines.forEach((l) => {
+      const ok = l.pts.filter((p) => p.v != null);
+      s.append("path").attr("d", d3.line((p) => x(p.y), (p) => y(p.v))(ok)).attr("fill", "none").attr("stroke", l.color).attr("stroke-width", 2);
+      s.append("g").selectAll("circle").data(ok).join("circle").attr("cx", (p) => x(p.y)).attr("cy", (p) => y(p.v)).attr("r", 4).attr("fill", l.color).attr("stroke", "#0b0b0b").attr("stroke-width", 2)
+        .on("mousemove", (e, p) => showTip(e, `<b>${l.name}, ${p.y}</b><br>${p.v.toFixed(1)} (2019 = 100)<br>${fmtM(val(l.area, S.ind, p.y))} jobs`)).on("mouseleave", hideTip);
+      const last = ok[ok.length - 1];
+      if (last) s.append("text").attr("x", x(last.y) + 8).attr("y", y(last.v) + 4).text(`${l.name.length > 14 ? l.name.slice(0, 13) + "…" : l.name} ${last.v.toFixed(1)}`).style("fill", "#c9c9c6");
+    });
+  }
+
+  // ---------- industries ----------
+  function renderIndustries() {
+    const area = S.sel ?? "US";
+    document.getElementById("ind-title").textContent = `Job change by industry, ${baseYear()}-${S.year}: ${areaName(area)}`;
+    const rows = D.industries.filter((i) => i.key !== "total").map((i) => ({ key: i.key, name: i.name, v: areaChange(area, i.key), jobs: val(area, i.key, S.year) - val(area, i.key, baseYear()) })).sort((a, b) => (b.v ?? -9) - (a.v ?? -9));
+    const W = Math.max(300, document.getElementById("inds").clientWidth), rowH = 20, m = { l: Math.min(210, W * 0.45), r: 54, t: 4, b: 4 }, H = m.t + m.b + rowH * rows.length;
+    const ext = d3.max(rows, (r) => Math.abs(r.v ?? 0)) || 0.01;
+    const x = d3.scaleLinear([-ext, ext], [m.l, W - m.r]);
+    const s = d3.select("#inds").html("").append("svg").attr("viewBox", `0 0 ${W} ${H}`).attr("width", "100%");
+    s.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 0).attr("y2", H).attr("stroke", "#2a2a2a");
+    const r = s.selectAll("g").data(rows).join("g").attr("transform", (d, i) => `translate(0,${m.t + i * rowH})`).style("cursor", "pointer")
+      .on("click", (e, d) => { S.ind = d.key; render(); })
+      .on("mousemove", (e, d) => showTip(e, `<b>${d.name}</b><br>${areaName(area)}<br>${fmtPct(d.v)} (${d.v == null ? "–" : (d.jobs >= 0 ? "+" : "") + fmtInt(d.jobs) + " jobs"})`)).on("mouseleave", hideTip);
+    r.append("rect").attr("x", 0).attr("width", W).attr("height", rowH - 2).attr("fill", (d) => d.key === S.ind ? "#141a24" : "transparent");
+    const SHORT = { "Education & health services": "Education & health", "Professional & business services": "Prof. & business",
+      "Trade, transport & utilities": "Trade & transport", "Natural resources & mining": "Natural resources" };
+    r.append("text").attr("x", m.l - 8).attr("y", rowH / 2 + 3).attr("text-anchor", "end").text((d) => W < 520 ? (SHORT[d.name] ?? d.name) : d.name).style("fill", (d) => d.key === S.ind ? "#f2f2f0" : "#8a8a87");
+    r.append("rect").attr("y", 4).attr("height", rowH - 10).attr("rx", 2)
+      .attr("x", (d) => d.v == null ? x(0) : x(Math.min(0, d.v))).attr("width", (d) => d.v == null ? 0 : Math.max(1, Math.abs(x(d.v) - x(0))))
+      .attr("fill", (d) => d.v < 0 ? "#d95926" : "#3987e5");
+    // value labels: right of a positive bar; for a negative bar, on the empty right side of the zero line
+    r.append("text").attr("x", (d) => d.v == null || d.v < 0 ? x(0) + 4 : x(d.v) + 4).attr("text-anchor", "start").attr("y", rowH / 2 + 3).text((d) => fmtPct(d.v));
+  }
+
+  // ---------- tiles ----------
+  function renderTiles() {
+    const area = S.sel ?? "US", now = val(area, S.ind, S.year), then = val(area, S.ind, baseYear());
+    const t = [
+      [`Jobs, ${S.year}`, fmtM(now), `${IND[S.ind]} · ${areaName(area)}`],
+      [`Change since ${baseYear()}`, fmtPct(change(now, then)), now != null && then != null ? `${now - then >= 0 ? "+" : ""}${fmtInt(now - then)} jobs` : "not published"],
+      [`Average weekly wage, ${S.year}`, fmtUsd(val(area, S.ind, S.year, 1)), `${fmtPct(change(val(area, S.ind, S.year, 1), val(area, S.ind, baseYear(), 1)))} since ${baseYear()}`],
+      ["States adding jobs", `${Object.keys(D.states).filter((f) => (areaChange(f, S.ind) ?? 0) > 0).length} of ${Object.keys(D.states).filter((f) => areaChange(f, S.ind) != null).length}`, `${IND[S.ind]}, ${baseYear()}-${S.year}`],
+    ];
+    document.getElementById("tiles").innerHTML = t.map(([k, v, s]) => `<div class="tile"><span class="cap">${k}</span><b>${v}</b><span>${s}</span></div>`).join("");
+  }
+
+  function render() {
+    areaSel.value = S.sel ?? "US"; yearSel.value = S.year; baseSel.value = S.base; indSel.value = S.ind;
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === S.measure)));
+    hideTip(); renderTiles(); renderMap(); renderRanking(); renderTrend(); renderIndustries();
+  }
+  render();
+  let resizeTimer;
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { renderTrend(); renderIndustries(); }, 150); });
+})();
+</script>
+</body>
+</html>
