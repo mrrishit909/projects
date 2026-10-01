@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genre Explorer</title>
+<meta name="description" content="Explore 114 Spotify genres by their median audio features: pick any two features and hover a genre.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:24px;margin-bottom:28px}nav a{text-decoration:none}
+h1{margin:6px 0 6px;font-size:clamp(32px,5vw,56px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:76ch}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;margin:22px 0 12px}
+.ctl{display:grid;gap:4px}
+select,input{font:inherit;font-size:14px;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--dim);font-family:Geist,sans-serif;font-size:11px}
+circle{cursor:pointer;stroke:#0b0b0b;stroke-width:1.5}
+circle.hit{stroke:#f2f2f0;stroke-width:2}
+#tip{position:fixed;pointer-events:none;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:8px 10px;font-size:13px;display:none;z-index:5;max-width:240px}
+.legend{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px;margin-top:6px}.legend span.bar{width:160px;height:8px;border-radius:4px;background:linear-gradient(90deg,#16243a,#3987e5,#cfe2fb)}
+.note{color:var(--dim);font-size:13px;margin-top:12px;max-width:80ch}
+footer{margin-top:24px;color:var(--faint);font-size:12px}
+@media (max-width:700px){body{padding:18px 16px 40px}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/spotify-tracks/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Genre explorer · 114 Spotify genres</p>
+<h1>How genres sound</h1>
+<p class="lede">Each dot is a genre, placed by the median of its tracks' audio features. Pick any two features; colour shows
+median popularity (each song's most popular release only). Find a genre to highlight it.</p>
+<div class="controls">
+  <div class="ctl"><label class="cap" for="x">Across</label><select id="x"></select></div>
+  <div class="ctl"><label class="cap" for="y">Up</label><select id="y"></select></div>
+  <div class="ctl"><label class="cap" for="find">Find a genre</label><input id="find" list="names" placeholder="e.g. k-pop"><datalist id="names"></datalist></div>
+</div>
+<div class="card"><div id="plot"></div>
+  <div class="legend"><span>popularity 0</span><span class="bar"></span><span>70</span></div></div>
+<p class="note">Audio features are Spotify's own estimates (0-1, except loudness in dB, tempo in BPM and length in minutes). Genres are
+how the dataset's author searched Spotify, with 1,000 tracks each, so they are samples, not the whole catalogue.</p>
+<footer>Data: Spotify Tracks Dataset (Hugging Face, maharshipandya), collected from Spotify's Web API. Only genre medians are published here.</footer>
+<div id="tip" role="tooltip"></div>
+</main>
+<script>
+(async function () {
+  const D = await (await fetch("genres.json")).json();
+  const names = Object.keys(D.genres).sort();
+  const LABEL = { danceability: "Danceability", energy: "Energy", valence: "Positivity (valence)", acousticness: "Acousticness",
+    instrumentalness: "Instrumentalness", speechiness: "Speechiness", liveness: "Liveness", loudness: "Loudness (dB)", tempo: "Tempo (BPM)",
+    duration_min: "Length (minutes)", explicit_share: "Share explicit" };
+  const opts = Object.keys(LABEL).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("");
+  const xs = document.getElementById("x"), ys = document.getElementById("y"), find = document.getElementById("find");
+  xs.innerHTML = ys.innerHTML = opts; xs.value = "acousticness"; ys.value = "energy";
+  document.getElementById("names").innerHTML = names.map((n) => `<option value="${n}">`).join("");
+  const tip = document.getElementById("tip");
+  const color = (p) => { const t = Math.max(0, Math.min(1, (p ?? 0) / 70)); const a = [22, 36, 58], b = [57, 135, 229], c = [207, 226, 251];
+    const [u, v, f] = t < 0.5 ? [a, b, t * 2] : [b, c, (t - 0.5) * 2]; return `rgb(${u.map((x, i) => Math.round(x + (v[i] - x) * f)).join(",")})`; };
+  function draw() {
+    const W = Math.max(320, document.getElementById("plot").clientWidth), H = Math.round(Math.min(560, W * 0.62)), m = { l: 52, r: 16, t: 12, b: 40 };
+    const kx = xs.value, ky = ys.value, pts = names.map((n) => ({ n, x: D.genres[n][kx], y: D.genres[n][ky], p: D.genres[n].popularity_best_copy }));
+    const ext = (k) => { const v = pts.map((p) => p[k]); const lo = Math.min(...v), hi = Math.max(...v), pad = (hi - lo) * 0.06 || 1; return [lo - pad, hi + pad]; };
+    const [x0, x1] = ext("x"), [y0, y1] = ext("y");
+    const sx = (v) => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), sy = (v) => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+    const ticks = (a, b) => { const step = Math.pow(10, Math.floor(Math.log10((b - a) / 4))); const s = [1, 2, 5, 10].map((k) => k * step).find((s) => (b - a) / s <= 6); const out = []; for (let v = Math.ceil(a / s) * s; v <= b; v += s) out.push(+v.toFixed(6)); return out; };
+    const hl = find.value.trim().toLowerCase();
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of genres by ${LABEL[kx]} and ${LABEL[ky]}">`;
+    ticks(x0, x1).forEach((v) => { svg += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${m.t}" y2="${H - m.b}" stroke="#1a1a1a"/><text x="${sx(v)}" y="${H - m.b + 16}" text-anchor="middle">${v}</text>`; });
+    ticks(y0, y1).forEach((v) => { svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${sy(v)}" y2="${sy(v)}" stroke="#1a1a1a"/><text x="${m.l - 6}" y="${sy(v) + 4}" text-anchor="end">${v}</text>`; });
+    svg += `<text x="${W - m.r}" y="${H - 6}" text-anchor="end">${LABEL[kx]} →</text><text x="${m.l}" y="${m.t + 10}" transform="rotate(0)">↑ ${LABEL[ky]}</text>`;
+    pts.forEach((p) => { svg += `<circle data-n="${p.n}" cx="${sx(p.x)}" cy="${sy(p.y)}" r="${p.n === hl ? 9 : 6}" fill="${color(p.p)}" class="${p.n === hl ? "hit" : ""}"></circle>`; });
+    const h = pts.find((p) => p.n === hl);
+    if (h) svg += `<text x="${sx(h.x) + 12}" y="${sy(h.y) + 4}" style="fill:#f2f2f0;font-size:13px">${h.n}</text>`;
+    document.getElementById("plot").innerHTML = svg + "</svg>";
+    document.querySelectorAll("circle").forEach((c) => {
+      c.addEventListener("mousemove", (e) => { const g = D.genres[c.dataset.n]; tip.style.display = "block"; tip.style.left = Math.min(e.clientX + 14, innerWidth - 250) + "px"; tip.style.top = e.clientY + 14 + "px";
+        tip.innerHTML = `<b>${c.dataset.n}</b><br>${LABEL[kx]}: ${g[kx]}<br>${LABEL[ky]}: ${g[ky]}<br>Median popularity: ${g.popularity_best_copy ?? "–"}`; });
+      c.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+      c.addEventListener("click", () => { find.value = c.dataset.n; draw(); });
+    });
+  }
+  [xs, ys, find].forEach((el) => el.addEventListener("input", draw));
+  addEventListener("resize", draw);
+  draw();
+})();
+</script>
+</body>
+</html>
