@@ -8,7 +8,7 @@
 <link rel="preload" as="font" type="font/woff2" href="vendor/fonts/Geist-Medium.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="vendor/fonts/Geist-Regular.woff2" crossorigin>
 <link rel="modulepreload" href="vendor/three.module.min.js">
-<link rel="modulepreload" href="home.js">
+<link rel="modulepreload" href="home.js?v={{V}}">
 <script>
 /* Hold the Full list back while the carousel boots, so it doesn't flash; give up (and show it) if that takes too long. */
 if (location.hash !== "#full" && !matchMedia("(prefers-reduced-motion: reduce)").matches) setTimeout(function () { document.documentElement.classList.remove("boot"); }, 6000);
@@ -135,6 +135,6 @@ body.featured #peek,body.featured #peekv{display:none}
 </div>
 
 <script type="application/json" id="projects-data">/*PROJECTS*/[]</script>
-<script type="module" src="home.js"></script>
+<script type="module" src="home.js?v={{V}}"></script>
 </body>
 </html>
