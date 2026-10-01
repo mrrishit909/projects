@@ -1,0 +1,45 @@
+{
+  "title": "California's $20 Fast-Food Wage",
+  "tagline": "Did the $20 minimum wage cost California fast-food jobs? A causal analysis with difference-in-differences, a synthetic control, a triple difference and placebo tests on government job counts.",
+  "kind": "Statistics · Causal inference",
+  "tech": [
+    "Python",
+    "Difference-in-differences",
+    "Synthetic control",
+    "Placebo inference",
+    "BLS QCEW",
+    "SciPy"
+  ],
+  "date": "2026-10",
+  "order": 10,
+  "repo": "https://github.com/mrrishit909/ca-fast-food-wage",
+  "cover": "cover.jpg",
+  "note": "One state, one policy, about two years of data after it: this can rule out a large fast-food-specific job loss, but not a small one. QCEW counts jobs, not hours.",
+  "problem": "<p>On 1 April 2024, California raised the minimum wage at large fast-food chains to $20 an hour, one of the most argued-over labour policies in years. Some reports said it cost thousands of jobs; others said it didn't. Comparing jobs before and after isn't enough, because the whole economy moved too. The real question is causal: <em>compared with what would have happened without the law, did fast-food employment fall?</em></p>",
+  "built": "<p>An analysis of the Bureau of Labor Statistics' Quarterly Census of Employment and Wages, which counts nearly every job, by state, 2019 – Q1 2026:</p><ul><li><b>Difference-in-differences:</b> California's fast-food employment against the other 50 states, quarter by quarter.</li><li><b>Synthetic control:</b> a weighted blend of other states built to track California before the law.</li><li><b>Triple difference:</b> fast food against full-service restaurants, which the law didn't cover, inside California.</li><li><b>First stage:</b> did pay actually go up?</li><li><b>Placebo inference:</b> every test re-run with each other state pretending to be California.</li></ul>",
+  "steps": [
+    {
+      "title": "Get the job counts",
+      "body": "<p>The QCEW open-data API gives, for each state and quarter, private employment and average weekly wages by industry. Two industries are pulled: limited-service restaurants (fast food), which the law targets, and full-service restaurants, which it doesn't. That's 51 states × 29 quarters × 2 industries, with nothing suppressed. California has about 566,000 fast-food jobs.</p>"
+    },
+    {
+      "title": "Pick the right before",
+      "body": "<p>The law was signed on 28 September 2023 and took effect on 1 April 2024, so employers could react early. The reference year is Q4 2022 – Q3 2023, which ends just before the signing. Each later quarter is compared with the same quarter of that year, so summer and holiday hiring patterns that differ between states cancel out. The two quarters between signing and the start date are shown but not counted.</p>"
+    },
+    {
+      "title": "Compare with other states, and with a synthetic California",
+      "body": "<p>The difference-in-differences asks how much more California's fast-food jobs changed than the other states' did. The synthetic control finds the weighted mix of states that best followed California through 2019–2023, COVID included, and asks how far California fell below it afterwards.</p><img src=\"charts/03_wages.jpg\" alt=\"Line chart: California fast-food weekly wage versus other states, flat near zero until the law takes effect in 2024 Q2, then about 4 to 9 percent higher\"><p>First, a sanity check: pay jumped about 6% relative to other states the quarter the law took effect. So the policy did bite.</p>"
+    },
+    {
+      "title": "Ask whether California stands out",
+      "body": "<p>With a single treated state, the usual standard errors don't work. Instead, every estimate is re-run 50 more times, each time pretending a different state got the law. If California's result is ordinary among those, it isn't evidence of anything. California's fast-food drop ranks 4th-lowest of 51, but six states with no such law moved at least as much (p = 0.14).</p><img src=\"charts/02_placebos.jpg\" alt=\"Two dot plots of each state's estimate as if it were treated; California sits at minus 2.9 percent among states ranging from about minus 4 to plus 12 percent, and near zero in the triple difference\">"
+    },
+    {
+      "title": "Use restaurants the law didn't touch",
+      "body": "<p>If the wage law cut fast-food jobs, full-service restaurants (not covered) shouldn't fall the same way. They did: −2.6% against fast food's −2.9%. Comparing the two inside California, the triple difference, leaves −0.3%, statistically nothing (p = 0.84). <code>check.py</code> recomputes the headline estimate by plain arithmetic from the raw file and re-derives every p-value.</p>",
+      "code": "def deseason(y):\n    \"\"\"Subtract each state's same-quarter value in the reference year: removes level and seasonality.\"\"\"\n    qoy = y.index.str[-1]\n    ref = y.loc[REF]\n    ref.index = ref.index.str[-1]\n    return y - ref.loc[qoy].values\n\n\ndef event(y, treated, weights):\n    \"\"\"beta_t for one treated state against a weighted comparison (weights over the other columns).\"\"\"\n    z = deseason(y)\n    comp = z[weights.index] @ weights.values\n    return z[treated] - comp"
+    }
+  ],
+  "results": "<table><tr><th>Apr 2024 – Mar 2026</th><th class=\"num\">California</th><th class=\"num\">Placebo p</th></tr><tr><td>Fast-food weekly wage vs other states</td><td class=\"num\">+6.3%</td><td class=\"num\">0.04</td></tr><tr><td>Fast-food jobs vs other states</td><td class=\"num\">−2.9%</td><td class=\"num\">0.14</td></tr><tr><td>Fast-food jobs vs synthetic California</td><td class=\"num\">−3.3%</td><td class=\"num\">0.12</td></tr><tr><td>Full-service jobs vs other states (not covered)</td><td class=\"num\">−2.6%</td><td class=\"num\">–</td></tr><tr><td>Fast food minus full-service</td><td class=\"num\">−0.3%</td><td class=\"num\">0.84</td></tr></table><ul><li><b>The law raised pay</b>, clearly and immediately.</li><li><b>California's fast-food jobs fell about 3% relative to other states</b> (about 16,600 jobs), but not by more than ordinary state-to-state swings, and <b>full-service restaurants fell almost as much</b>.</li><li><b>Bottom line:</b> no evidence of a large job loss specific to fast food. A small one can't be ruled out: it would look like noise, or like California's broader restaurant slowdown.</li><li>Before the law, California tracked other states (2022 average −0.04%), so there's no pre-existing trend driving the result.</li></ul>",
+  "next": "<ul><li>Use county data to compare California counties with neighbouring Nevada and Arizona counties (a border design).</li><li>Add hours and prices: the law may have shown up in shorter shifts or menu prices rather than job counts.</li><li>Re-run as more quarters arrive; two years is still early.</li></ul>"
+}
