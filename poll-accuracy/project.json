@@ -1,0 +1,49 @@
+{
+  "title": "How Wrong Are Election Polls?",
+  "tagline": "17,226 general-election polls from 1998 to 2022, checked against the results they predicted: errors twice the stated margin of error, a floor that no sample size removes, and why averaging polls helps less than it should.",
+  "kind": "Statistics · Survey error",
+  "tech": [
+    "Mixed models (variance components)",
+    "Cluster-robust inference",
+    "Sampling theory",
+    "Simulation",
+    "Python (statsmodels)",
+    "R (lme4)"
+  ],
+  "date": "2026-10",
+  "order": 34,
+  "repo": "https://github.com/mrrishit909/poll-accuracy",
+  "cover": "cover.jpg",
+  "note": "FiveThirtyEight's database ends in 2023, so 2024 isn't included. Pollster quality and house effects are not adjusted for.",
+  "problem": "<p>Every poll comes with a margin of error, usually ±3 to ±5 points. Readers, campaigns and newsrooms treat it as the range the truth will fall in.</p><p><em>Does it? How big are real poll errors, why don't bigger samples fix them, and how much does averaging many polls really help?</em></p>",
+  "built": "<p>A statistical audit of FiveThirtyEight's pollster-ratings database: 17,226 Democrat-vs-Republican polls for president, Senate, governor and House, from 2,135 races between 1998 and 2022, each with the actual result.</p><ul><li>Each poll's error, set against its own sampling error.</li><li>A fit of squared error on 1/n, to find the error that sample size can't remove.</li><li>A mixed model splitting error into year, race and poll.</li><li>Bias by cycle, with confidence intervals clustered by race.</li><li>A simulation of averaging k polls.</li><li>Everything recomputed in R.</li></ul>",
+  "steps": [
+    {
+      "title": "Measure each poll against its own promise",
+      "body": "<p>A poll's sampling error of the D−R margin follows from its shares and sample size. Its stated margin of error is 1.96 times that, so about 5% of polls should miss by more. In fact 29% do. The typical miss (RMSE) is 7.0 points, against 3.7 if sampling were the only source of error: 1.9 times as large.</p><img src=\"charts/01_vs_moe.jpg\" alt=\"Histogram of poll errors in units of each poll's own sampling error: much wider than the standard normal curve drawn over it, with 29% beyond plus or minus 1.96\">",
+      "code": "    d[\"sampling_se\"] = 100 * np.sqrt((p1 + p2 - (p1 - p2) ** 2) / d[\"samplesize\"])"
+    },
+    {
+      "title": "Ask what sample size can fix",
+      "body": "<p>If error were only sampling, squared error would fall in proportion to 1/n. Fitting squared error = floor + k/n leaves a floor of 4.7 points that no sample size removes. Errors do fall from 8.7 points for polls of about 400 people to 6.1 for about 1,300, but they never approach the sampling-only line.</p><img src=\"charts/02_sample_size.jpg\" alt=\"Lines of error by poll sample size: actual RMSE falls from 8.7 to 6.1 points while sampling-only error falls from 4.8 to 2.5; a fitted curve levels toward a 4.7-point floor\">",
+      "code": "    m = smf.ols(\"I(error ** 2) ~ inv_n\", d).fit(cov_type=\"cluster\", cov_kwds={\"groups\": d[\"race_id\"]})"
+    },
+    {
+      "title": "Find where the error lives",
+      "body": "<p>A mixed model with random effects for the election year and for the race splits the variance. Half of it (SD 5.5 points) is shared by every poll of the same race, for example a turnout or a late swing nobody captured. 38% belongs to the individual poll, and 12% is shared by every race that year.</p><img src=\"charts/03_variance.jpg\" alt=\"Stacked bar of the variance of poll errors: election year 12% (SD 2.7 points), the race 50% (SD 5.5 points), the single poll 38% (SD 4.8 points)\">",
+      "code": "    mm = smf.mixedlm(\"error ~ 1\", d, groups=d[\"cycle\"], re_formula=\"1\", vc_formula={\"race\": \"0 + C(race_id)\"}).fit(reml=True)"
+    },
+    {
+      "title": "Simulate averaging",
+      "body": "<p>In 473 races with at least 10 polls, averages of k randomly chosen polls were drawn 20 times per race. One poll misses by 5.3 points on average, and ten by 4.0. With independent errors, ten polls would miss by 1.7. The shared race error is why poll averages keep missing together.</p><img src=\"charts/05_averaging.jpg\" alt=\"Lines of average miss against polls averaged: actual falls from 5.3 to 4.6, 4.4, 4.1 and 4.0 points at 1, 2, 3, 5 and 10 polls, while the independent-errors line falls to 1.7\">",
+      "code": "        errs = [abs(rng.choice(g[\"error\"].values, k, replace=False).mean()) for _, g in big.groupby(\"race_id\") for _ in range(20)]"
+    },
+    {
+      "title": "Check it in R",
+      "body": "<p><code>check.R</code> recomputes the summary, every cycle's mean and the sample-size fit, and refits the variance split with <code>lme4</code> crossed random effects. It agrees with statsmodels to within 1%.</p>",
+      "code": "m <- lmer(error ~ 1 + (1 | cycle) + (1 | race_id), data = d, REML = TRUE)"
+    }
+  ],
+  "results": "<table><tr><th>Measure</th><th class=\"num\">Value</th></tr><tr><td>Typical miss (RMSE)</td><td class=\"num\">7.0 pts</td></tr><tr><td>If only sampling</td><td class=\"num\">3.7 pts</td></tr><tr><td>Outside own MOE</td><td class=\"num\">29%</td></tr><tr><td>Error floor</td><td class=\"num\">4.7 pts</td></tr></table><p><b>The direction of the miss changes.</b> Average error by cycle, with intervals clustered by race:</p><ul><li>polls overstated Republicans in 1998 (5.7 points) and 2012 (2.6);</li><li>they overstated Democrats in 2014 (3.3), 2016 (3.6) and 2020 (4.8).</li></ul><p>By office, presidential polls miss least (4.6 points on average) and House polls most (6.8).</p><img src=\"charts/04_cycles.jpg\" alt=\"Bars of average poll error by cycle with 95% intervals: 1998 -5.7, 2000 -1.0, 2002 +2.5, 2004 +0.9, 2006 -1.5, 2008 -1.8, 2010 -0.3, 2012 -2.6, 2014 +3.3, 2016 +3.6, 2018 -0.2, 2020 +4.8, 2022 +0.5\">",
+  "next": "<ul><li>Add 2024 once a comparable dataset of polls and results is available.</li><li>Model pollster house effects and methodology inside the mixed model.</li><li>Turn the variance split into an honest interval for a polling average.</li></ul>"
+}
