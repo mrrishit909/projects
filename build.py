@@ -98,6 +98,11 @@ def load():
     return sorted(projects, key=lambda p: (p["date"], -p.get("order", 0)), reverse=True)
 
 
+def asset_version(name):
+    """?v=<hash of the file>: a changed stylesheet or script gets a new URL, so browsers never use a stale cached copy."""
+    return hashlib.sha1((ROOT / name).read_bytes()).hexdigest()[:10]
+
+
 def page(title, desc, body):
     return f"""<!doctype html>
 <html lang="en">
@@ -109,7 +114,8 @@ def page(title, desc, body):
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
-<link rel="stylesheet" href="../site.css">
+<link rel="stylesheet" href="../site.css?v={asset_version("site.css")}">
+<script src="../case.js?v={asset_version("case.js")}" defer></script>
 </head>
 <body>
 {body}
@@ -129,10 +135,16 @@ def project_page(p, nxt):
     cover = (f'<figure class="cover"><img src="{escape(p["cover"])}" alt="Screenshot of {escape(p["title"])}"></figure>'
              if p.get("cover") else "")
     note = f'<p class="note">{p["note"]}</p>' if p.get("note") else ""
+    # the next project's motion tile, played by case.js while the link is on screen
+    peek = ("".join([f'<video muted loop playsinline preload="none" aria-hidden="true" poster="../{nxt["slug"]}/{escape(nxt["cover"])}">' if nxt.get("cover") else
+                     '<video muted loop playsinline preload="none" aria-hidden="true">'] +
+                    [f'<source src="../{nxt["slug"]}/{f}" type="video/{f.split(".")[1]}">' for f in sorted(nxt["loops"], reverse=True)] + ["</video>"])
+            if nxt.get("loops") else "")
     sections = [("The problem", p["problem"]), ("What I built", p["built"]),
                 ("How it was built", f'<ol class="steps">{"".join(steps)}</ol>'),
                 ("Results", p["results"]), ("What I'd do next", p["next"])]
-    secs = "".join(f'<section class="s"><h2 class="cap">{n:02d} &mdash; {escape(t)}</h2><div class="body">{b}</div></section>'
+    ids = ["problem", "built", "how", "results", "next-steps"]
+    secs = "".join(f'<section class="s" id="{ids[n - 1]}"><h2 class="cap">{n:02d} &mdash; {escape(t)}</h2><div class="body">{b}</div></section>'
                    for n, (t, b) in enumerate(sections, 1))
     body = f"""<header class="bar cap"><a href="{PORTFOLIO}">Rishit Mathur</a><nav><a href="../">All projects</a><a href="{PORTFOLIO}resume.pdf">Resume</a></nav></header>
 <main class="wrap">
@@ -145,7 +157,7 @@ def project_page(p, nxt):
   {cover}
   {note}
   {secs}
-  <a class="next" href="../{nxt["slug"]}/"><span class="cap">Next project</span><span class="t">{escape(nxt["title"])} &rarr;</span></a>
+  <a class="next" href="../{nxt["slug"]}/"><span class="cap">Next project</span><span class="t">{escape(nxt["title"])} &rarr;</span>{peek}</a>
 </main>
 <footer class="cap"><span>&copy; 2026 Rishit Raj Mathur</span><a href="https://github.com/mrrishit909">GitHub</a></footer>"""
     return page(f'{p["title"]} · Rishit Mathur', p["tagline"], body)
