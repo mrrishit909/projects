@@ -1,0 +1,53 @@
+{
+  "title": "The Alzheimer's Patch Patients Couldn't Keep On",
+  "tagline": "A real Alzheimer's drug trial (the CDISC pilot, 254 patients) re-analysed in SAS from its ADaM datasets, the way an FDA submission's tables are made. Every number is recomputed in Python and matched against the R Consortium's published submission pilot.",
+  "kind": "SAS · Clinical trial analysis",
+  "tech": [
+    "SAS 9.4",
+    "SAS Enterprise Guide",
+    "CDISC ADaM",
+    "PROC GLM (ANCOVA)",
+    "PROC LIFETEST",
+    "PROC PHREG",
+    "PROC SQL",
+    "Python (check)"
+  ],
+  "date": "2026-10",
+  "order": 41,
+  "repo": "https://github.com/mrrishit909/clinical-trial-sas",
+  "cover": "cover.jpg",
+  "note": "This is CDISC's anonymised, modified version of the trial, the industry's standard example dataset, not the original clinical database. LOCF carries a lot of weight when half of the treated patients left early. The charts are screenshots of the SAS output.",
+  "problem": "<p>A drug has to do two things: work, and be something patients can stay on. This trial tested a xanomeline skin patch for mild-to-moderate Alzheimer's disease against placebo, at two doses, for 24 weeks.</p><p><em>Did memory and thinking decline less on the patch? How many patients finished? And what made the others stop?</em></p>",
+  "built": "<p>One SAS program, run in <b>SAS Enterprise Guide (SAS 9.4M9)</b> on USF's virtual desktop, over the five public ADaM datasets of study CDISCPILOT01. ADaM is the CDISC standard for analysis data in drug submissions.</p><ul><li><b>Demographics and disposition:</b> PROC MEANS, PROC FREQ, and Fisher's exact test.</li><li><b>Primary endpoint:</b> ADAS-Cog(11) change at week 24 (last observation carried forward), with a PROC GLM ANCOVA, a dose-response test, and LS means.</li><li><b>Safety:</b> time to the first skin reaction (PROC LIFETEST, PROC PHREG), adverse events (PROC SQL), and a glucose ANCOVA.</li><li><b>The log is the evidence:</b> 0 errors, 0 warnings, and 233 <code>CSV|</code> result lines. <code>check.py</code> recomputes all 399 numbers in Python and compares them with the R Consortium's FDA submission pilot for the same study.</li></ul>",
+  "steps": [
+    {
+      "title": "Read the ADaM datasets straight from the source",
+      "body": "<p>PhUSE publishes the pilot's ADaM data as SAS transport files. The program downloads each one with <code>PROC HTTP</code> from a pinned commit, and reads it through an <code>XPORT</code> library. The first run failed: SAS filerefs and librefs can be at most 8 characters, and <code>f_adqsadas</code> has 10. The fix reuses one short name per file.</p>",
+      "code": "%macro get(ds);          /* filerefs and librefs are 8 characters at most */\n  filename f temp;\n  proc http url=\"&src/&ds..xpt\" out=f; run;\n  libname x xport \"%sysfunc(pathname(f))\";\n  data &ds; set x.&ds; run;\n  libname x clear; filename f clear;\n%mend;\n%get(adsl) %get(adqsadas) %get(adtte) %get(adae) %get(adlbc)"
+    },
+    {
+      "title": "Who was in it, and who finished",
+      "body": "<p>Demographics come from the intent-to-treat population: age, height, weight, BMI, MMSE, age groups and race. Disposition is why each patient left the study. Fisher's exact test then asks whether stopping because of an adverse event depended on the arm.</p>"
+    },
+    {
+      "title": "Did it work: the primary endpoint",
+      "body": "<p>ADAS-Cog(11) is a cognitive test score; higher means worse. The analysis is its change from baseline to week 24, with the last observation carried forward for patients who left early. The ANCOVA adjusts for site group and the baseline score. It runs twice: once with dose as a number (0, 54, 81 mg) for the dose-response test, and once with treatment as a factor for LS means and the three pairwise comparisons.</p>",
+      "code": "proc glm data=adas;\n  class trtpn sitegr1;\n  model chg = trtpn sitegr1 base / clparm;\n  lsmeans trtpn / stderr cl;\n  estimate 'High - Placebo' trtpn -1 0 1;\nrun; quit;"
+    },
+    {
+      "title": "Was it safe: skin reactions over time",
+      "body": "<p>A skin patch can irritate the skin, so the key safety question is how soon a dermatologic event happens. <code>PROC LIFETEST</code> draws Kaplan-Meier curves with the numbers at risk every 20 days and runs a log-rank test. <code>PROC PHREG</code> gives hazard ratios against placebo. Patients without an event are censored at their last day on study.</p>",
+      "code": "proc lifetest data=tte plots=survival(atrisk=0 to 200 by 20);\n  time aval * cnsr(1);\n  strata trtan;\nrun;\nproc phreg data=tte;\n  class trtan(ref='0');\n  model aval * cnsr(1) = trtan / risklimits;\nrun;"
+    },
+    {
+      "title": "Results out through the log",
+      "body": "<p>On USF's virtual desktop SAS can't write to the local computer, so every result goes to the log as a <code>CSV|</code> line. The log is copied out, <code>parse_log.py</code> turns it into tables, and their column names are read from the SAS program itself so the two can't drift apart. Turning <code>ods graphics on</code> cleared the last warning.</p>"
+    },
+    {
+      "title": "Check against Python and against the published tables",
+      "body": "<p><code>check.py</code> reads the same ADaM files and recomputes all 399 SAS numbers with pandas, statsmodels and scipy: descriptive statistics, ANCOVA estimates and LS means, Kaplan-Meier medians, log-rank, Cox hazard ratios, Fisher's table probability and every adverse-event count. It then checks every figure the R Consortium's FDA submission pilot published for this study:</p><ul><li>the demographics table;</li><li>the primary endpoint table (all three p-values and differences);</li><li>all 33 numbers at risk on the KM plot;</li><li>the glucose estimate and p-value.</li></ul><p>All of them match. The glucose confidence interval and RMSE differ in the second decimal. Recomputing shows why: the reference used a normal quantile, and divided by n.</p>"
+    }
+  ],
+  "results": "<p><b>It didn't work.</b> All three arms declined on ADAS-Cog over 24 weeks. The patch's smaller decline was within chance:</p><table><tr><th>vs placebo</th><th class=\"num\">Difference</th><th class=\"num\">p</th></tr><tr><td>Low dose</td><td class=\"num\">−0.5 (−2.1 to 1.1)</td><td class=\"num\">0.569</td></tr><tr><td>High dose</td><td class=\"num\">−1.0 (−2.7 to 0.7)</td><td class=\"num\">0.233</td></tr><tr><td>Dose response</td><td class=\"num\"></td><td class=\"num\">0.245</td></tr></table><img src=\"charts/02_adas.jpg\" alt=\"SAS line chart of mean ADAS-Cog change from baseline at weeks 8, 16 and 24 with 95% intervals: placebo rises to 2.5, low dose to 2.0, high dose to 1.5, with overlapping intervals\"><p><b>Patients couldn't stay on it.</b> Two-thirds of placebo patients finished the study, against fewer than a third on either dose. About half the patients on the patch stopped because of side effects:</p><table><tr><th></th><th class=\"num\">Placebo</th><th class=\"num\">Low</th><th class=\"num\">High</th></tr><tr><td>Finished</td><td class=\"num\">67%</td><td class=\"num\">30%</td><td class=\"num\">32%</td></tr><tr><td>Stopped: side effect</td><td class=\"num\">9%</td><td class=\"num\">52%</td><td class=\"num\">48%</td></tr><tr><td>Skin event</td><td class=\"num\">34%</td><td class=\"num\">74%</td><td class=\"num\">73%</td></tr></table><img src=\"charts/03_disposition.jpg\" alt=\"SAS stacked bar chart of how patients left the study: placebo mostly completed; low and high dose about half stopped for adverse events\"><p><b>The skin reactions came fast.</b> Half the patients on the patch had a dermatologic event by day 33 (low dose) or day 36 (high dose); the placebo curve never falls below 62%. Compared with placebo, the hazard ratios are 4.1 (2.6–6.5) and 5.0 (3.2–7.9). The log-rank test gives p = 8 × 10⁻¹⁴. The most common events were itching and redness where the patch was applied.</p><img src=\"charts/01_km.jpg\" alt=\"SAS Kaplan-Meier plot of time to first dermatologic event in days with numbers at risk: placebo stays above 0.6, both doses fall below 0.2 by day 100\">",
+  "next": "<ul><li>Re-run the primary endpoint with a mixed model for repeated measures (MMRM) instead of LOCF. With this many dropouts, that's the analysis a reviewer would ask for.</li><li>Build the standard adverse-event summary table (Table 14-5.01) in SAS and match it line by line.</li><li>Add a tipping-point sensitivity analysis: how bad would the dropouts' outcomes have to be to change the conclusion?</li></ul>"
+}
