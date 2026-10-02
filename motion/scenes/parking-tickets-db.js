@@ -5,7 +5,7 @@ scene({
   init(W, H, { rng }) { const r = rng(17), d = []; for (let i = 0; i < 420; i++) d.push({ m: Math.floor(r() * 12), cam: r() < 0.35, t: r() * 0.55, x: r() }); return { d }; },
   draw(g, u, W, H, S, { seg, ease, hex, txt, rr, lerp }) {
     const ink = "#eef0f8", CAM = "#ffcc33", OFF = "#5c9dff", x0 = W * 0.05, pw = W * 0.038, base = H * 0.86;
-    txt(g, "MONTHLY PARTITIONS · tickets_2025_01 … _12", x0, H * 0.12, { size: H * 0.024, color: hex(ink, 0.5), spacing: 2 });
+    txt(g, "MONTHLY PARTITIONS · nyc.ticket_2025_07 … _2026_06", x0, H * 0.12, { size: H * 0.024, color: hex(ink, 0.5), spacing: 2 });
     const fill = Array(12).fill(0);
     for (let m = 0; m < 12; m++) { g.strokeStyle = hex(ink, 0.2); g.lineWidth = 1.5; rr(g, x0 + m * pw, H * 0.24, pw - 6, base - H * 0.24, 6); g.stroke(); }
     S.d.forEach((p) => {

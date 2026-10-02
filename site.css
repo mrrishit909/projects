@@ -107,3 +107,4 @@ th[aria-sort=descending]::after{content:" \2193";opacity:1}
 .next:hover video{transform:scale(1.03)}
 @media (max-width:760px){.next{grid-template-columns:minmax(0,1fr)}.next video{grid-column:1;grid-row:auto;width:100%;margin-top:18px}}
 @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}.toc,.zoomable,.next video{transition:none}}
+@media print{.rv{opacity:1;transform:none}.toc,.progress,.copy{display:none}}
