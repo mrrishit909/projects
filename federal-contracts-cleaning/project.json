@@ -1,0 +1,48 @@
+{
+  "title": "Federal IT Contracts, Cleaned",
+  "tagline": "A year of federal IT-services contract transactions (124,996 rows) cleaned step by step: the easy total is 26 times too high, money taken back is easy to miss, and normalising company names changes who is the biggest contractor.",
+  "kind": "Data wrangling · SQL",
+  "tech": [
+    "DuckDB",
+    "SQL",
+    "Data quality checks",
+    "Entity resolution (name normalisation)",
+    "Python",
+    "USAspending API"
+  ],
+  "date": "2026-10",
+  "order": 33,
+  "repo": "https://github.com/mrrishit909/federal-contracts-cleaning",
+  "cover": "cover.jpg",
+  "note": "Parent names are merged by rules (punctuation, legal suffixes and \"holdings\" removed); every merge is published for review, because rules can occasionally join two different firms.",
+  "problem": "<p>USAspending publishes every federal contract action, and reporters, analysts and competitors use it to answer two simple questions. <em>How much did the government spend on IT services? Which companies won the most?</em> Both have easy, wrong answers in the raw data: totals that count the same award many times, money taken back that disappears, and one company filed under several names.</p>",
+  "built": "<p>A cleaning pipeline over FY2025 IT-services contract transactions (NAICS 5415, 124,996 rows, 297 columns):</p><ul><li><b>Quality checks:</b> unique keys, dates in the fiscal year, numeric obligations, a UEI on every recipient.</li><li><b>The right total</b>, compared with three tempting wrong ones.</li><li><b>Name variants</b> per company, and a parent roll-up three ways: by parent ID, by parent name as written, and by normalised parent name.</li><li><b>An independent check</b> in plain Python.</li></ul>",
+  "steps": [
+    {
+      "title": "Get only the rows needed",
+      "body": "<p>The full FY2025 contracts archive is 1.9 GB and downloaded at about 430 KB/s. USAspending's API can instead build a custom file, here contract awards with NAICS 5415xx and FY2025 action dates. It took 17 minutes to build and is 25 MB zipped.</p>"
+    },
+    {
+      "title": "Add up the right column",
+      "body": "<p>Each row is one transaction: the base award or a later modification. The tempting column, <code>current_total_value_of_award</code>, repeats the whole award, often a multi-year ceiling, on every row. Summed, it says $1,855 billion. Counting each award once still gives $340 billion. The real FY2025 spend is the sum of <code>federal_action_obligation</code>: $70.3 billion.</p><img src=\"charts/01_totals.jpg\" alt=\"Bars on a log scale: award value on every row $1,855.3B (26.4 times), award value once per award $340.0B (4.84 times), positive obligations only $73.8B (1.05 times), FY2025 obligations $70.3B\">",
+      "code": "        SELECT 'naive: add up award value on every row' AS method, sum(award_value_as_listed) AS dollars FROM tx"
+    },
+    {
+      "title": "Keep the money taken back",
+      "body": "<p>13,389 modifications de-obligate money, −$3.56 billion in all. They are part of the year's spending, and dropping negative rows as if they were errors overstates the total by 5%.</p>",
+      "code": "        UNION ALL SELECT 'modifications that take money back (negative)', count(*), sum(obligation) FROM tx WHERE obligation < 0"
+    },
+    {
+      "title": "Resolve company names",
+      "body": "<p>830 of 6,511 companies appear under more than one spelling in the year. Parent companies are messier still. General Dynamics carries two parent IDs, and Leidos appears as \"LEIDOS HOLDINGS, INC.\", \"LEIDOS, INC.\" and \"LEIDOS INC\". Removing punctuation, legal suffixes and \"holdings\" merges 94 parent names into 46 companies, and every merge is listed for review.</p><img src=\"charts/03_spellings.jpg\" alt=\"Bars: 5,681 companies appear under one spelling, 773 under two, 53 under three and 4 under four\">",
+      "code": "SUFFIXES = \"INCORPORATED|INC|LLC|L L C|CORPORATION|CORP|CO|COMPANY|LTD|LP|LLP|PLC|HOLDINGS|HOLDING|THE\""
+    },
+    {
+      "title": "Check it in plain Python",
+      "body": "<p><code>check.py</code> reads the raw CSV with Python's <code>csv</code> module and re-implements the name rules with Python's own regex engine. It matches DuckDB on the total, the take-backs, both naive totals, all 6,147 normalised parents and the top-15 ranking.</p>",
+      "code": "    assert mine == list(top[\"id\"]), (mine, list(top[\"id\"]))"
+    }
+  ],
+  "results": "<p><b>Who won the most depends on the cleaning:</b></p><table><tr><th>Grouped by</th><th>No. 1</th><th class=\"num\">Leidos</th></tr><tr><td>Parent ID</td><td>Booz Allen</td><td class=\"num\">3rd</td></tr><tr><td>Parent name</td><td>Booz Allen</td><td class=\"num\">4th</td></tr><tr><td>Normalised</td><td>Leidos</td><td class=\"num\">1st</td></tr></table><p>After cleaning, Leidos leads with $3.73B, ahead of Booz Allen Hamilton ($3.35B) and General Dynamics ($3.28B). General Dynamics is split across two parent IDs and ranks only 7th by ID.</p><img src=\"charts/02_ranking.jpg\" alt=\"Rank lines for the top contractors across three groupings: Leidos 3rd by parent ID, 4th by parent name, 1st by normalised name; General Dynamics 7th, 2nd, 3rd; Booz Allen 1st, 1st, 2nd\"><ul><li><b>Competition:</b> 32.2% of new-award dollars went to contracts that received a single offer, 39.2% to contracts with two or more, and for 28.7% the number of offers wasn't recorded.</li></ul>",
+  "next": "<ul><li>Add fuzzy matching for names that rules miss (\"SIERRA 7\" and \"SIERRA7\").</li><li>Bring in subawards, to see where prime contractors' money goes next.</li><li>Compare across fiscal years, now that the cleaning is a repeatable pipeline.</li></ul>"
+}
