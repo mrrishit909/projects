@@ -1,0 +1,53 @@
+{
+  "title": "Who Is Missed by Blood-Pressure Care",
+  "tagline": "CDC's national hypertension figures rebuilt in SAS from the raw NHANES 2021–2023 survey files, with the full survey design, then survey logistic models of who doesn't know they have high blood pressure and who stays uncontrolled on treatment. Every SAS number is recomputed in Python.",
+  "kind": "SAS · Survey statistics",
+  "tech": [
+    "SAS 9.4",
+    "SAS Enterprise Guide",
+    "PROC SURVEYMEANS",
+    "PROC SURVEYLOGISTIC",
+    "PROC SGPLOT",
+    "PROC HTTP",
+    "Python (check)"
+  ],
+  "date": "2026-10",
+  "order": 39,
+  "repo": "https://github.com/mrrishit909/nhanes-sas",
+  "cover": "cover.jpg",
+  "note": "One survey at one point in time, so the odds ratios are associations, not causes. One of CDC's 24 figures differs by 0.1 point (treatment at 60+, explained below). The charts are screenshots of the SAS output in Enterprise Guide.",
+  "problem": "<p>About half of US adults have high blood pressure, but only about one in five of them has it under control. Between those two numbers is a care cascade: knowing you have it, being treated, and reaching a safe reading. People drop out at every stage.</p><p><em>Can CDC's national figures be rebuilt from the raw survey files? And once they are, who drops out: who doesn't know, and who stays uncontrolled even on medication?</em></p>",
+  "built": "<p>One SAS program, run in <b>SAS Enterprise Guide (SAS 9.4M9)</b> on USF's virtual desktop, over the August 2021 – August 2023 <b>National Health and Nutrition Examination Survey</b> (11,933 people in 15 strata and 30 sampling units):</p><ul><li><b>PROC HTTP</b> downloads CDC's five transport files directly, so the program needs no local data.</li><li><b>PROC SURVEYMEANS</b> estimates prevalence, awareness, treatment and control with strata, clusters and exam weights, then age-adjusts to the 2000 US population.</li><li><b>PROC SURVEYLOGISTIC</b> fits two models of who is missed.</li><li><b>PROC SGPLOT / SGPANEL</b> draw the charts.</li><li>A clean log (0 errors, 0 warnings) carries every result as a <code>CSV|</code> line. <code>check.py</code> parses those lines and recomputes all 48 results in Python.</li></ul>",
+  "steps": [
+    {
+      "title": "Read CDC's files straight from the web",
+      "body": "<p>NHANES publishes each part of the survey as a SAS transport file: demographics, blood-pressure readings, the blood-pressure questionnaire, body measures and insurance. The program fetches each one with <code>PROC HTTP</code>, reads it through an <code>XPORT</code> library, and merges the five on the person ID. Systolic and diastolic pressure are each the average of up to three readings.</p>",
+      "code": "%macro get(f);\n  filename f_&f temp;\n  proc http url=\"https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2021/DataFiles/&f..xpt\" out=f_&f; run;\n  libname x_&f xport \"%sysfunc(pathname(f_&f))\";\n  proc sort data=x_&f..&f out=&f; by seqn; run;\n%mend;\n%get(DEMO_L) %get(BPXO_L) %get(BPQ_L) %get(BMX_L) %get(HIQ_L)"
+    },
+    {
+      "title": "Keep everyone; use domains, not subsets",
+      "body": "<p>A survey's standard errors come from its design: which sampling units were picked within which strata. If you cut the file down to adults first, SAS no longer sees the whole design and the errors come out wrong. So everyone stays in, and each subgroup (adults, people with hypertension, men aged 40–59) is a <code>DOMAIN</code>. Hypertension follows CDC's definition: 130/80 mm Hg or higher, or taking medication.</p>",
+      "code": "proc surveymeans data=nh nobs mean stderr clm nomcar;\n  strata sdmvstra; cluster sdmvpsu; weight wtmec2yr;\n  var meds;\n  domain hyp*agegrp;\nrun;"
+    },
+    {
+      "title": "Rebuild CDC's figures, then age-adjust",
+      "body": "<p>One <code>SURVEYMEANS</code> call per measure and grouping gives 24 estimates, each with a design-based standard error and 95% interval. Direct standardisation then weights the three age groups to the 2000 US population (0.420, 0.357, 0.223), so men and women can be compared without their different age mixes.</p>"
+    },
+    {
+      "title": "Ask who is missed, within the survey's limits",
+      "body": "<p>Two <code>PROC SURVEYLOGISTIC</code> models. The first asks, among adults with hypertension, who is <em>unaware</em>. The second asks, among those taking medication, who is still <em>uncontrolled</em>. The predictors are age, sex, race and Hispanic origin, income relative to the poverty line, insurance and BMI.</p><p>This survey has 30 sampling units in 15 strata, which leaves only 15 degrees of freedom for the variance. A model with more parameters than that can't be tested properly. So the categories are kept coarse (12 parameters), and unknown values are left out rather than given their own category.</p>",
+      "code": "proc surveylogistic data=nh nomcar;\n  strata sdmvstra; cluster sdmvpsu; weight wtmec2yr;\n  domain hyp;\n  class agegrp(ref='18-39') sex(ref='Women') race(ref='White')\n        income(ref='4x+') insured(ref='yes') bmi(ref='<25') / param=ref;\n  model unaware(event='1') = agegrp sex race income insured bmi;\nrun;"
+    },
+    {
+      "title": "Run it in Enterprise Guide; the log is the evidence",
+      "body": "<p>Enterprise Guide runs the program straight from GitHub at a pinned commit, so the code that ran is exactly the code in the repository. The first runs failed with useful errors. Too many parameters broke the 15 degrees of freedom. <code>N</code> in SURVEYMEANS turned out to mean population size (the count is <code>NOBS</code>). A Windows file-transfer folder didn't exist on this desktop. Each one was fixed in a commit. The final log has 0 errors and 0 warnings, and it records the version: SAS 9.04.01M9.</p>",
+      "code": "options source2;\nfilename p url \"https://raw.githubusercontent.com/mrrishit909/nhanes-sas/<commit>/sas/01_hypertension.sas\";\n%include p;"
+    },
+    {
+      "title": "Recompute every number in Python",
+      "body": "<p><code>check.py</code> reads the same five CDC files and redoes the work without SAS. It computes each domain estimate as a ratio, with a Taylor-linearised variance across sampling units within strata (the method SURVEYMEANS uses), and a weighted logistic regression for the odds ratios. All 24 estimates and their standard errors match SAS to 1e-6, and all 24 odds ratios match to 1e-3. It then compares the results with the figures in CDC's Data Brief 511.</p>"
+    }
+  ],
+  "results": "<p><b>CDC's figures, rebuilt</b> (percent of US adults; the last three rows are among adults with hypertension):</p><table><tr><th></th><th class=\"num\">All</th><th class=\"num\">Men</th><th class=\"num\">Women</th><th class=\"num\">18–39</th><th class=\"num\">40–59</th><th class=\"num\">60+</th></tr><tr><td>Has hypertension</td><td class=\"num\">47.7</td><td class=\"num\">50.8</td><td class=\"num\">44.6</td><td class=\"num\">23.4</td><td class=\"num\">52.5</td><td class=\"num\">71.6</td></tr><tr><td>Aware</td><td class=\"num\">59.2</td><td class=\"num\">55.2</td><td class=\"num\">63.6</td><td class=\"num\">27.2</td><td class=\"num\">56.7</td><td class=\"num\">73.7</td></tr><tr><td>Taking medication</td><td class=\"num\">51.2</td><td class=\"num\">46.7</td><td class=\"num\">56.1</td><td class=\"num\">13.9</td><td class=\"num\">47.1</td><td class=\"num\">69.0*</td></tr><tr><td>Controlled</td><td class=\"num\">20.7</td><td class=\"num\">18.9</td><td class=\"num\">22.8</td><td class=\"num\">4.5</td><td class=\"num\">18.1</td><td class=\"num\">29.2</td></tr></table><p>23 of CDC's 24 figures match to one decimal, and so do the three age-adjusted rates (44.5% overall, 48.8% men, 40.1% women). *The one that differs is treatment at 60+: 68.97% here, 69.1% in the brief. Leaving out people who didn't answer the medication questions moves it to 69.05%, but that moves overall control from 20.75% to 20.8%. No single rule matches all 24, so the plain definition is kept and the gap is reported.</p><img src=\"charts/01_cascade.jpg\" alt=\"SAS bar chart of the care cascade by age with 95% intervals: has hypertension 23.4%, 52.5%, 71.6% for ages 18-39, 40-59, 60+; aware 27.2%, 56.7%, 73.7%; treated 13.9%, 47.1%, 69.0%; controlled 4.5%, 18.1%, 29.2%\"><p><b>Who doesn't know</b> (2,797 adults with hypertension and every predictor known; 1,014 unaware). Odds ratios with 95% intervals:</p><table><tr><th>Group</th><th class=\"num\">Odds of being unaware</th></tr><tr><td>Uninsured vs insured</td><td class=\"num\"><b>2.20</b> (1.51–3.19)</td></tr><tr><td>Age 40–59 vs 18–39</td><td class=\"num\">0.23 (0.15–0.35)</td></tr><tr><td>Age 60+ vs 18–39</td><td class=\"num\">0.10 (0.07–0.14)</td></tr><tr><td>BMI 30+ vs under 25</td><td class=\"num\">0.45 (0.33–0.62)</td></tr><tr><td>Black vs White</td><td class=\"num\">0.55 (0.39–0.76)</td></tr><tr><td>Income under 2× poverty vs 4×+</td><td class=\"num\">0.61 (0.48–0.76)</td></tr><tr><td>Men vs women</td><td class=\"num\">1.15 (0.96–1.38)</td></tr></table><p>Lacking insurance is the clearest gap: those adults have about twice the odds of not knowing. Young adults are by far the least likely to know. Adults with obesity, Black adults and lower-income adults are <em>more</em> likely to have been told, which fits being checked more often.</p><p><b>Who stays uncontrolled on medication</b> (1,575 treated adults; 921 uncontrolled): only age clearly matters. Age 60+ vs 18–39 is 0.40 (0.19–0.84), and obesity is at the edge at 0.70 (0.49–0.99). Insurance, income and race all have intervals that include 1.</p><img src=\"charts/02_odds.jpg\" alt=\"SAS panel chart of adjusted odds ratios on a log scale for being unaware and for being uncontrolled on treatment, by BMI, insurance, income, race, sex and age\">",
+  "next": "<ul><li>Pool NHANES 2017–March 2020 with 2021–2023, which gives more sampling units and so room for richer models, such as interactions between insurance and age.</li><li>Add cholesterol and diabetes, so the cascade covers the main cardiovascular risks at once.</li><li>Export the SAS graphics as image files rather than screenshots.</li></ul>"
+}
