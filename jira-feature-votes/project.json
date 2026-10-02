@@ -1,0 +1,49 @@
+{
+  "title": "Do Customer Votes Decide What Gets Built?",
+  "tagline": "Every customer suggestion Atlassian has received for five cloud products (70,257, from its public Jira), analysed for whether voting works, and written up as a Confluence page with a live Jira macro.",
+  "kind": "Jira · Confluence · Product analytics",
+  "tech": [
+    "Jira REST API",
+    "JQL",
+    "Confluence storage format",
+    "Python",
+    "pandas",
+    "statsmodels",
+    "DuckDB"
+  ],
+  "date": "2026-10",
+  "order": 42,
+  "repo": "https://github.com/mrrishit909/jira-feature-votes",
+  "demo": "confluence/",
+  "demo_label": "Confluence page preview",
+  "cover": "cover.jpg",
+  "note": "Votes are today's counts (Jira keeps no history of votes), and the link between votes and building is an association: a feature already planned can also attract votes. One vendor's public backlog.",
+  "problem": "<p>Many software companies run a voting portal: customers file ideas, other customers vote, and the company says votes guide the roadmap. Atlassian runs its own in public, in Jira.</p><p><em>Do the most-voted ideas actually get built? How long do they wait? And what happens to the thousands of ideas almost nobody votes for?</em></p>",
+  "built": "<p>A pipeline from Atlassian's public Jira (jira.atlassian.com) to a Confluence page:</p><ul><li><b>Download</b> 70,257 suggestions for Jira, Jira Software, Jira Service Management, Confluence and Bitbucket Cloud through the REST API with JQL, plus the server's own counts to check against.</li><li><b>Outcomes:</b> each Jira resolution becomes built, declined, closed for low interest, other or open.</li><li><b>Analysis</b> that compares suggestions that waited about as long before their decision, and a logistic model on top.</li><li><b>Confluence page</b> in storage format, with an info panel, tables, chart attachments and a live Jira issues macro, plus an HTML preview.</li></ul>",
+  "steps": [
+    {
+      "title": "Download the whole backlog",
+      "body": "<p>JQL pages through every suggestion, 1,000 at a time, with a fixed creation cutoff so the set doesn't move while it downloads. Only product-feedback fields are kept; no names. Straight afterwards, the server is asked how many suggestions each product has with each resolution, and for its own top 20 by votes. Those answers are what the check compares against.</p>",
+      "code": "project = JRACLOUD AND issuetype = Suggestion AND created < \"2026-10-01\" ORDER BY key ASC"
+    },
+    {
+      "title": "Turn resolutions into outcomes",
+      "body": "<p>Jira has 21 different resolutions here. They fold into five groups: built (Fixed, Done, Deployed), declined (Won't Fix, Won't Do), closed for low interest (Timed out, Low Engagement), other (duplicates, answered questions, invalid) and open.</p><p>One trap: low-interest closures are closed <em>because</em> they have few votes. Comparing them with built suggestions would make votes look predictive by definition, so they're left out of every votes-versus-building comparison.</p>"
+    },
+    {
+      "title": "Compare like with like",
+      "body": "<p>Votes pile up while a suggestion waits, so a raw comparison mixes up popular with old. Suggestions are therefore compared within bands of how long they waited for a decision, and a logistic model (built ~ log₂ votes + log wait + product + era) puts a number on the link. Without the wait the odds ratio is 1.63 per doubling of votes; with it, 2.11. The longest-waiting suggestions have plenty of votes but are mostly declined, and that hid part of the effect.</p>"
+    },
+    {
+      "title": "Write it as a Confluence page",
+      "body": "<p>The report is generated in Confluence storage format, the XHTML that Confluence's REST API accepts as a page body. It has an info panel for the data note, tables, charts as attachments, and a Jira issues macro whose JQL lists the most-voted open suggestions live on every view. The preview linked above is the same page as plain HTML, with the macro's rows filled in from the download.</p>",
+      "code": "<ac:structured-macro ac:name=\"jira\">\n  <ac:parameter ac:name=\"jqlQuery\">project in (JRACLOUD, ...) AND issuetype = Suggestion\n    AND resolution is EMPTY ORDER BY votes DESC</ac:parameter>\n</ac:structured-macro>"
+    },
+    {
+      "title": "Check against Jira itself",
+      "body": "<p><code>check.py</code> compares the local count for every product and resolution with the server's own count; all match exactly. The 20 most-voted suggestions per product match the server's own sort. DuckDB then recomputes the outcome table, build rates, the wait bands, vote concentration and the top open list straight from the raw JSON: 316 checks.</p><p>One bug was caught on the way. DuckDB read the timestamps without a time zone, so daylight-saving shifts moved some waits across a band boundary; fixed by running in UTC.</p>"
+    }
+  ],
+  "results": "<p><b>Votes are concentrated.</b> The top 1% of suggestions hold 43% of all 961,121 votes, the top 10% hold 87%, and 40% of suggestions have no votes at all.</p><img src=\"charts/03_concentration.png\" alt=\"Curve of the cumulative share of votes against the share of suggestions, most voted first: the top 1% hold 43% of votes and the top 10% hold 87%\"><p><b>Votes go with building, even at the same wait.</b> Among suggestions decided after one to three years:</p><table><tr><th>Votes</th><th class=\"num\">Built</th><th class=\"num\">Decided</th></tr><tr><td>0</td><td class=\"num\">10%</td><td class=\"num\">6,676</td></tr><tr><td>1–9</td><td class=\"num\">13%</td><td class=\"num\">5,735</td></tr><tr><td>10–49</td><td class=\"num\">84%</td><td class=\"num\">420</td></tr><tr><td>50–199</td><td class=\"num\">97%</td><td class=\"num\">173</td></tr></table><p>Each doubling of votes goes with 2.11 times the odds of being built (95% CI 2.06–2.16), allowing for the wait, product and era.</p><img src=\"charts/01_build_rate.png\" alt=\"Line chart of the share of decided suggestions that were built by vote band, for suggestions decided after 1-3, 3-6 and 6+ years: about 10% with 0-9 votes, 55-84% with 10-49, 75-97% with 50-199 and higher above\"><p><b>Popular ideas are rarely declined, but they wait.</b> Of the 200 most-voted suggestions, 89 were built, 2 declined and 102 are still open. The 100 most-voted open ones have a median of 889 votes and have been open a median of 10.7 years. The top one, \"Default values of system fields\" (2,799 votes), was filed 22 years ago.</p><img src=\"charts/04_top_open.png\" alt=\"Bars of the ten most-voted open Jira suggestions, from 2,799 votes (open 22 years) to 1,739\"><p><b>The backlog is mostly waiting for interest.</b> 96% of the 16,178 open suggestions sit in Gathering Interest. Those closed for low engagement had a median of 3 votes. And zero votes isn't zero demand: 4,144 suggestions were built with no votes, half within 60 days of being filed.</p><img src=\"charts/02_outcomes.png\" alt=\"Stacked bars of outcomes by product: Jira 8% built, 42% declined, 17% closed for low interest, 20% open; Jira Service Management 51% open\">",
+  "next": "<ul><li>Record vote counts weekly, to see whether votes come before a decision or after an announcement.</li><li>Run the same analysis on another public portal, such as Microsoft's or a GitHub project's issue reactions.</li><li>Publish the page to a real Confluence space through the REST API, with the charts uploaded as attachments.</li></ul>"
+}
