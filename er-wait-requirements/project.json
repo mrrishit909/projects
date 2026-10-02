@@ -1,0 +1,48 @@
+{
+  "title": "ER Wait Dashboard Requirements",
+  "tagline": "Requirements for a state \"ER wait times\" dashboard, measured against what CMS's emergency department data can and cannot support: 12-month-old figures, waits that depend on hospital size, psychiatric patients who wait far longer, and blanks that need explaining.",
+  "kind": "Requirements analysis · Data fitness",
+  "tech": [
+    "Requirements analysis",
+    "Personas",
+    "MoSCoW",
+    "Acceptance criteria",
+    "Traceability matrix",
+    "DuckDB",
+    "Python"
+  ],
+  "date": "2026-10",
+  "order": 36,
+  "repo": "https://github.com/mrrishit909/er-wait-requirements",
+  "cover": "cover.jpg",
+  "note": "An independent portfolio project: no state commissioned it and no stakeholders were interviewed. The personas are illustrative, and every target is a proposal.",
+  "problem": "<p>A state health department wants a public dashboard of emergency department waits, and CMS already publishes ED measures for every hospital. Three people would use it: a parent deciding tonight which ER to go to, an ED medical director comparing their department, and a state analyst watching access and mental-health care.</p><p><em>What can the CMS data actually support for each of them, and what must the dashboard require that the data can't give?</em></p>",
+  "built": "<p>A data-fitness analysis of the July 2026 CMS release for 4,658 hospitals, turned into requirements:</p><ul><li><b>Evidence queries:</b> coverage and the reasons values are missing, the release lag, waits by ED volume, the psychiatric gap, the spread of left-without-being-seen rates, state differences.</li><li><b>Seven requirements and two rejected candidates</b> in one YAML file, each citing its evidence.</li><li><b>Generated outputs:</b> a requirements document and a traceability matrix, from a checker that refuses uncited numbers.</li><li><b>An independent recomputation</b> in plain Python.</li></ul>",
+  "steps": [
+    {
+      "title": "Measure how old the data is",
+      "body": "<p>The release's ED stay measures cover October 2024 to September 2025 and were published 295 days after that period ended; left-without-being-seen and volume cover 2024 and took 568 days. On 1 October 2026 the newest wait figure is 12 months old. That settles the parent's need: no CMS measure can say where to go tonight, so the dashboard has to require a live feed from hospitals (REQ-01).</p><img src=\"charts/01_latency.jpg\" alt=\"Timeline: ED volume and left-without-being-seen cover 2024 and took 568 days to publish; ED stay and psychiatric ED stay cover October 2024 to September 2025 and took 295 days; today is 1 October 2026\">",
+      "code": "                              DATE '{RELEASED}' AS released, date_diff('day', max(period_end), DATE '{RELEASED}') AS days_from_period_end_to_release,"
+    },
+    {
+      "title": "Check what a fair comparison needs",
+      "body": "<p>Median stays rise with department size: 120 minutes in low-volume EDs, 166 in medium, 191 in high and 192.5 in very high. A national league table would mostly rank size. So the requirement is to compare a hospital only within its volume category (REQ-02), and the league table is rejected.</p><img src=\"charts/02_volume.jpg\" alt=\"Bars of median ED stay by volume category: low 120 minutes (1,608 hospitals), medium 166 (911), high 191 (551), very high 192.5 (702)\">"
+    },
+    {
+      "title": "Look for who an average hides",
+      "body": "<p>Psychiatric and mental-health patients spend a median 247 minutes in the ED against 148 for all patients. Matched hospital by hospital, the gap is a median 83 minutes, and in 22.3% of hospitals they wait at least twice as long. The dashboard has to show that measure separately (REQ-03).</p><img src=\"charts/03_psych.jpg\" alt=\"Ranges of ED minutes across hospitals: all patients sent home median 148 (10th to 90th percentile 100 to 225); psychiatric patients median 247 (142 to 428)\">",
+      "code": "    out(\"psych_gap\", \"\"\"SELECT count(*) AS hospitals_with_both, median(p.value - g.value) AS median_extra_minutes,"
+    },
+    {
+      "title": "Explain every blank",
+      "body": "<p>577 hospitals have no median stay and 1,635 no psychiatric figure, for different reasons: 1,004 have too few psychiatric patients, and 172 are not in the CMS programmes that publish these measures. A blank cell reads as \"no wait\" or \"hiding something\", so each missing value must show CMS's reason (REQ-04).</p><img src=\"charts/04_missing.jpg\" alt=\"Stacked bars of hospitals with a value or missing by reason: median stay mostly reported with 398 not available this period and 172 not in the programmes; psychiatric stay 3,023 reported and 1,004 too few patients\">"
+    },
+    {
+      "title": "Make the requirements check themselves",
+      "body": "<p>The requirements live in one YAML file, and each cites a results file, row, column and value. The checker, reused from the SF 311 project, refuses to build the document if a figure is uncited or wrong. Here it also caught a bug in itself: its number pattern read 192.5 as 192. Fixed, it still passes the SF 311 requirements too.</p><img src=\"charts/05_traceability.jpg\" alt=\"Traceability diagram linking seven requirements, coloured by priority, to the results files holding their evidence: latency, by_volume, distribution, psych_gap, coverage, missing_reasons and states\">",
+      "code": "    found = [float(n.replace(\",\", \"\")) for n in re.findall(r\"(?<![\\w.-])(\\d+\\.\\d+|\\d{1,3}(?:,\\d{3})+|\\d{3,})(?![\\w-])\", text)]"
+    }
+  ],
+  "results": "<ul><li><b>REQ-01, Must:</b> a live feed from participating EDs for \"where should I go now\", every figure under 15 minutes old. The CMS figure is 12 months old.</li><li><b>REQ-02, Must:</b> compare a hospital only with hospitals of its volume category.</li><li><b>REQ-03, Should:</b> show psychiatric patients' ED time beside the overall figure, with the gap.</li><li><b>REQ-04, Must:</b> say why a value is missing, from CMS's footnote.</li><li><b>REQ-05, Must:</b> label every figure with its period, and never combine periods.</li><li><b>REQ-06, Should:</b> show left-without-being-seen as a rate. The median is 1%; flag the top 10%, at 4% or more.</li><li><b>REQ-07, Could:</b> a state view. State medians run from 105 minutes (North Dakota) to 241 (Maryland).</li></ul><p><b>Rejected with evidence:</b> a national league table, which would rank size, and head-CT timeliness as a headline measure, since 68% of hospitals have no value.</p>",
+  "next": "<ul><li>Validate the personas and needs with patients, ED directors and state staff.</li><li>Design the live feed (REQ-01) with a pilot group of hospitals.</li><li>Prototype the dashboard and test REQ-02 to REQ-04 with users.</li></ul>"
+}
