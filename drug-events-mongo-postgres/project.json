@@ -41,7 +41,7 @@
     },
     {
       "title": "Time them fairly",
-      "body": "<p>My first timings made PostgreSQL look 50 times slower on a single lookup, but they were measuring the start-up of the <code>psql</code> program. PostgreSQL is now timed with psql's own <code>\\timing</code> inside one session, and MongoDB with pymongo, on the same indexes.</p><p>Lookups tie. Questions that need whole reports favour documents, because there is no join to do.</p><img src=\"charts/03_benchmark.jpg\" alt=\"Log-scale bars of query time: one full report 0.27 ms MongoDB vs 0.28 ms PostgreSQL; reports with drug X and reaction Y 2.14 vs 2.04 ms; all reaction counts for one drug 42.55 vs 229.4 ms; count every drug-reaction pair 4,671 vs 5,916 ms\">",
+      "body": "<p>My first timings made PostgreSQL look almost 40 times slower on a single lookup (13.8 ms against 0.36 ms), but they were measuring the start-up of the <code>psql</code> program. PostgreSQL is now timed with psql's own <code>\\timing</code> inside one session, and MongoDB with pymongo, on the same indexes.</p><p>Lookups tie. Questions that need whole reports favour documents, because there is no join to do.</p><img src=\"charts/03_benchmark.jpg\" alt=\"Log-scale bars of query time: one full report 0.27 ms MongoDB vs 0.28 ms PostgreSQL; reports with drug X and reaction Y 2.14 vs 2.04 ms; all reaction counts for one drug 42.55 vs 229.4 ms; count every drug-reaction pair 4,671 vs 5,916 ms\">",
       "code": "    col.create_index(\"drugs.drug\")                    # multikey: one index entry per drug in the array"
     },
     {
