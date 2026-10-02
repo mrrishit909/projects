@@ -30,7 +30,7 @@
     },
     {
       "title": "Test it against ordinary Sundays",
-      "body": "<p>A significant coefficient can still be a fluke of the method. So the identical model runs around every Sunday at least five weeks from either clock change, giving 207 estimates from weeks with no change at all. They centre on −0.2%, and the largest is +4.0%. The spring change, at +5.8%, is beyond all of them.</p><img src=\"charts/02_placebo.jpg\" alt=\"Histogram of 207 placebo estimates between about -6.6% and +4.0%, centred near zero, with the spring clock change marked at +5.8%, outside the whole distribution\">",
+      "body": "<p>A significant coefficient can still be a fluke of the method. So the identical model runs around every Sunday at least five weeks from either clock change, giving 207 estimates from weeks with no change at all. They centre on −0.2%, and the largest is +4.0%. The spring change, at +5.8%, is beyond all of them.</p><img src=\"charts/02_placebo.jpg\" alt=\"Histogram of 207 placebo estimates between about -6.7% and +4.0%, centred near zero, with the spring clock change marked at +5.8%, outside the whole distribution\">",
       "code": "    sundays = sundays[(sundays[\"days_from_spring\"].abs() > 35) & (sundays[\"days_from_fall\"].abs() > 35)"
     },
     {
