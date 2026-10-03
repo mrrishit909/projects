@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Air Quality Explorer</title>
+<meta name="description" content="Every day of 2015 to 2025 for 24 US counties, coloured by the day's air quality index, with a filter for the pollutant that set it.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+:root{--bg:#000;--card:#0b0b0b;--fg:#f2f2f0;--dim:#8a8a87;--faint:#5c5c5a;--line:#1d1d1d}
+*{box-sizing:border-box}html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px 48px;-webkit-font-smoothing:antialiased}
+main{max-width:1080px;margin:0 auto}a{color:var(--fg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:2px}
+.cap{font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+nav.cap{display:flex;gap:24px;margin-bottom:28px}nav a{text-decoration:none}
+h1{margin:6px 0 6px;font-size:clamp(32px,5vw,56px);line-height:1;font-weight:500;letter-spacing:-.04em}
+.lede{margin:0;color:var(--dim);max-width:72ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:26px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end}
+.field{display:grid;gap:5px;min-width:0}label{font-size:13px;color:var(--dim)}
+select{font:inherit;font-size:15px;color:var(--fg);background:#050505;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:220px;max-width:100%}
+.grid-wrap{margin-top:18px}canvas{display:block;width:100%;touch-action:pan-y}
+.tip{min-height:24px;margin-top:10px;font-size:14px;color:var(--dim);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:13px;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:7px}.legend i{width:12px;height:12px;border-radius:2px;display:inline-block}
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.sum b{display:block;font-size:clamp(26px,4vw,40px);font-weight:500;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.sum span{color:var(--dim);font-size:13px}
+.note{margin-top:16px;padding-left:12px;border-left:1px solid var(--faint);color:var(--dim);font-size:13px}
+footer{margin-top:28px;color:var(--faint);font-size:12px}
+@media (max-width:820px){body{padding:18px 16px 40px}.sum{grid-template-columns:repeat(2,minmax(0,1fr))}.sum div:nth-child(3){grid-column:1/-1}select{min-width:0;width:100%}.field{flex:1 1 100%}}
+</style>
+</head>
+<body><main>
+<nav class="cap"><a href="https://mrrishit909.github.io/projects/air-quality-aqi/">&larr; How this was built</a><a href="https://mrrishit909.github.io/projects/">All projects</a></nav>
+<p class="cap">Air quality explorer &middot; daily AQI by county &middot; 2015 to 2025</p>
+<h1>Which days was the air unhealthy?</h1>
+<p class="lede">Pick a county. Each row is a year and each column a day, from 1 January on the left to 31 December on the right. Dull colours are good or moderate days; the bright ones are above 100,
+unhealthy for sensitive groups or worse; the number at the end of each row counts that year's bright days. A county's value is the highest reading among its monitors.</p>
+<section class="card">
+  <div class="controls">
+    <div class="field"><label for="county">County</label><select id="county"></select></div>
+    <div class="field"><label for="filter">Days set by</label><select id="filter"><option value="all">All pollutants</option><option value="O">Ozone</option><option value="P">Fine particles (PM2.5)</option><option value="X">Other (PM10, NO2, CO)</option></select></div>
+  </div>
+  <div class="grid-wrap"><canvas id="grid" role="img" aria-label="Grid of daily air quality, one row per year from 2015 to 2025"></canvas></div>
+  <div class="tip" id="tip" aria-live="polite">Move over the grid to read a day</div>
+  <div class="legend" id="legend"></div>
+</section>
+<section class="card" aria-live="polite"><div class="sum" id="sum"></div></section>
+<p class="note">Days dimmed by the filter were set by a different pollutant. An AQI above 500 is beyond the official scale and is shown as "over 500"; a day with no record is left empty.
+The counties are 24 of the 609 in the project's fixed panel, chosen to cover the big cities and the places the case study mentions.</p>
+<footer>Data: US EPA AirData, daily AQI by county, files as of 2026-06-25. The page runs in your browser from data.json; nothing is sent anywhere.</footer>
+</main>
+<noscript><p style="padding:24px">This explorer needs JavaScript.</p></noscript>
+<script>
+(function () {
+  var CATS = [[50, "Good", "#1d4a33"], [100, "Moderate", "#6e6a22"], [150, "Unhealthy for sensitive groups", "#e8830c"], [200, "Unhealthy", "#e03a2b"], [300, "Very unhealthy", "#9b4fb0"], [Infinity, "Hazardous", "#6d0f2a"]];
+  var NAMES = { O: "ozone", P: "PM2.5", M: "PM10", N: "NO2", C: "CO" }, DIM = "#141414";
+  var DATA, cv = document.getElementById("grid"), ctx = cv.getContext("2d"), sel = document.getElementById("county"), flt = document.getElementById("filter");
+  var tip = document.getElementById("tip"), sum = document.getElementById("sum"), L = 40, Rm = 44, TOP = 20, RH = 20, GAP = 3, cw = 1, cur = null;
+  var MONTHS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334], LET = "JFMAMJJASOND";
+
+  function cat(a) { for (var i = 0; i < CATS.length; i++) if (a <= CATS[i][0]) return CATS[i]; }
+  function ok(letter, f) { return f === "all" || (f === "X" ? "MNC".indexOf(letter) >= 0 : letter === f); }
+  function day(c, y, i) { var s = c.d[y], a = parseInt(s.substr(3 * i, 2), 36); return a === 1295 ? null : { aqi: a, p: s.charAt(3 * i + 2) }; }
+  function nd(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365; }
+
+  function draw() {
+    var c = cur, f = flt.value, W = cv.parentNode.clientWidth, H = TOP + DATA.years.length * (RH + GAP), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + "px"; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    cw = (W - L - Rm) / 366; ctx.font = "11px Geist, Helvetica, Arial, sans-serif"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#8a8a87"; ctx.textAlign = "left"; for (var m = 0; m < 12; m++) ctx.fillText(LET.charAt(m), L + MONTHS[m] * cw + 1, 9);
+    DATA.years.forEach(function (y, r) {
+      var top = TOP + r * (RH + GAP), bad = 0, n = nd(y);
+      ctx.fillStyle = "#8a8a87"; ctx.textAlign = "right"; ctx.fillText(String(y), L - 8, top + RH / 2);
+      for (var i = 0; i < n; i++) {
+        var d = day(c, y, i); if (!d) continue;
+        var hit = ok(d.p, f); ctx.fillStyle = hit ? cat(d.aqi)[2] : DIM; ctx.fillRect(L + i * cw, top, Math.max(1, cw + 0.4), RH);
+        if (hit && d.aqi > 100) bad++;
+      }
+      ctx.fillStyle = "#f2f2f0"; ctx.textAlign = "left"; ctx.fillText(String(bad), W - Rm + 10, top + RH / 2);
+    });
+    ctx.fillStyle = "#8a8a87"; ctx.textAlign = "left"; ctx.fillText("> 100", W - Rm + 10, 9);
+    summary();
+  }
+
+  function summary() {
+    var c = cur, f = flt.value, tot = 0, bad = 0, beyond = 0, by = { O: 0, P: 0, X: 0 }, worst = null;
+    DATA.years.forEach(function (y) { for (var i = 0; i < nd(y); i++) { var d = day(c, y, i); if (!d) continue; tot++; if (d.aqi > 100) { var g = d.p === "O" ? "O" : d.p === "P" ? "P" : "X"; by[g]++; if (ok(d.p, f)) { bad++; if (d.aqi > 500) beyond++; if (!worst || d.aqi > worst.aqi) worst = { aqi: d.aqi, y: y, i: i, p: d.p }; } } } });
+    var wd = worst ? new Date(Date.UTC(worst.y, 0, 1 + worst.i)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "none";
+    var hi = !worst ? ["–", "no day above 100"] : worst.aqi > 500 ? ["over 500", beyond + (beyond === 1 ? " day" : " days") + " beyond the scale"] : [String(worst.aqi), "highest AQI, " + wd + ", " + NAMES[worst.p]];
+    sum.innerHTML = '<div><b>' + bad.toLocaleString("en-US") + '</b><span>days above 100 in ' + tot.toLocaleString("en-US") + ' with a record' + (f === "all" ? "" : " (filtered)") + '</span></div>' +
+      '<div><b>' + (tot ? (100 * bad / tot).toFixed(1) : "0.0") + '%</b><span>of days</span></div>' +
+      '<div><b>' + by.O + ' / ' + by.P + ' / ' + by.X + '</b><span>bad days set by ozone / PM2.5 / other (unfiltered)</span></div>' +
+      '<div><b>' + hi[0] + '</b><span>' + hi[1] + '</span></div>';
+  }
+
+  function read(ev) {
+    var r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top, row = Math.floor((y - TOP) / (RH + GAP)), i = Math.floor((x - L) / cw);
+    if (row < 0 || row >= DATA.years.length || i < 0 || i >= nd(DATA.years[row]) || y - TOP - row * (RH + GAP) > RH) { tip.textContent = "Move over the grid to read a day"; return; }
+    var yr = DATA.years[row], d = day(cur, yr, i), dt = new Date(Date.UTC(yr, 0, 1 + i)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    tip.textContent = d ? dt + "  ·  AQI " + (d.aqi > 500 ? "over 500" : d.aqi) + "  ·  " + cat(d.aqi)[1] + "  ·  set by " + NAMES[d.p] : dt + "  ·  no record";
+  }
+
+  fetch("data.json").then(function (r) { return r.json(); }).then(function (data) {
+    DATA = data; var list = data.counties.slice().sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+    list.forEach(function (c) { var o = document.createElement("option"); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
+    var start = (location.hash.match(/county=(\d{5})/) || [])[1] || "36061"; if (!list.some(function (c) { return c.id === start; })) start = list[0].id; sel.value = start;
+    cur = data.counties.filter(function (c) { return c.id === sel.value; })[0];
+    document.getElementById("legend").innerHTML = CATS.map(function (c) { return '<span><i style="background:' + c[2] + '"></i>' + c[1] + '</span>'; }).join("");
+    sel.addEventListener("change", function () { cur = DATA.counties.filter(function (c) { return c.id === sel.value; })[0]; history.replaceState(null, "", "#county=" + sel.value); draw(); });
+    flt.addEventListener("change", draw); cv.addEventListener("pointermove", read); cv.addEventListener("pointerdown", read); window.addEventListener("resize", draw); draw();
+  }).catch(function () { tip.textContent = "Could not load data.json"; });
+})();
+</script>
+</body>
+</html>
