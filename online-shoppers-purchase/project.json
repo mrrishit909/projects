@@ -1,0 +1,57 @@
+{
+  "title": "Who Buys Online?",
+  "tagline": "12,330 shopping sessions from one online shop: new visitors buy almost twice as often as returning ones, even after adjusting for season and browsing, and a purchase model's score falls from an AUC of 0.93 to 0.78 once its leakiest feature is removed.",
+  "kind": "Python · Predictive modeling",
+  "tech": [
+    "Python",
+    "scikit-learn",
+    "Gradient boosting",
+    "Logistic regression",
+    "statsmodels",
+    "UCI data (CC BY 4.0)",
+    "Hand-fitted recompute"
+  ],
+  "date": "2026-10",
+  "order": 52,
+  "repo": "https://github.com/mrrishit909/online-shoppers-purchase",
+  "cover": "cover.jpg",
+  "note": "One shop for one year; January and April are not in the data. PageValues is treated as leaky because of how it is defined (the average value of the pages visited before a transaction); the data cannot show how it was computed for each session. \"New against returning\" is an association, not proof that being new makes a visitor more likely to buy. The models use default settings, a fixed seed and no tuning.",
+  "problem": "<p>An online shop logs every visit: which pages, for how long, whether the visitor had been before, and whether the visit ended in a purchase. <em>Do first-time visitors buy differently from returning ones, and how well can a model tell which visits will end in a sale?</em></p><p>The questions follow DataCamp's \"Will This Customer Purchase Your Product?\" project. The data is the UCI Online Shoppers Purchasing Intention dataset: real sessions from one shop over a year.</p>",
+  "built": "<p>12,330 sessions, audited and analysed three ways:</p><ul><li><b>Who buys:</b> purchase rates by visitor type, month and weekend, with intervals and a z-test.</li><li><b>Does the gap survive?</b> Four logistic regressions, adding season, browsing behaviour and PageValues step by step.</li><li><b>Prediction:</b> logistic regression and gradient boosting, with and without a feature computed from purchases, scored two ways.</li><li><b>Check:</b> <code>check.py</code> recomputes all 136 numbers: the tests by formula, the regressions by hand-written Newton-Raphson, the model scores from saved predictions.</li></ul>",
+  "steps": [
+    {
+      "title": "Download the sessions",
+      "body": "<p>UCI's dataset 468 (CC BY 4.0), one row per session: pages visited and time spent by page type, bounce and exit rates, PageValues, month, weekend, visitor type and whether it ended in a purchase. It is 1 MB, so the file is committed with its checksum.</p>"
+    },
+    {
+      "title": "Audit before analysing",
+      "body": "<p>125 sessions are exact duplicates (kept; the purchase rate is 15.5% with them and 15.6% without). No values are missing, only ten months are present, and 38 sessions have no product pages. One column stands out: sessions with a positive PageValues buy 56.3% of the time, against 3.9% when it is zero.</p>"
+    },
+    {
+      "title": "Compare new and returning visitors",
+      "body": "<p>Purchase rates with Wilson intervals, and a two-proportion z-test of new against returning visitors, with the difference and its interval.</p>",
+      "code": "    z = (p1 - p2) / math.sqrt(pp * (1 - pp) * (1 / n1 + 1 / n2)); se = math.sqrt(p1 * (1 - p1) / n1 + p2 * (1 - p2) / n2)"
+    },
+    {
+      "title": "Adjust step by step",
+      "body": "<p>Four logistic regressions for the odds of a purchase, each adding to the last: nothing, then month, weekend and special day, then browsing behaviour, then PageValues. If the new-visitor odds ratio fell to 1, the gap would be explained away.</p>",
+      "code": "        r = sm.Logit(d[\"Revenue\"], design(d, level)).fit(disp=0, method=\"newton\", maxiter=100)"
+    },
+    {
+      "title": "Predict, with and without PageValues",
+      "body": "<p>Logistic regression and gradient boosting, each with and without PageValues. Scored two ways: 5-fold cross-validation, where every session is predicted by a model that never saw it, and a time split, training on February to September and testing on October to December.</p>"
+    },
+    {
+      "title": "Score the models honestly",
+      "body": "<p>AUC (the chance a random buyer is ranked above a random non-buyer), average precision (which suits the 15% of sessions that buy), and the share of all buyers found in the top tenth of predicted sessions.</p>",
+      "code": "            top = np.argsort(-p)[: len(d) // 10]"
+    },
+    {
+      "title": "Recompute it by hand",
+      "body": "<p><code>check.py</code> rebuilds the tables and tests from the raw CSV with textbook formulas, refits the four logistic regressions with a hand-written Newton-Raphson on a design matrix built by hand, and recomputes every model score from the saved predictions with rank and sort formulas. The predictions are stored at full precision: stored rounded to six decimals, the recomputed average precision differed in the third decimal because of ties. All 136 numbers agree.</p>",
+      "code": "        recall = tp / total\n        ap += (recall - prev_recall) * tp / (tp + fp)"
+    }
+  ],
+  "results": "<img src=\"charts/01_new_vs_returning.jpg\" alt=\"Left: bars of the purchase rate for new visitors (24.9%), returning visitors (13.9%) and other (18.8%) with intervals. Right: the odds ratio for a new visitor from four models, 2.05, 1.92, 1.58 and 1.93, all above 1\"><p><b>New visitors buy more often.</b> 24.9% of the 1,694 new-visitor sessions ended in a purchase (95% interval 22.9 to 27.0), against 13.9% of the 10,551 returning ones (13.3 to 14.6): a gap of 11.0 points (8.8 to 13.1; z = 11.6). Overall 15.5% of sessions purchase.</p><table><tr><th>New-visitor odds</th><th class=\"num\">Ratio</th><th class=\"num\">95% CI</th></tr><tr><td>Crude</td><td class=\"num\"><b>2.05</b></td><td class=\"num\">1.81–2.32</td></tr><tr><td>+ season, weekend</td><td class=\"num\"><b>1.92</b></td><td class=\"num\">1.69–2.18</td></tr><tr><td>+ browsing</td><td class=\"num\"><b>1.58</b></td><td class=\"num\">1.37–1.83</td></tr><tr><td>+ PageValues</td><td class=\"num\"><b>1.93</b></td><td class=\"num\">1.59–2.35</td></tr></table><p><b>The gap survives adjustment.</b> The odds ratio for a new visitor is 2.05 crude and still 1.92 with month, weekend and special day, 1.58 with browsing behaviour and 1.93 with PageValues: new visitors are more likely to buy than returning ones with similar browsing.</p><img src=\"charts/02_months.jpg\" alt=\"Bars of the purchase rate by month with intervals: 1.6% in February, 10% in March, May and June, rising through July, August, September and October to 25.4% in November, then 12.5% in December\"><p><b>Season and weekend.</b> The purchase rate is 10% to 11% in March, May and June, rises to 17.6% in August, 21.0% in October and 25.4% in November (2,998 sessions), then 12.5% in December; February has 3 purchases in 184 sessions. Weekend sessions purchase 17.4% against 14.9% on weekdays.</p><img src=\"charts/03_pagevalues.jpg\" alt=\"Bars of the purchase rate for sessions with PageValues zero (3.9%) and above zero (56.3% of 2,730 sessions)\"><p><b>PageValues does the work.</b> Sessions with a positive PageValues (2,730 of them) buy 56.3% of the time, against 3.9% when it is zero. The dataset defines it as the average value of the pages visited before a transaction, so it is computed from purchases: a model that uses it is partly reading the answer.</p><img src=\"charts/04_models.jpg\" alt=\"Grouped bars of the AUC for logistic regression and gradient boosting, with and without PageValues, in cross-validation and on a time split: boosting with PageValues scores 0.93 and 0.84, without it 0.78 and 0.66\"><table><tr><th>Model</th><th class=\"num\">CV</th><th class=\"num\">Time</th><th class=\"num\">Top 10%</th></tr><tr><td>Boosting + PV</td><td class=\"num\">0.93</td><td class=\"num\">0.84</td><td class=\"num\">50.3%</td></tr><tr><td>Boosting</td><td class=\"num\"><b>0.78</b></td><td class=\"num\"><b>0.66</b></td><td class=\"num\">26.8%</td></tr><tr><td>Logistic + PV</td><td class=\"num\">0.89</td><td class=\"num\">0.82</td><td class=\"num\">46.4%</td></tr><tr><td>Logistic</td><td class=\"num\">0.75</td><td class=\"num\">0.68</td><td class=\"num\">24.5%</td></tr></table><p><b>Prediction, with and without it.</b> The columns are the AUC in cross-validation, the AUC on the time split (train February to September, test October to December), and the share of all buyers found in the top tenth of predicted sessions; \"+ PV\" means with PageValues. With it, boosting reaches 0.93 and its top tenth captures half of all buyers. Without it, the same model reaches 0.78 and captures 26.8%, and on the time split it falls to 0.66, below logistic regression (0.68).</p>",
+  "next": "<ul><li>Rebuild the model using only what is known before a session ends, and compare it with a simple rule such as \"has put something in the basket\", if the data had it.</li><li>Find session dates, not just months, so the time split can follow real time.</li><li>Look into why new visitors convert more, using the traffic and campaign codes if their meanings are available.</li></ul>"
+}
