@@ -1,0 +1,62 @@
+{
+  "title": "What Wins an IPL Match?",
+  "tagline": "1,243 IPL matches, ball by ball: the toss is a coin flip, scoring jumped in 2023 and a safe total moved up about 25 runs, and a model that sees only score, wickets and balls left calls a chase right 79% of the time after nine overs, while still underrating chasers.",
+  "kind": "Python · Sports analytics",
+  "tech": [
+    "Python",
+    "pandas",
+    "statsmodels",
+    "Logistic regression",
+    "Walk-forward testing",
+    "Cricsheet (ODC-By)",
+    "Hand-fitted recompute"
+  ],
+  "date": "2026-10",
+  "order": 45,
+  "repo": "https://github.com/mrrishit909/ipl-cricket",
+  "cover": "cover.jpg",
+  "note": "The model sees only runs needed, wickets and balls left, so it says who is ahead, not who is better. The Impact Player rule is the obvious suspect for the 2023 jump in scoring, but this data cannot prove cause. 2023 to 2026 is 279 matches, so the newer numbers carry wide intervals. Cricsheet states its data is under the Open Data Commons Attribution License.",
+  "problem": "<p>Cricket fans argue about three things: <em>does the toss matter, how much has T20 scoring changed, and how big a total is safe?</em> Then comes a harder one: <em>from the score alone, how early can you tell who will win a chase?</em></p><p>Cricsheet publishes every IPL match ball by ball, so each argument can be counted: 1,243 matches from 2008 to 2026.</p>",
+  "built": "<p>Match and ball tables from the Cricsheet files, and four questions answered from them:</p><ul><li><b>The toss:</b> win rates by season, with exact tests and intervals.</li><li><b>Scoring:</b> runs per over in the powerplay, middle and death overs, and the average first innings, every season.</li><li><b>A safe total:</b> the first-innings score at which batting first is a coin flip, before and after the 2023 Impact Player rule.</li><li><b>A chase model:</b> the chance the chasing side wins, from runs needed, balls left and wickets in hand, tested on seasons it never saw.</li><li><b>Check:</b> <code>check.py</code> rebuilds the tables from the raw files and refits every model by hand: 350 numbers agree.</li></ul>",
+  "steps": [
+    {
+      "title": "Download every match",
+      "body": "<p>Cricsheet's IPL zip has one CSV per match (every ball: batter, bowler, runs, extras, wickets) and an info file per match (toss, winner, rain method). The script records the pull date and match count, so every number on this page traces to one snapshot (3 October 2026, 1,243 matches, 295,732 balls). The raw files are not committed.</p>"
+    },
+    {
+      "title": "Build the match table",
+      "body": "<p>One row per match, with the innings totals summed from the balls. A super-over tie counts as won by the super-over winner, but ties (16) and no-results (9) are left out of win-loss counts, and the 23 rain-adjusted matches are left out of scoring and the model. A rain-shortened target can read \"9.2\" overs (nine overs, two balls), so overs are read as numbers, not whole numbers.</p>",
+      "code": "        tover = next((float(t[1]) for t in d.get(\"target_overs\", []) if t[0] == \"2\"), None)      # \"9.2\" = 9 overs 2 balls"
+    },
+    {
+      "title": "Is the toss worth anything?",
+      "body": "<p>For the 1,218 decided matches: how often does the toss winner win, and how often does the side batting second? Exact binomial tests against a 50-50 coin, with 95% intervals.</p>",
+      "code": "    ci = lambda x: stats.binomtest(x, n).proportion_ci(0.95, method=\"wilson\")"
+    },
+    {
+      "title": "Measure scoring by phase",
+      "body": "<p>Runs per over in the powerplay (overs 1 to 6), the middle overs (7 to 15) and the death overs (16 to 20), plus sixes and the average first innings, for every season. Only full 20-over matches are used, so rain-shortened innings don't drag the averages down.</p>"
+    },
+    {
+      "title": "Find the break-even total",
+      "body": "<p>A logistic curve of \"the side batting first won\" against the first-innings total gives the score at which the match is a coin flip. It is fitted separately for 2008 to 2022 and for 2023 to 2026, with an interval from the delta method.</p>",
+      "code": "    par = -b0 / b1\n    var = (V[0, 0] + par ** 2 * V[1, 1] + 2 * par * V[0, 1]) / b1 ** 2"
+    },
+    {
+      "title": "Teach a model to call the chase",
+      "body": "<p>At the start of every over of a chase the model sees four things: the runs needed per over, the wickets in hand, the balls left, and the first two multiplied. It returns the chance the chasing side wins. It is trained on 2008 to 2022 and tested on the 279 matches of 2023 to 2026, so it is never judged on matches it learned from. Within one match the snapshots are linked, which is why the split is by season.</p>",
+      "code": "    snap[\"rrr\"] = 6 * snap[\"need\"] / snap[\"balls_left\"]\n    snap[\"rrr_x_wkts\"] = snap[\"rrr\"] * snap[\"wkts_in_hand\"]"
+    },
+    {
+      "title": "Test it season by season",
+      "body": "<p>A walk-forward test trains on every earlier season and tests on the next one, 2012 to 2026. A second test retrains on 2008 to 2024, with and without a \"new era\" flag, and judges both on 2025 and 2026 against the original model.</p>"
+    },
+    {
+      "title": "Check it a different way",
+      "body": "<p><code>check.py</code> rereads the raw files with plain Python (no pandas, scikit-learn or statsmodels) and rebuilds the tables, re-extracts every chase snapshot ball by ball, and refits every logistic model with a hand-written Newton-Raphson. 350 numbers agree. The check also caught a real problem: scikit-learn's default solver had stopped early on the unscaled columns, giving slightly different coefficients, so the models are fitted by Newton-Raphson in statsmodels.</p>",
+      "code": "    for _ in range(100):\n        p = 1 / (1 + np.exp(-X1 @ b))\n        w = p * (1 - p)\n        step = np.linalg.solve(X1.T @ (X1 * w[:, None]), X1.T @ (y - p))"
+    }
+  ],
+  "results": "<img src=\"charts/01_toss.jpg\" alt=\"Lines by season of the share of matches won by the toss winner, by the side batting second, and the share of toss winners who chose to field: the first two hover around 50 to 60 percent, the last rises from about 35 percent in 2010 to 83 percent in 2025 and 2026\"><p><b>The toss is a coin flip.</b> Toss winners won 628 of 1,218 decided matches (51.6%, 95% interval 48.8–54.4, p = 0.29). Chasing sides won 666 (54.7%, 51.9–57.5, p = 0.001). Captains choose to field in 66.5% of matches, and in 83% in 2025 and 2026.</p><img src=\"charts/02_scoring.jpg\" alt=\"Lines of runs per over by season in the powerplay, middle and death overs: the powerplay rises from 7.8 in 2022 to 10.1 in 2026, the middle overs from 8.1 to 9.3, the death overs from 10.5 to 10.8\"><p><b>Scoring jumped in 2023.</b> The average first-innings total was 171 in 2022, then 183, 190, 192 and 196 in 2026. Powerplay runs per over went from 7.8 to 10.1 and middle-over runs from 8.1 to 9.3, but death overs only from 10.5 to 10.8. Sixes per match went from 14.4 in 2022 to 19.5 in 2026.</p><img src=\"charts/03_par.jpg\" alt=\"Lines of the share of matches won by the side batting first, by first-innings total, for 2008 to 2022 and 2023 to 2026: the later line sits about 20 points lower; the break-even totals are 170 and 195\"><table><tr><th>Batting first</th><th class=\"num\">Even at</th><th class=\"num\">191–210</th><th class=\"num\">211+</th></tr><tr><td>2008–22</td><td class=\"num\"><b>170</b></td><td class=\"num\">73.8%</td><td class=\"num\">93.9%</td></tr><tr><td>2023–26</td><td class=\"num\"><b>195</b></td><td class=\"num\">56.7%</td><td class=\"num\">75.3%</td></tr></table><p><b>A safe total moved up about 25 runs.</b> The first-innings total at which batting first is a coin flip was 170 (±4) in 2008–22 and 195 (±8) in 2023–26. Columns show the share of matches won by the side batting first.</p><img src=\"charts/04_by_over.jpg\" alt=\"Line of the share of chases called right by the model at the start of each over: 65% before the first ball, 79% at the start of the 10th over, 88% at the 15th, 89% at the 20th\"><p><b>A model can call the chase.</b> Trained only on 2008–22, it is right 65% of the time before the first ball (from the target alone), 79% after nine overs and 88% after fourteen, on matches it never saw. The area under the curve is 0.89, and the log loss is 0.45 against 0.69 for guessing.</p><img src=\"charts/05_gap.jpg\" alt=\"Bars by season of how many points more often chasers won than the walk-forward model predicted: small and mixed from 2012 to 2022 (largest +10 in 2016), then +3, +8, +6 in 2023 to 2025 and +19 in 2026\"><p><b>But it underrates chasers.</b> Trained on earlier seasons only, it predicted fewer chase wins than happened in 12 of 15 seasons: by 3.2 points on average in 2012–22, 9.1 points in 2023–26, and 18.8 points in 2026. A target of 201–220 won 19% of chases before 2023 and 40% since; the model said 17%.</p><table><tr><th>Tested 2025–26</th><th class=\"num\">Log loss</th><th class=\"num\">Said</th><th class=\"num\">Was</th></tr><tr><td>Trained to 2022</td><td class=\"num\">0.437</td><td class=\"num\">43%</td><td class=\"num\">56%</td></tr><tr><td>Retrained to 2024</td><td class=\"num\">0.427</td><td class=\"num\">44%</td><td class=\"num\">56%</td></tr><tr><td>+ new-era flag</td><td class=\"num\"><b>0.390</b></td><td class=\"num\">48%</td><td class=\"num\">56%</td></tr></table><p>\"Said\" is the average chance given to the chasing side; \"Was\" is how often chasers won. Retraining with a new-era flag helps, but the model still gives chasers too little.</p><p><b>Bottom line.</b> The game changed in 2023: bigger totals, a higher break-even score, and chases that win far more often than a model built on the old game expects.</p>",
+  "next": "<ul><li>Add team strength (each side's results before the match), so the model can say who is better as well as who is ahead.</li><li>Look at where the extra runs come from by batting position, since the Impact Player rule lets a team swap in a specialist batter or bowler.</li><li>Rerun after the 2027 season: <code>download.py</code>, <code>analyze.py</code> and <code>check.py</code> rebuild everything.</li></ul>"
+}
