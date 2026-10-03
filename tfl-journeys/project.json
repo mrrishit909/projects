@@ -1,0 +1,62 @@
+{
+  "title": "How Much of London's Travel Has Come Back?",
+  "tagline": "Sixteen years of journeys on London's buses, Tube and rail, from TfL's own open table, in SQL: how the mix shifted, how far the pandemic cut travel and how much has returned (Tube 89%, buses 82%), what a normal year looks like, and the table's own bookkeeping errors.",
+  "kind": "SQL · Transport analysis",
+  "tech": [
+    "SQL",
+    "DuckDB",
+    "Window functions",
+    "Robust anomaly score (MAD)",
+    "Open data (TfL, OGL v2)",
+    "Plain-Python recompute"
+  ],
+  "date": "2026-10",
+  "order": 49,
+  "repo": "https://github.com/mrrishit909/tfl-journeys",
+  "cover": "cover.jpg",
+  "note": "Counts are TfL's own (boardings or entries by mode), so modes are not strictly comparable; National Rail journeys in London other than Overground and the Elizabeth line are not included. The last column is named \"TfL Rail\"; from 2022 it appears to carry the Elizabeth line, which is an inference. The data cannot say why a period is odd. Contains public sector information licensed under the Open Government Licence v2.0.",
+  "problem": "<p>London's transport network lost almost all its passengers in April 2020. <em>Six years on, how much has come back, on which modes, and what else do sixteen years of journey counts show?</em></p><p>Transport for London publishes journeys for every four-week reporting period, by mode, from April 2010 to August 2026. The questions follow DataCamp's \"Exploring London's Travel Network\" project, which used the same kind of data up to 2022.</p>",
+  "built": "<p>TfL's table loaded into DuckDB, and six SQL questions, each in its own file:</p><ul><li><b>Mode share:</b> journeys and share by mode and year.</li><li><b>The pandemic:</b> each mode's journeys against the same period of 2018/19: the trough and the recovery.</li><li><b>A normal year:</b> the seasons, and Christmas.</li><li><b>Odd periods:</b> found with window functions and a robust score.</li><li><b>Data quality:</b> where the table disagrees with itself.</li><li><b>Check:</b> <code>check.py</code> rebuilds every table in plain Python, with no SQL: 1,596 numbers agree.</li></ul>",
+  "steps": [
+    {
+      "title": "Download the table",
+      "body": "<p>TfL's journeys (in millions) for each reporting period, for bus, Underground, DLR, tram, Overground, cable car and \"TfL Rail\". It is 14 KB, so the file is committed with the pull date.</p>"
+    },
+    {
+      "title": "Fix the calendar before counting",
+      "body": "<p>Two problems come first. The 13 periods of financial year 2020/21 are labelled \"19/20\" in the file, so the year is worked out from each period's start date. And the file's \"Days in period\" disagrees with the period's own dates in six periods, so the length comes from the dates. Then the seven mode columns are unpivoted into one row per period and mode.</p>",
+      "code": "FROM periods UNPIVOT (millions FOR mode IN (bus, underground, dlr, tram, overground, cable_car, elizabeth_line));"
+    },
+    {
+      "title": "Share by mode",
+      "body": "<p>Query 1 adds up complete financial years (13 periods), ranks the modes within each year with a window function, and finds each mode's growth on the year before with <code>LAG</code>.</p>",
+      "code": "       RANK() OVER (PARTITION BY fy ORDER BY millions DESC) AS rank_in_year,"
+    },
+    {
+      "title": "Measure the pandemic against the same period",
+      "body": "<p>Comparing each period with the annual average would mix in the seasons, so each period's journeys per day are compared with the same reporting period of 2018/19, the last normal year (2019/20's last period is already hit by the lockdown). For each mode: the trough, when it first got back to 90% and 100%, and the latest value.</p>",
+      "code": "       MIN(i.starts) FILTER (WHERE i.starts > t.trough_start AND i.ix >= 90)  AS first_back_to_90,"
+    },
+    {
+      "title": "Find the shape of a normal year",
+      "body": "<p>Each period against its year's average, averaged over the 14 normal years (2010/11 to 2019/20 and 2022/23 to 2025/26), for buses and the Underground. A second query finds which period holds 25 December: period 10, in every one of the 16 years.</p>"
+    },
+    {
+      "title": "Hunt for odd periods",
+      "body": "<p>Each period is compared with the same period a year earlier. Because the pandemic would swamp everything, March 2020 to March 2024 is left out, and the rest are scored with the median and the median absolute deviation, which one wild value can't distort. Above 3.5 is the usual flag.</p>",
+      "code": "SELECT c.mode, c.starts, c.ends, c.fy, c.period_no, ROUND(c.yoy, 1) AS yoy_pct, ROUND(0.6745 * (c.yoy - s.med) / m.mad, 1) AS modified_z,"
+    },
+    {
+      "title": "Audit the table",
+      "body": "<p>The first anomaly pass was full of \"events\" that weren't. Checking the table against itself found why: six periods whose listed length doesn't match their dates, and a wrong length also distorts the next year's comparison. Query 5 lists them and shows the damage; every other query uses the lengths from the dates.</p>",
+      "code": "FROM b WHERE days_listed <> days ORDER BY starts;"
+    },
+    {
+      "title": "Rebuild it without SQL",
+      "body": "<p><code>check.py</code> rereads the raw CSV with plain Python (dates, dictionaries and the statistics module; no DuckDB, no SQL, no pandas) and recomputes every table: totals, shares, ranks, growth, the recovery index, the troughs and first returns, the seasons, the Christmas period, the medians and scores, and the audit. The results are rounded, so each comparison allows half a unit in the last place. All 1,596 numbers agree.</p>",
+      "code": "    full = {k: sum(x[\"millions\"] for x in v) for k, v in years.items() if len({x[\"period_no\"] for x in v}) == 13}"
+    }
+  ],
+  "results": "<img src=\"charts/01_modes.jpg\" alt=\"Stacked bars of journeys a year by mode from 2010/11 to 2025/26, in billions: about 3.5 billion in 2010/11, 3.85 billion in 2019/20, 1.3 billion in 2020/21 and 3.5 billion in 2025/26, with bus falling from 65% to 50% of the total\"><p><b>Buses are still first, but less so.</b> Bus carried 65.4% of journeys in 2010/11, 55.0% in 2019/20 and 50.5% in 2025/26; the Underground 31.6%, 34.8% and 34.1%; TfL Rail and the Elizabeth line 1.6% (2019/20) and 6.9%. Total journeys: 3.50 billion in 2010/11, 3.85 billion in 2019/20 and 3.53 billion in 2025/26. Against 2019/20, bus journeys in 2025/26 are down 15.6% and the Underground 9.9%.</p><img src=\"charts/02_recovery.jpg\" alt=\"Lines of journeys per day as a percentage of the same period in 2018/19 for bus, Underground, Overground, DLR and tram, April 2019 to August 2026: all crash to between 5% and 21% in April 2020 and recover unevenly, with Overground at 97%, Underground at 89%, bus at 82%, DLR at 74% and tram at 67% in the latest period\"><table><tr><th>% of normal</th><th class=\"num\">Trough</th><th class=\"num\">Latest</th></tr><tr><td>Overground</td><td class=\"num\">6.0</td><td class=\"num\"><b>97.1</b></td></tr><tr><td>Underground</td><td class=\"num\">4.8</td><td class=\"num\"><b>89.1</b></td></tr><tr><td>Bus</td><td class=\"num\">15.9</td><td class=\"num\"><b>81.7</b></td></tr><tr><td>DLR</td><td class=\"num\">11.2</td><td class=\"num\">74.4</td></tr><tr><td>Tram</td><td class=\"num\">18.4</td><td class=\"num\">66.7</td></tr></table><p><b>The pandemic, and what has come back.</b> In 2020/21 bus journeys fell 59.1% and Underground journeys 77.8%. The table shows each mode's journeys per day as a share of the same period in 2018/19, at the worst period (April 2020) and in the latest one (26 July to 22 August 2026). Overground got back to 90% in the period starting 6 March 2022 and to 100% in the one starting 28 May 2023; the Underground first reached 90% in the period starting 8 December 2024 and has not reached 100%; buses never reached 90%.</p><img src=\"charts/03_seasons.jpg\" alt=\"Bars of journeys per day against the year's average for each of the 13 reporting periods, for buses and the Underground: period 10 is lowest, about 15% below average for buses and 13% for the Underground, and period 9 is the Tube's high at 11% above\"><p><b>A normal year.</b> Period 10 holds 25 December in all 16 years. Against the year's average it is 15.2% low for buses and 13.2% for the Underground; the Tube's best period is 9, the four weeks before it, at 11.1% above average.</p><img src=\"charts/04_anomalies.jpg\" alt=\"Line of Underground journeys per day against a year earlier, period by period, 2011 to 2026, with the pandemic and recovery years shaded and left out: two outliers are marked, 22 July to 18 August 2012 at +20.5% and 17 August to 13 September 2025 at -14.8%\"><p><b>Odd periods.</b> For the Underground, 22 July to 18 August 2012 was 20.5% above a year earlier (score 4.8; the Olympics fall inside it), and 17 August to 13 September 2025 was 14.8% below (score −4.6). The other eight of the top ten score 3.0 or less. For buses nothing passes a borderline 3.5.</p><p><b>The table's own errors.</b> Six of the 213 periods list a length that disagrees with their dates: 1 April to 2 May 2015 is 32 days by the dates and 26 as listed. With the listed length, bus journeys per day for that period look 23.9% up on a year earlier; with the real length, 0.7%. A wrong length also distorts the next year's comparison, so these showed up as the biggest \"anomalies\" until the lengths were taken from the dates.</p>",
+  "next": "<ul><li>Add the Elizabeth line's own series, if TfL publishes one, to confirm what the \"TfL Rail\" column carries after 2022.</li><li>Look for the cause of the August to September 2025 dip in an outside source, such as strike dates.</li><li>Compare with population or employment in London to see whether journeys per person have changed.</li></ul>"
+}
