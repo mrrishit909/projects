@@ -1,0 +1,326 @@
+{
+ "service": "farm-crop-intelligence",
+ "run": "demo-1",
+ "tokens": {
+  "agronomist": "farm-agronomist-demo",
+  "analyst": "farm-analyst-demo",
+  "viewer": "farm-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "Load a farm at day 90",
+   "say": "An invented farm: three fields of 60 one-hectare zones (corn, soybean, wheat), 90 days of weather, soil probes, the water applied so far, and satellite NDVI images every five days to day 80, some lost to cloud. A yield model is trained on 24 past seasons and tested on 6 more.",
+   "calls": [
+    {
+     "key": "load",
+     "as": "agronomist",
+     "method": "POST",
+     "path": "/v1/farm:load",
+     "body": {
+      "seed": 17
+     }
+    },
+    {
+     "key": "fields",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/fields"
+    }
+   ]
+  },
+  {
+   "title": "New readings and a new image arrive",
+   "say": "Three probe readings for the soybean field, one of them sent twice. Then the day-85 image is registered and detection runs over everything known: a patch of nine zones has fallen below its own normal on two images running. The day-90 image confirms it. The obvious rule, NDVI below 0.70, flags sandy ground as well.",
+   "calls": [
+    {
+     "key": "tele",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/telemetry/batch",
+     "body": {
+      "readings": [
+       {
+        "sensor_id": "7bfb1da2-d38e-5e09-9843-0a0ca539ddc3",
+        "ts": "2026-07-30T06:30:00Z",
+        "value": 68.6,
+        "unit": "mm"
+       },
+       {
+        "sensor_id": "59686028-376b-5287-96fe-d22dffda91fe",
+        "ts": "2026-07-30T06:30:00Z",
+        "value": 73.5,
+        "unit": "mm"
+       },
+       {
+        "sensor_id": "aa207ac5-1406-5d15-8585-47f6a2fbef8b",
+        "ts": "2026-07-30T06:30:00Z",
+        "value": 45.9,
+        "unit": "mm"
+       },
+       {
+        "sensor_id": "7bfb1da2-d38e-5e09-9843-0a0ca539ddc3",
+        "ts": "2026-07-30T06:30:00Z",
+        "value": 68.6,
+        "unit": "mm"
+       }
+      ]
+     }
+    },
+    {
+     "key": "img85",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/imagery/register",
+     "body": {
+      "field_id": "d2c9459a-3271-5074-b109-f5228edaf282",
+      "captured_at": "2026-07-25T10:30:00Z",
+      "source": "sentinel-2",
+      "cloud_pct": 8,
+      "ndvi": [
+       0.817,
+       0.777,
+       0.798,
+       0.861,
+       0.832,
+       0.835,
+       0.834,
+       0.821,
+       0.844,
+       0.818,
+       0.817,
+       0.838,
+       0.826,
+       0.833,
+       0.827,
+       0.848,
+       0.714,
+       0.646,
+       0.69,
+       0.855,
+       0.819,
+       0.817,
+       0.779,
+       0.792,
+       0.787,
+       0.797,
+       0.666,
+       0.649,
+       0.635,
+       0.775,
+       0.777,
+       0.764,
+       0.787,
+       0.744,
+       0.789,
+       0.802,
+       0.655,
+       0.65,
+       0.706,
+       0.779,
+       0.73,
+       0.8,
+       0.752,
+       0.768,
+       0.754,
+       0.775,
+       0.745,
+       0.804,
+       0.807,
+       0.82,
+       0.746,
+       0.797,
+       0.732,
+       0.778,
+       0.771,
+       0.749,
+       0.788,
+       0.775,
+       0.78,
+       0.813
+      ]
+     }
+    },
+    {
+     "key": "img90",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/imagery/register",
+     "body": {
+      "field_id": "d2c9459a-3271-5074-b109-f5228edaf282",
+      "captured_at": "2026-07-30T10:30:00Z",
+      "source": "sentinel-2",
+      "cloud_pct": 8,
+      "ndvi": [
+       0.863,
+       0.753,
+       0.82,
+       0.838,
+       0.807,
+       0.816,
+       0.822,
+       0.846,
+       0.825,
+       0.825,
+       0.801,
+       0.856,
+       0.815,
+       0.855,
+       0.815,
+       0.824,
+       0.677,
+       0.663,
+       0.693,
+       0.83,
+       0.838,
+       0.796,
+       0.814,
+       0.818,
+       0.804,
+       0.858,
+       0.626,
+       0.675,
+       0.693,
+       0.787,
+       0.765,
+       0.764,
+       0.779,
+       0.771,
+       0.819,
+       0.789,
+       0.686,
+       0.658,
+       0.651,
+       0.813,
+       0.795,
+       0.794,
+       0.775,
+       0.752,
+       0.788,
+       0.758,
+       0.745,
+       0.784,
+       0.812,
+       0.841,
+       0.778,
+       0.774,
+       0.738,
+       0.794,
+       0.748,
+       0.766,
+       0.789,
+       0.803,
+       0.797,
+       0.803
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "title": "The soybean field now",
+   "say": "The NDVI map, the zones that are below their own normal, the soil water the model expects in every zone against what the probes read, and the scouting recommendation the detection raised.",
+   "calls": [
+    {
+     "key": "health",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/fields/d2c9459a-3271-5074-b109-f5228edaf282/health"
+    }
+   ]
+  },
+  {
+   "title": "Forecast the harvest, with a band",
+   "say": "For each field: the yield the model expects from the images and the water balance so far, with a 10 to 90% band, beside the crop's historical average. The band is checked for honesty in the evaluation.",
+   "calls": [
+    {
+     "key": "y0",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/fields/4e59e629-71d1-5623-b7a5-0db643023b17/yield-forecast"
+    },
+    {
+     "key": "y1",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/fields/d2c9459a-3271-5074-b109-f5228edaf282/yield-forecast"
+    },
+    {
+     "key": "y2",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/fields/160fa852-1df8-5c25-a9fe-18d176046f3d/yield-forecast"
+    }
+   ]
+  },
+  {
+   "title": "A 25% water restriction",
+   "say": "The district cuts the farm's remaining water by a quarter. The planner tries water budgets for each field, plays every combination through the soil-water model on six sampled weather futures, and picks the one with the highest expected profit under the cap. The water goes where a millimetre earns most.",
+   "calls": [
+    {
+     "key": "plan",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/irrigation-plan",
+     "body": {
+      "restriction": 0.25
+     }
+    }
+   ]
+  },
+  {
+   "title": "An agronomist accepts",
+   "say": "Nothing changes until an agronomist accepts each field's budget. The analyst who asked for the plan is refused.",
+   "calls": [
+    {
+     "key": "deny",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/recommendations/{{plan.recommendations.0.recommendation_id}}/accept",
+     "expect_error": true
+    },
+    {
+     "key": "ok0",
+     "as": "agronomist",
+     "method": "POST",
+     "path": "/v1/recommendations/{{plan.recommendations.0.recommendation_id}}/accept"
+    },
+    {
+     "key": "ok1",
+     "as": "agronomist",
+     "method": "POST",
+     "path": "/v1/recommendations/{{plan.recommendations.1.recommendation_id}}/accept"
+    },
+    {
+     "key": "ok2",
+     "as": "agronomist",
+     "method": "POST",
+     "path": "/v1/recommendations/{{plan.recommendations.2.recommendation_id}}/accept"
+    }
+   ]
+  },
+  {
+   "title": "The rest of the season as it really goes",
+   "say": "The simulator knows the weather to come. The season is played out under the fixed schedule, the fixed schedule cut by a quarter, and the accepted budgets; and the yield forecasts are checked against what each field really gave.",
+   "calls": [
+    {
+     "key": "replay",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/scenarios"
+    }
+   ]
+  },
+  {
+   "title": "The audit trail",
+   "say": "Who loaded the farm, registered the images, forecast, planned and accepted: recorded in a log that cannot be edited.",
+   "calls": [
+    {
+     "key": "audit",
+     "as": "agronomist",
+     "method": "GET",
+     "path": "/v1/audit?limit=12"
+    }
+   ]
+  }
+ ]
+}
