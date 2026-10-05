@@ -1,0 +1,54 @@
+{
+ "title": "Who Works When? A Week's Schedule That Obeys Every Rule, and Survives Two Sick Calls",
+ "tagline": "A scheduling system for hourly staff. For one invented store it forecast next week's demand, built a legal schedule for 61 people that cost 14% less than a careful first-fit schedule while covering 99.9% of demand against 92.8%, and when two people called in sick on the busiest evening it closed the gap in under half a second by changing 3 of 45 assignments.",
+ "kind": "Python · Operations research",
+ "order": 110,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "OR-Tools CP-SAT",
+  "Constraint programming",
+  "Demand forecasting",
+  "Postgres job queue",
+  "Docker Compose",
+  "34 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>synthetic retailer</b>: 50 stores, 5,000 workers and two years of sales are generated. The labor rules are a generic pack (rest hours, weekly maximum, breaks), <b>not any real jurisdiction's law</b>. The 14% saving is against a simple first-fit schedule that an experienced manager would beat, so read it as an upper estimate. Only stores of 61 to 69 workers were solved. Not built: time zones, timeclock data, a worker app, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A store manager with 61 hourly staff has to decide who works when next week. Each person has skills, some with certificates that expire, hours they cannot work, hours they would rather not, a contract, and a legal right to rest. Demand changes every half hour and jumps when there is a promotion. Then on Saturday afternoon two people call in sick. <em>Can software forecast the demand, build a schedule that breaks no rule at the lowest cost, and fix it with the least disruption when people drop out?</em></p><p>Blueprint 9 of ten in an enterprise build book, built as the demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Forecast:</b> transactions per half hour for the coming week, turned into people needed per skill.</li><li><b>Rule pack:</b> one file that answers \"is this legal?\" for everything else.</li><li><b>Schedule solver:</b> picks every shift for the week at once, at the lowest cost that breaks no rule.</li><li><b>Call-out repair:</b> covers a gap while changing as few published shifts as possible.</li><li><b>Shift marketplace:</b> a worker offers a shift; a colleague's claim is checked against every rule before it moves.</li><li><b>Fairness report:</b> overtime, weekend load and contracted hours, before and after.</li></ul>",
+ "steps": [
+  {
+   "title": "Forecast the half hours, not the day",
+   "body": "<p>The store's own history shows how much a promotion lifts sales (21%) and how much rain lowers them (11%). Those effects are removed from the past, the last six same-weekdays are averaged slot by slot, and the coming day's promotion or rain is put back in. Next Saturday has a promotion and last Saturday did not: the forecast is 3,805 transactions where copying last week says 3,025. That is 33 people at the peak, not 28.</p>",
+   "code": "same = clean[weekday == d][-WEEKS:]\nout.append(same.mean(axis=0) * trend * (up if p else 1.0) * (damp if r else 1.0))"
+  },
+  {
+   "title": "One checker for every question of legality",
+   "body": "<p>Qualification, a valid certificate, availability, one shift a day, 11 hours of rest, a weekly maximum, a day off, a break in long shifts. These live in one file. The solver turns them into constraints, and then the same file re-checks the solver's answer from scratch, ranks who can replace a sick colleague, and decides whether a shift swap is allowed.</p>",
+   "code": "if nxt and (SLOTS_PER_DAY - (s[\"start\"] + s[\"length\"])) + nxt[\"start\"] < REST_SLOTS:\n    out.append((\"REST_11H\", {...}))"
+  },
+  {
+   "title": "21,182 yes or no decisions",
+   "body": "<p>Each decision is \"does this person work this shape of shift, in this skill, on this day\". The rules are hard limits. Everything else is a cost in dollars: wages and overtime, a person-half-hour short of demand ($60), hours at times someone asked to avoid, contracted hours not given, weekend shifts for people who have just worked several. The solver stops after 20 seconds, within 0.3% of the best possible answer.</p>",
+   "code": "u = m.NewIntVar(0, need, \"\")\nm.Add(sum(cover.get(key, [])) + u >= need)\ncost_terms.append(u * W_SHORT)"
+  },
+  {
+   "title": "Repair by changing as little as possible",
+   "body": "<p>When two people call out, solving the day again from nothing would cover the gap and also move 34 other people's shifts. So the repair freezes the rest of the week and charges $30 for every assignment it changes. In 25 trials it closed the gap by changing a median of 2.</p>",
+   "code": "m.Minimize(W_SHORT * sum(shorts) + change_weight * sum(changed) + sum(terms))"
+  },
+  {
+   "title": "The saving had a cost, so it is reported",
+   "body": "<p>The store needs about 1,250 staff-hours and its people are contracted for about 1,600. The solver stops paying for hours nobody needs, and those were somebody's expected hours. The first version piled that shortfall onto a few people: 8 of 61 got less than half their contract. Making the penalty three times steeper below half spread it out (2 of 61) for about 1% more cost. The report shows the shortfall beside the saving.</p>",
+   "code": "m.Add(deep >= int(w[\"target_hours\"]) - total)      # half-hours below 50% of contract\ncost_terms += [short * W_TARGET, deep * 2 * W_TARGET]"
+  }
+ ],
+ "results": "<p><b>One store, one week, 61 people, against a careful first-fit schedule under the same rules:</b></p><table><tr><th>Measure</th><th class=\"num\">Solver</th><th class=\"num\">First-fit</th></tr><tr><td>Labor cost</td><td class=\"num\">$29,121</td><td class=\"num\">$33,908</td></tr><tr><td>Demand covered</td><td class=\"num\">99.9%</td><td class=\"num\">92.8%</td></tr><tr><td>Hours beyond demand</td><td class=\"num\">122.5</td><td class=\"num\">400</td></tr><tr><td>Hours at times people asked to avoid</td><td class=\"num\">99</td><td class=\"num\">403</td></tr><tr><td>Rule violations</td><td class=\"num\">0</td><td class=\"num\">0</td></tr><tr><td>Hours below contract (worse)</td><td class=\"num\">264</td><td class=\"num\">128</td></tr></table><img src=\"shots/schedule.jpg\" alt=\"Saturday: a line of people scheduled tracking the line of people required through a lunch peak and a larger evening peak, and a chart of 45 shifts as horizontal bars from 06:00 to 22:00, coloured by skill (cashier, sales floor, stockroom, service desk), with a gap in each long shift for the unpaid break.\"><p><b>Two sick calls in the Saturday evening peak.</b> Hours short went from 1.0 to 11.5. Four people could legally take the cashier shift. Nobody could take the service desk shift: of 59 others, 34 were already working and 7 had a lapsed certificate. The repair moved one certified person from a morning stockroom shift, called two people in, and was back to 1.0 hours short in 0.4 seconds with 3 of 45 assignments changed.</p><img src=\"shots/repair.jpg\" alt=\"Ranked list of four legal replacements for a cashier shift with added pay, week hours and whether they asked to avoid the time; a bar chart of why nobody can take the service desk shift (34 already working, 7 certificate lapsed, 6 unavailable, 5 over weekly maximum, 5 without the skill, 2 under-rested); and the repair: 3 assignments changed, hours short 11.5 to 1.0, 381 ms, 0 rule violations.\"><p><b>A shift swap.</b> The first colleague to claim an offered service desk shift was refused automatically (certificate lapsed). The second passed all 8 rules and the shift moved.</p><p><b>Across more stores and weeks:</b></p><ul><li>Forecast error on daily totals, 50 stores over 12 weeks: 4.4%, against 10.3% for copying last week. Better in all 50 stores.</li><li>Six stores scheduled: labor cost 15.2% below first-fit, 5.5 hours short of demand against 428.5.</li><li>A schedule built on the forecast was 8.5 hours short against the demand that actually arrived; one built on a copy of last week was 22.5 hours short, 16 of them on the promotion Saturday.</li></ul><p><b>Checks.</b> 34 tests, including: every rule firing on a case built to break it, the stored schedule re-checked from database rows with no help from the solver, a refused claim moving nothing, a repeated call-out request recorded once, and one company unable to see another's workers or schedules.</p>",
+ "next": "<ul><li>Real labor law for one place: break timing windows, rules for minors, premiums for late schedule changes.</li><li>Larger stores, which need the week split into smaller problems.</li><li>Compare against schedules real managers wrote, since first-fit is easier to beat.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/workforce-scheduler",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
