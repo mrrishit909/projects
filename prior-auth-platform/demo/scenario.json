@@ -1,0 +1,190 @@
+{
+ "service": "prior-auth-platform",
+ "run": "demo-1",
+ "tokens": {
+  "coordinator": "north-coordinator-demo",
+  "physician": "north-physician-demo",
+  "admin": "north-admin-demo"
+ },
+ "note_text": "Patient seen in clinic for follow-up of lumbar radiculopathy. Findings: straight leg raise positive on the right at 40 degrees; motor strength 4/5 in right ankle dorsiflexion; deep tendon reflex diminished at the right Achilles; sensation to light touch reduced in the L5 distribution. Plan of care discussed; MRI requested.",
+ "steps": [
+  {
+   "title": "Create the case",
+   "say": "A coordinator opens an authorization request for an MRI of the lumbar spine with contrast. The platform finds the patient's active coverage and the payer policy in force today.",
+   "calls": [
+    {
+     "key": "case",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases",
+     "body": {
+      "patient_mrn": "MRN-DEMO-0001",
+      "procedure_code": "72158",
+      "diagnosis_codes": [
+       "M54.16"
+      ],
+      "priority": "routine"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Resolve the policy, with citations",
+   "say": "The rules engine reads the payer's criteria and checks each one against the chart. Every requirement shows the policy passage it comes from.",
+   "calls": [
+    {
+     "key": "reqs",
+     "as": "coordinator",
+     "method": "GET",
+     "path": "/v1/cases/{{case.id}}/requirements"
+    }
+   ]
+  },
+  {
+   "title": "One missing note, one qualifying lab",
+   "say": "A search of the policy library in the reviewer's own words, then the two findings that matter: the kidney-function lab qualifies; the neurological examination on file is too old.",
+   "calls": [
+    {
+     "key": "search",
+     "as": "coordinator",
+     "method": "GET",
+     "path": "/v1/policies/search?q=how+much+physiotherapy+before+spine+imaging&payer=Kestrel+Mutual&procedure_code=72158"
+    }
+   ]
+  },
+  {
+   "title": "Attach evidence and submit",
+   "say": "The clinician's new examination note arrives as a FHIR document. Evidence matching is re-run, a person accepts the links, and the case goes to the payer.",
+   "calls": [
+    {
+     "key": "note",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/clinical/bundles",
+     "body": {
+      "resourceType": "Bundle",
+      "type": "collection",
+      "entry": [
+       {
+        "resource": {
+         "resourceType": "Patient",
+         "id": "north-demo",
+         "identifier": [
+          {
+           "system": "urn:mrn",
+           "value": "MRN-DEMO-0001"
+          }
+         ],
+         "birthDate": "1970-01-01"
+        }
+       },
+       {
+        "resource": {
+         "resourceType": "DocumentReference",
+         "id": "demo-neuro-exam-note",
+         "type": {
+          "text": "Progress note"
+         },
+         "date": "{{now}}",
+         "content": [
+          {
+           "attachment": {
+            "contentType": "text/plain",
+            "data": "UGF0aWVudCBzZWVuIGluIGNsaW5pYyBmb3IgZm9sbG93LXVwIG9mIGx1bWJhciByYWRpY3Vsb3BhdGh5LiBGaW5kaW5nczogc3RyYWlnaHQgbGVnIHJhaXNlIHBvc2l0aXZlIG9uIHRoZSByaWdodCBhdCA0MCBkZWdyZWVzOyBtb3RvciBzdHJlbmd0aCA0LzUgaW4gcmlnaHQgYW5rbGUgZG9yc2lmbGV4aW9uOyBkZWVwIHRlbmRvbiByZWZsZXggZGltaW5pc2hlZCBhdCB0aGUgcmlnaHQgQWNoaWxsZXM7IHNlbnNhdGlvbiB0byBsaWdodCB0b3VjaCByZWR1Y2VkIGluIHRoZSBMNSBkaXN0cmlidXRpb24uIFBsYW4gb2YgY2FyZSBkaXNjdXNzZWQ7IE1SSSByZXF1ZXN0ZWQu"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "key": "reqs2",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/evidence:refresh"
+    },
+    {
+     "key": "accepted",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/evidence:accept",
+     "body": {}
+    },
+    {
+     "key": "submitted",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/submit",
+     "body": {}
+    }
+   ]
+  },
+  {
+   "title": "The payer denies it",
+   "say": "The payer's letter says therapy was not shown. The letter carries no reason code, so the classifier reads it, and retrieval finds which criterion the reviewer means.",
+   "calls": [
+    {
+     "key": "denial",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/denials",
+     "body": {
+      "denial_text": "After review, the requested service does not meet our medical necessity criteria because a course of physiotherapy of adequate length was not shown."
+     }
+    }
+   ]
+  },
+  {
+   "title": "Grounded appeal, physician sign-off, overturned",
+   "say": "A worker drafts the appeal: every claim cites a policy passage or a chart record. The coordinator cannot sign it; a physician does. The payer reverses, and the metrics update.",
+   "calls": [
+    {
+     "key": "draft",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/appeals:draft"
+    },
+    {
+     "key": "blocked",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/approve",
+     "body": {
+      "attestation": "Trying to approve as a coordinator."
+     },
+     "expect_error": true
+    },
+    {
+     "key": "approved",
+     "as": "physician",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/approve",
+     "body": {
+      "attestation": "I reviewed the record and the cited evidence; the appeal is accurate."
+     }
+    },
+    {
+     "key": "outcome",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/cases/{{case.id}}/submit",
+     "body": {}
+    },
+    {
+     "key": "analytics",
+     "as": "coordinator",
+     "method": "GET",
+     "path": "/v1/analytics/payers"
+    },
+    {
+     "key": "audit",
+     "as": "admin",
+     "method": "GET",
+     "path": "/v1/audit?limit=12"
+    }
+   ]
+  }
+ ]
+}

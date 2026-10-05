@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prior Authorization &amp; Appeals</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Prior Authorization &amp; Clinical Appeals</h1>
+  <span class="sub">Synthetic patients, fictional payers. One case from order to overturned appeal.</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div>
+    <div id="steps"></div>
+    <section class="step" id="roi"><div class="head"><div class="grow"><h2>What is it worth?</h2>
+      <p>The denial rates come from the seeded history above (run the last step first). The other inputs are assumptions: change them.</p></div></div>
+      <div class="out"><div class="card roi" id="roibox"><span class="mute">Run step 6 to load the payer figures.</span></div></div></section>
+  </div>
+</main>
+<footer>Everything shown is synthetic. The approval score orders the work queue; it never denies or delays care.</footer>
+<script src="kit.js"></script>
+<script>
+const status = s => badge(s, { met: 'good', missing: 'bad', ready: 'good', evidence_pending: 'warn', submitted: 'info', denied: 'bad', overturned: 'good', appeal_approved: 'info' }[s] || '');
+const caseKpis = c => kpis([
+  { label: 'Status', value: status(c.status) }, { label: 'Payer', value: esc(c.payer) },
+  { label: 'Policy in force', value: `${esc(c.policy.key)} <span class="mute">v${esc(c.policy.version)}</span>`, sub: c.policy.source_uri },
+  { label: 'Due', value: fmt.date(c.due_at) },
+  { label: 'Approval likelihood', value: fmt.pct(c.approval_likelihood.value), sub: 'queue ordering only · ' + c.approval_likelihood.model_version }]);
+const reqTable = v => card(`Requirements: ${v.met} of ${v.total} met · ${v.rules_version}`, table([
+  { k: 'citation', label: 'Cite', f: c => `<span class="mono">${esc(c.anchor)}</span>` },
+  { k: 'label', label: 'Requirement and policy text', f: (l, r) => `<b>${esc(l)}</b><blockquote>${esc(r.citation.text)}</blockquote>` },
+  { k: 'status', label: 'Chart', f: (s, r) => status(s) + (r.accepted ? ' ' + badge('accepted', 'info') : '') },
+  { k: 'evidence', label: 'Evidence or gap', f: (e, r) => r.gap ? `<span style="color:var(--bad)">${esc(r.gap)}</span>`
+      : e.slice(0, 3).map(x => `${esc(x.rationale)} <span class="mono mute">${esc(x.source_ref || '')}</span> ${badge(fmt.pct(x.confidence), '')}`).join('<br>') + (e.length > 3 ? `<br><span class="mute">+ ${e.length - 3} more records</span>` : '') },
+], v.requirements));
+const R = {
+  case: c => `<div class="small mute" style="margin-bottom:8px">${esc(c.mrn)} · ${esc(c.procedure_code)} ${esc(c.procedure)} · diagnosis ${esc(c.diagnosis_codes.join(', '))}</div>` + caseKpis(c),
+  reqs: reqTable,
+  search: (s, r) => card('Policy search: “how much physiotherapy before spine imaging”', table([
+      { k: 'anchor', label: 'Passage', f: (a, x) => `<span class="mono">${esc(x.policy_key)} v${esc(x.version)} ${esc(a)}</span>` }, { k: 'text', label: 'Text' },
+      { k: 'bm25', label: 'BM25', num: 1, f: v => fmt.n(v, 2) }, { k: 'dense', label: 'Dense', num: 1, f: v => fmt.n(v, 2) }], s.results.slice(0, 3)))
+    + `<div class="grid2">${card('Qualifying lab', (x => `${status('met')} <b>${esc(x.label)}</b><br>${esc(x.evidence[0]?.rationale)}`)(r.reqs.requirements.find(q => q.type === 'lab')))}
+       ${card('Missing prerequisite', (x => x ? `${status('missing')} <b>${esc(x.label)}</b><br><span style="color:var(--bad)">${esc(x.gap)}</span>` : '<span class="mute">Nothing missing: this database has already been through the demo. Run make reset for a fresh chart.</span>')(r.reqs.requirements.find(q => q.status === 'missing')))}</div>`,
+  note: n => card(`New clinical note ingested (FHIR DocumentReference) · ${n.events_added} event added`, `<blockquote>${esc(demo.scenario.note_text)}</blockquote>`),
+  reqs2: reqTable,
+  submitted: c => caseKpis(c) + `<p class="small mute">Payer reference ${esc(c.external_case_id)}. Submitting before a person accepted the evidence returns 409 requirements_unmet.</p>`,
+  denial: (d, r) => card('Denial received', `<blockquote>${esc(demo.scenario.steps[4].calls[0].body.denial_text)}</blockquote>` + kpis([
+      { label: 'Reason', value: esc(d.normalized_reason.replace('_', ' ')), sub: 'code ' + d.denial_code }, { label: 'Parser confidence', value: fmt.pct(d.confidence), sub: d.parser_version },
+      { label: 'Needs human review', value: d.needs_review ? badge('yes', 'warn') : badge('no', 'good') },
+      { label: 'Criterion at issue', value: `<span class="mono">${esc(d.criterion_at_issue.anchor)}</span>`, sub: d.criterion_at_issue.label }])
+    + `<div class="small mute">Linked by hybrid retrieval inside the case's policy: the letter says “physiotherapy”, the policy says “physical therapy”. BM25 ${d.criterion_at_issue.retrieval.bm25}, dense ${d.criterion_at_issue.retrieval.dense}.</div>`),
+  draft: j => card(`Appeal draft v${j.result.draft_version} · ${j.result.citations.length} citations · job ${j.status} after ${j.attempts} attempt`, `<pre class="doc">${esc(j.result.draft_text).replace(/\[([PED]\d+)\]/g, '<span class="badge info">$1</span>')}</pre>`),
+  blocked: p => card('Coordinator tries to sign the appeal', `${badge(p.status + ' ' + p.code, 'bad')} ${esc(p.detail)}`),
+  approved: a => card('Physician approval', `${badge('approved', 'good')} draft v${a.draft_version} signed by ${esc(a.approved_by)}; the attestation is in the audit log.`),
+  outcome: c => kpis([{ label: 'Appeal outcome', value: status(c.appeal_outcome) }, { label: 'Case status', value: status(c.status) }, { label: 'Decided', value: fmt.time(c.decided_at) }]),
+  analytics: a => card('Payer performance (seeded history + this case)', table([
+      { k: 'payer', label: 'Payer' }, { k: 'decided', label: 'Decided', num: 1, f: v => fmt.n(v) },
+      { k: 'first_pass_approval_rate', label: 'First-pass approval', num: 1, f: v => fmt.pct(v, 1) }, { k: 'avoidable_denial_rate', label: 'Avoidable denials', num: 1, f: v => fmt.pct(v, 1) },
+      { k: 'median_turnaround_hours', label: 'Median turnaround', num: 1, f: v => fmt.n(v, 1) + ' h' }, { k: 'appeals', label: 'Appeals', num: 1 },
+      { k: 'appeal_overturn_rate', label: 'Overturned', num: 1, f: v => fmt.pct(v, 1) }, { k: 'backlog', label: 'Backlog', num: 1 }], a.payers))
+    + `<div class="grid2">${card('Criteria most often cited in denials', barChart(a.top_denied_criteria.map(g => ({ label: g.label, value: g.denials }))))}
+       ${card('Model registry', table([{ k: 'name', label: 'Model' }, { k: 'version', label: 'Version', f: v => `<span class="mono">${esc(v)}</span>` },
+          { k: 'metrics', label: 'Held-out', f: m => esc(Object.entries(m).map(([k, v]) => `${k} ${v}`).join(' · ')) },
+          { k: 'baseline', label: 'Baseline', f: m => esc(Object.entries(m).filter(([k]) => k !== 'name').map(([k, v]) => `${k} ${v}`).join(' · ')) }], a.models))}</div>`,
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([
+      { k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+      { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => v != null && typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 150))}</span>` },
+      { k: 'hash', label: 'Hash', f: h => `<span class="mono mute">${esc(h.slice(0, 10))}…</span>` }], a.events.slice().reverse())),
+  _after: (i, r) => { if (r.analytics) roi(r.analytics); },
+};
+function roi(a) {
+  const dec = a.payers.reduce((s, p) => s + p.decided, 0), avoid = a.payers.reduce((s, p) => s + p.decided * p.avoidable_denial_rate, 0) / dec;
+  const box = document.querySelector('#roibox');
+  box.innerHTML = `<div class="grid2"><div>
+    <label>Authorizations per month <input type="number" id="r_n" value="600"></label>
+    <label>Avoidable denial rate today (from the history) <input type="number" id="r_a" value="${(100 * avoid).toFixed(1)}" step="0.1"></label>
+    <label>Share of those caught before submission (assumption) <input type="number" id="r_c" value="60"></label>
+    <label>Average revenue per authorized service, $ (assumption) <input type="number" id="r_v" value="1400"></label>
+    <label>Share of denied services never rescheduled, % (assumption) <input type="number" id="r_l" value="25"></label>
+    <label>Staff minutes saved per authorization (assumption) <input type="number" id="r_m" value="9"></label>
+    <label>Loaded staff cost per hour, $ (assumption) <input type="number" id="r_w" value="34"></label></div><div id="r_out"></div></div>`;
+  const calc = () => { const g = id => +document.querySelector(id).value;
+    const denials = g('#r_n') * g('#r_a') / 100 * g('#r_c') / 100, revenue = denials * g('#r_l') / 100 * g('#r_v'), labour = g('#r_n') * g('#r_m') / 60 * g('#r_w');
+    document.querySelector('#r_out').innerHTML = kpis([{ label: 'Denials avoided / month', value: fmt.n(denials, 1) }, { label: 'Revenue protected / month', value: fmt.usd(revenue) },
+      { label: 'Staff cost saved / month', value: fmt.usd(labour) }, { label: 'Total / year', value: fmt.usd(12 * (revenue + labour)) }]); };
+  box.oninput = calc; calc();
+}
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>
