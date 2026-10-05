@@ -1,0 +1,55 @@
+{
+ "title": "The Lead Is Out for Three Days. Now What?",
+ "tagline": "A film scheduling system: it reads an 85-scene screenplay, works out who has to be on set for each scene, and solves for a 17-day shoot that costs 19% less than filming in story order. When the lead actor drops out for three days and rain is forecast, it re-plans in 12 seconds, moving 35 scenes instead of all 85.",
+ "kind": "Python \u00b7 Constraint solving \u00b7 Film production",
+ "order": 120,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "OR-Tools CP-SAT",
+  "Screenplay parser",
+  "Independent rule checker",
+  "Solar daylight calculation",
+  "Postgres job queue",
+  "Docker Compose",
+  "34 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The screenplay is generated</b> (nonsense dialogue in correct standard format), which gives the parser an answer key. All day rates, location fees and working rules are my assumptions, not any real union agreement. Schedules are the best the solver found in 12 seconds, not proven cheapest. No language model is used. Not built: PDF import, props and stunts breakdown, real weather feeds, Kafka, Terraform, single sign-on.",
+ "problem": "<p>Films are not shot in story order. All the scenes in one location are shot together, actors are paid from their first day to their last so their scenes should be close together, night shoots cannot be followed by a morning call, and exterior scenes need daylight and dry weather. An assistant director balances all of this by hand on a stripboard, and then an actor gets sick. <em>Can software build that schedule, and rebuild it after a disruption without tearing up everyone's plans?</em></p><p>Blueprint 9 of ten in a second build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Screenplay parser:</b> scenes, locations, page counts and who is physically on set.</li><li><b>An approval step:</b> a person signs off the breakdown before anything is scheduled.</li><li><b>A scheduler</b> that assigns every scene to a shoot day under the working rules, at the lowest cost it can find.</li><li><b>What-if plans</b> that stay close to the plan they are based on.</li><li><b>Budget comparison and call sheets</b> with sunrise, sunset and rain risk.</li></ul>",
+ "steps": [
+  {
+   "title": "Who is actually on set?",
+   "body": "<p>A screenplay names a character before each line they speak. But a character heard in voice-over is not on set, and a character who is there but silent has no line at all. The parser calls a performer if they have a line that is not voice-over, or if their name appears in the stage directions. Two traps cost me accuracy at first: \"Young Mara\" also matched \"Mara\", and the heading \"MARA'S APARTMENT\" called Mara to every scene set there.</p>",
+   "code": "for n in order:   # longest names first, so \"YOUNG MARA\" is not also read as \"MARA\"\n    low, hits = re.subn(rf\"(?<![A-Z]){re.escape(n)}(?![A-Z])\", \" \", low)"
+  },
+  {
+   "title": "Turn the rules into a solver's language",
+   "body": "<p>Each scene gets one yes-or-no choice per shoot day, 2,040 choices in all. The rules become constraints: at most 12 hours a day, at most two locations, a day is all-day or all-night, no morning call the day after a night shoot, exterior scenes inside daylight, nobody on a day they are unavailable. The cost to minimise adds up crew days, location days, moves, overtime and each actor's span from first day to last.</p>",
+   "code": "m.Add(night[d] + used[d + 1] - night[d + 1] <= 1)   # no day call the morning after a night shoot"
+  },
+  {
+   "title": "Never trust the solver's word",
+   "body": "<p>A second piece of code, written separately, re-checks every rule on the schedule the solver returns. A schedule that fails is never saved. Tests run that checker on the saved schedules too. The solver has not been wrong yet, but a bug in how I wrote a constraint would look exactly like a valid answer.</p>",
+   "code": "broken = engine.violations(scenes, plan, dates, un)\nif broken:\n    raise RuntimeError(\"; \".join(broken[:3]))"
+  },
+  {
+   "title": "Re-plan without wrecking the plan",
+   "body": "<p>When the lead loses three days, solving from scratch gives a schedule that is about as cheap but moves nearly all 85 scenes. Every move means a location rebooked and a crew told. So the re-plan pays a penalty inside the solve for each scene that leaves its day. In the demo 12 scenes had to move and 35 moved in total; from scratch it would have been about 80.</p>",
+   "code": "if previous.get(s[\"number\"]) is not None and previous[s[\"number\"]] != d:\n    terms.append(STAY_PUT * x[s[\"number\"], d])"
+  },
+  {
+   "title": "Say no early, with the reason",
+   "body": "<p>A third what-if makes the lead unavailable for the whole shoot. Instead of letting the solver run and report \"infeasible\" with no explanation, a quick check finds the cause first and says it in words. The earlier plans are untouched, because every what-if owns its own schedule.</p>",
+   "code": "out.append(f\"{a} has scenes but is unavailable on every shoot day\")"
+  }
+ ],
+ "results": "<p><b>Plan A:</b> 17 shoot days, $1.33M. Filming in story order: 19 days, $1.64M. The plan is $26k over the $1.30M budget, and the system says so.</p><img src=\"shots/planb.jpg\" alt=\"Plan B stripboard: 17 shoot days as rows of coloured strips, one per scene, coloured by location; marks show the three days the lead is unavailable, the two rain days carrying only interior scenes, and five night shoots.\"><p><b>Plan B</b> (lead out for three days, rain on two):</p><table><tr><th></th><th class=\"num\">Plan A</th><th class=\"num\">Plan B</th></tr><tr><td>Shoot days</td><td class=\"num\">17</td><td class=\"num\">17</td></tr><tr><td>Total cost</td><td class=\"num\">$1.33M</td><td class=\"num\">$1.37M</td></tr><tr><td>Overtime</td><td class=\"num\">$6k</td><td class=\"num\">$35k</td></tr><tr><td>Exteriors on rain days</td><td class=\"num\">\u2013</td><td class=\"num\">0</td></tr></table><p>35 scenes moved; 12 of them had no choice.</p><p><b>On four other generated screenplays:</b> the parser got the cast of all 340 scenes right (a simpler reader got 204), and schedules cost 26% to 30% less than story order.</p><p><b>An honest limit.</b> None of these schedules is proven to be the cheapest. After 12 seconds the solver can only prove the true minimum is above about half the cost it found. \"Much cheaper than story order\" is what the evidence supports.</p><p><b>Checks.</b> 34 tests, including: every working rule re-checked on the saved schedules, scheduling refused until the breakdown is approved, crew unable to see pay rates, and one studio unable to see another's production.</p>",
+ "next": "<ul><li>Real working rules (meal breaks, turnaround hours, minors' hours), set with a working assistant director.</li><li>A real screenplay import, and a breakdown of props, vehicles and stunts.</li><li>Longer solver runs to see how much cheaper the schedules can get.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/film-production-planner",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
