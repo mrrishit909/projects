@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Waste Exchange</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Food Waste Exchange</h1>
+  <span class="sub">12,000 lots of surplus food in an invented metro area, one morning. Where should each kilogram go before it spoils?</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div><div id="steps"></div></div>
+</main>
+<footer>Every seller, food bank and lot is generated. Meals, CO2e and fee figures rest on stated assumptions (shown in step 6), not measurements. No food is graded from an image: grades come from age and storage temperature.</footer>
+<script src="kit.js"></script>
+<script>
+const T = kg => fmt.n(kg / 1000, 1) + ' t', CAT = { produce: 'Produce', dairy: 'Dairy', meat: 'Meat', prepared: 'Prepared meals', bakery: 'Bakery', dry: 'Dry goods' };
+const WHERE = [['people', 'People', PALETTE[1]], ['feed', 'Animal feed', PALETTE[2]], ['compost', 'Compost', PALETTE[4]], ['landfill', 'Landfill', PALETTE[3]]];
+const stack = (row, total) => `<div style="display:flex;height:14px;border-radius:3px;overflow:hidden;min-width:120px">${WHERE.map(([k, , c]) => `<div style="width:${100 * row[k] / total}%;background:${c}" title="${k}: ${fmt.n(row[k])} kg"></div>`).join('')}</div>`;
+const legend = `<div class="legend">${WHERE.map(([, n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+const matched = j => { const m = j.result, a = m.optimized, b = m.baseline, bn = m.bottleneck, tot = Object.values(a.kg).reduce((x, y) => x + y, 0);
+  return kpis([{ label: 'To people', value: T(a.kg.people), sub: fmt.pct(a.share_to_people) + ' of everything posted' }, { label: 'Meals', value: fmt.n(a.meals) }, { label: 'Animal feed', value: T(a.kg.feed) }, { label: 'Compost', value: T(a.kg.compost) },
+      { label: 'Landfill', value: T(a.kg.landfill) }, ...(a.lots_moved_since_last_run == null ? [] : [{ label: 'Lots moved by this re-plan', value: fmt.n(a.lots_moved_since_last_run), sub: 'of ' + fmt.n(m.lots) }])])
+    + card('Where it all goes', stack(a.kg, tot) + legend)
+    + `<div class="grid2">${card('Against first come, first served', table([{ k: 'k', label: '' }, { k: 'a', label: 'Solved together', num: 1 }, { k: 'b', label: 'First come', num: 1 }], [
+        { k: 'Kilograms to people', a: fmt.n(a.kg.people), b: fmt.n(b.kg.people) }, { k: 'Value to food banks (weighted kg)', a: fmt.n(a.value_weighted_kg_to_people), b: fmt.n(b.value_weighted_kg_to_people) },
+        { k: 'Sales to discount buyers', a: fmt.usd(a.sales_revenue), b: fmt.usd(b.sales_revenue) }, { k: 'CO2e avoided', a: T(a.co2e_avoided_kg), b: T(b.co2e_avoided_kg) }])
+        + `<div class="small mute" style="margin-top:8px">Same capacity, same kilograms. The gain (+${fmt.pct(m.gain.value_weighted_kg_to_people, 1)} value) is in which food gets the scarce chilled space.</div>`)}
+       ${card('The real limit: chilled space', kpis([{ label: 'Edible chilled food', value: T(bn.edible_chilled_kg) }, { label: 'Chilled space at food banks and buyers', value: T(bn.chilled_space_for_people_kg) },
+        { label: 'Edible, but no fridge to put it in', value: `<span style="color:var(--bad)">${T(bn.edible_chilled_kg_not_reaching_people)}</span>` }])
+        + table([{ k: 'type', label: 'Destination', f: v => esc(v.replace('_', ' ')) }, { k: 'destinations', label: 'Sites', num: 1 }, { k: 'kg', label: 'Used', num: 1, f: T }, { k: 'capacity', label: 'Capacity', num: 1, f: (v, r) => r.type === 'compost' ? 'ample' : T(v) }], m.by_destination_type))}</div>`; };
+const shipped = j => { const s = j.result; return kpis([{ label: 'Truck rounds', value: s.trucks, sub: 'against ' + s.direct_trucks + ' one-seller trips' }, { label: 'Kilometres', value: fmt.n(s.km), sub: fmt.pct(s.km_saved) + ' fewer than ' + fmt.n(s.direct_km) },
+      { label: 'Pickups', value: s.pickups, sub: 'for ' + s.destinations + ' destinations' }, { label: 'Longest round', value: fmt.n(s.longest_round_h, 1) + ' h' }, { label: 'Rounds back too late', value: s.late_rounds }])
+    + card('Sample rounds', table([{ k: 'destination', label: 'For' }, { k: 'stops', label: 'Picks up at', f: v => esc(v.join(' → ')) }, { k: 'kg', label: 'Load', num: 1, f: v => fmt.n(v) + ' kg' }, { k: 'km', label: 'km', num: 1 }, { k: 'hours', label: 'Hours', num: 1 }], s.examples)); };
+const R = {
+  load: j => { const s = j.result, g = s.by_grade; return kpis([{ label: 'Lots posted', value: fmt.n(s.lots), sub: T(s.kg) + ' from ' + s.sellers + ' sellers' }, { label: 'Fit for people', value: fmt.n(g.A.lots), sub: T(g.A.kg) }, { label: 'Animal feed only', value: fmt.n(g.B.lots), sub: T(g.B.kg) },
+      { label: 'Compost only', value: fmt.n(g.C.lots), sub: T(g.C.kg) }, { label: 'Room at food banks and buyers', value: T(s.capacity_for_people_kg), sub: 'of which chilled: ' + T(s.cold_capacity_for_people_kg) }])
+    + card('What was posted', barChart(s.by_category.map((c, i) => ({ label: CAT[c.category], value: c.kg, color: PALETTE[i % 6], note: fmt.n(c.lots) + ' lots' })), { fmt: T })); },
+  fc: f => { const b = f.backtest; return kpis([{ label: 'Forecast for tomorrow', value: T(f.tomorrow_kg), sub: 'today: ' + T(f.today_kg) }, { label: 'Model error, last 14 days', value: fmt.pct(b.model_wape, 1), sub: 'days it was not trained on' },
+      { label: 'Same weekday last week', value: fmt.pct(b.baseline_wape, 1), sub: 'the simple way' }, { label: 'Series forecast', value: f.series, sub: 'seller and category pairs' }])
+    + `<div class="grid2">${card('Total surplus, last 14 days', lineChart([{ name: 'Actual', points: b.daily.map(d => [d.day, d.actual_kg / 1000]), color: '#ececf1', width: 2.2 }, { name: 'Model', points: b.daily.map(d => [d.day, d.forecast_kg / 1000]), color: PALETTE[0] },
+        { name: 'Last week', points: b.daily.map(d => [d.day, d.baseline_kg / 1000]), color: PALETTE[2], dash: 1 }], { h: 210, xfmt: v => 'day ' + Math.round(v), yfmt: v => fmt.n(v) + ' t' }))}
+       ${card('Tomorrow by category', table([{ k: 'category', label: 'Category', f: v => CAT[v] }, { k: 'today_kg', label: 'Today', num: 1, f: T }, { k: 'tomorrow_kg', label: 'Tomorrow', num: 1, f: T }], f.by_category))}</div>`; },
+  match: matched, match2: matched, ship: shipped, ship2: shipped,
+  inc: i => `<div class="card" style="border-color:var(--warn)">${badge('cold chain broken', 'warn')} <b>${esc(i.seller)}</b>: ${i.chilled_lots_reassessed} chilled lots re-assessed, <b>${i.grade_changed}</b> no longer fit for people (${fmt.n(i.kg_no_longer_fit_for_people)} kg) and pulled from their matches.</div>`,
+  impact: i => { const b = i.baseline; return kpis([{ label: 'Meals rescued', value: fmt.n(i.meals), sub: 'at ' + i.assumptions.kg_per_meal + ' kg a meal' }, { label: 'CO2e avoided', value: T(i.co2e_avoided_kg), sub: 'first come: ' + T(b.co2e_avoided_kg) },
+      { label: 'Disposal fees saved', value: fmt.usd(i.disposal_fees_saved), sub: 'at $' + i.assumptions.landfill_fee_per_kg + ' a kg' }, { label: 'Kept out of landfill', value: T(i.kg_total - i.kg.landfill), sub: 'of ' + T(i.kg_total) },
+      { label: 'Truck rounds', value: i.pickup_rounds, sub: fmt.n(i.pickup_km) + ' km' }])
+    + card('Where each category went', table([{ k: 'category', label: 'Category', f: v => CAT[v] }, { k: 'x', label: '', f: (v, r) => stack(r, r.people + r.feed + r.compost + r.landfill) }, { k: 'people', label: 'People', num: 1, f: T }, { k: 'feed', label: 'Feed', num: 1, f: T },
+        { k: 'compost', label: 'Compost', num: 1, f: T }], i.by_category) + legend)
+    + card('Assumptions behind these figures', table([{ k: 'c', label: 'Category' }, { k: 'v', label: 'Value to a food bank, per kg', num: 1 }, { k: 'e', label: 'kg CO2e per kg', num: 1 }], Object.keys(i.assumptions.co2e_per_kg).map(c => ({ c: CAT[c], v: i.assumptions.value_to_food_banks_per_kg[c], e: i.assumptions.co2e_per_kg[c] })))
+        + `<div class="small mute" style="margin-top:8px">Share of that footprint counted as avoided: eaten by people 100%, animal feed 50%, compost 15%. ${esc(i.assumptions.note)}.</div>`); },
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 130))}</span>` }], a.events.slice().reverse())),
+};
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>

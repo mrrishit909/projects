@@ -1,0 +1,23 @@
+{
+ "service": "food-waste-exchange",
+ "run": "demo-1",
+ "tokens": {"coordinator": "metro-coordinator-demo", "seller": "metro-seller-demo", "viewer": "metro-viewer-demo"},
+ "steps": [
+  {"title": "This morning: 12,000 lots of surplus food", "say": "Sixty grocers, restaurants, farms and manufacturers in an invented metro area post what they will not sell. Each lot is graded from its age and storage temperature: fit for people, for animal feed, or for compost only.",
+   "calls": [{"key": "load", "as": "coordinator", "method": "POST", "path": "/v1/scenarios/surplus-day"}]},
+  {"title": "How much will there be tomorrow?", "say": "Food banks need to know before the trucks do. A model trained on 89 days of history forecasts tomorrow's surplus for each seller and category, and is scored on two weeks it never saw.",
+   "calls": [{"key": "fc", "as": "viewer", "method": "GET", "path": "/v1/forecast"}]},
+  {"title": "Match everything at once", "say": "Food banks and buyers have limited room and far less chilled room, close in the afternoon, and need food to arrive with life left. One solve places every kilogram at the best place that can take it: people first, then animal feed, then compost.",
+   "calls": [{"key": "match", "as": "coordinator", "method": "POST", "path": "/v1/matches/run"}]},
+  {"title": "Plan the pickup rounds", "say": "One truck per pickup wastes trucks and kilometres. Refrigerated rounds are planned for each food bank so that every round is back before the earliest deadline of anything on board.",
+   "calls": [{"key": "ship", "as": "coordinator", "method": "POST", "path": "/v1/shipments/optimize"}]},
+  {"title": "Something breaks: a cooler fails", "say": "A grocer reports its walk-in cooler failed overnight: 14 hours at 18 C. Every chilled lot there is re-assessed, anything no longer safe for people is pulled from its match, and the plan is solved again.",
+   "calls": [{"key": "grocers", "as": "viewer", "method": "GET", "path": "/v1/organizations?type=grocer"},
+             {"key": "inc", "as": "coordinator", "method": "POST", "path": "/v1/sellers/{{grocers.items.0.id}}/cold-chain-incident", "body": {"temp_c": 18, "hours": 14}},
+             {"key": "match2", "as": "coordinator", "method": "POST", "path": "/v1/matches/run"}, {"key": "ship2", "as": "coordinator", "method": "POST", "path": "/v1/shipments/optimize"}]},
+  {"title": "What was it worth?", "say": "Meals, emissions and disposal fees for the final plan, beside what first come, first served would have done with the same food and the same capacity.",
+   "calls": [{"key": "impact", "as": "viewer", "method": "GET", "path": "/v1/impact"}]},
+  {"title": "The audit trail", "say": "The load, each matching run, the cooler incident and the truck plans are recorded in a log that cannot be edited.",
+   "calls": [{"key": "audit", "as": "coordinator", "method": "GET", "path": "/v1/audit?limit=10"}]}
+ ]
+}
