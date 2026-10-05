@@ -1,0 +1,55 @@
+{
+ "title": "The Dashboard Is Wrong and No Job Failed. Where Did It Break?",
+ "tagline": "A monitoring system for a data warehouse. When a source quietly stopped sending one kind of record, every pipeline still reported success; this flagged the 10 affected tables and dashboards, raised them as one incident, and named the source table as the cause. Across 108 planted failures it put the true origin first 94% of the time, against 31% for blaming the loudest alert.",
+ "kind": "Python · Data engineering",
+ "order": 109,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Data lineage graph",
+  "Robust seasonal statistics",
+  "Population stability index",
+  "Root-cause ranking",
+  "Data contracts",
+  "Docker Compose",
+  "34 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>simulated warehouse</b>: the 72 tables and dashboards, their daily statistics and every failure are generated, so each result can be checked against a known answer. The simulator's noise is tidy (one weekly cycle, mild growth), so the precision here would not carry over to a real warehouse unchanged. Lineage is table to table only. Not built: connectors to a real warehouse, column-level lineage, paging anyone, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A company's revenue dashboard is fed by dozens of tables it never mentions. One night a source system changes what it sends. Every job still finishes with a green tick, the row counts look normal, and the dashboard is now wrong. Usually someone in a meeting notices days later, and an engineer spends hours walking backwards through the tables. <em>Can software notice the same morning, say what else is affected, and point to where it started?</em></p><p>Blueprint 8 of ten in an enterprise build book, built as the demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Discovery:</b> reads the warehouse's model list and job schedule and builds the map of which table feeds which (72 assets, 82 links).</li><li><b>Daily profile:</b> for each table: row count, how old the data is, share of empty values, the mix of categories, a business number.</li><li><b>Anomaly detection:</b> compares today's profile with the same table's own recent history.</li><li><b>Incident grouping:</b> anomalies on connected tables become one incident.</li><li><b>Blast radius and root cause:</b> what is downstream, who owns it, and a ranked list of where it most likely began, with reasons in plain words.</li><li><b>Contracts and recovery check:</b> rules a table must keep, and an incident that cannot be closed until the data is clean.</li></ul>",
+ "steps": [
+  {
+   "title": "Know what normal looks like for each table",
+   "body": "<p>Volume halves every weekend, so \"today against the average\" is useless: either weekends alarm or nothing does. Each table is compared with the same weekday in its last four weeks, using the median and the median spread, which one bad day cannot drag around. The growth trend is the median of week-over-week changes for the same reason.</p>",
+   "code": "med = xs[len(xs) // 2]\nmad = sorted(abs(x - med) for x in xs)[len(xs) // 2]\nreturn med, max(1.4826 * mad, 0.02 * abs(med), 1e-9)"
+  },
+  {
+   "title": "Catch what row counts cannot see",
+   "body": "<p>In the demo failure the number of rows barely moves. What changes is the mix: \"won\" deals stop arriving. A standard measure of how far a mix of categories has moved from its usual shape (the population stability index) goes from near 0 to 0.96, where 0.25 is already considered a major shift. The business number per row also collapses while volume does not.</p>",
+   "code": "if shift > PSI_ALERT:\n    missing = [k for k, v in ref.items() if v > 0.03 and dist.get(k, 0) < 0.002]"
+  },
+  {
+   "title": "One strong signal, or two independent ones",
+   "body": "<p>The first version alerted on any wobble and produced a stream of false alarms. Now a table alerts only on one strong signal or two moderate signals of different kinds. This costs some faint downstream symptoms and buys a feed where nearly every alert is real. A noisy feed gets muted, and a muted feed catches nothing.</p>",
+   "code": "return any(s[\"strong\"] for s in signals) or len({s[\"metric\"].split(\":\")[0] for s in signals}) >= 2"
+  },
+  {
+   "title": "Ten alerts, one incident",
+   "body": "<p>If two anomalous tables are connected through the lineage map, upstream or downstream, they belong to the same incident. Ten alerts became one page for one team, with the list of everything downstream and the four teams that own it.</p>",
+   "code": "related = (set(reach(up, a)) | set(reach(down, a))) & anomalous"
+  },
+  {
+   "title": "Rank where it started",
+   "body": "<p>The loudest alert is usually far downstream, where a small change has compounded. The origin is the table that has the whole incident below it and whose own inputs look healthy. Each candidate gets a score from four things: how much of the incident is downstream of it, whether its inputs are clean, how strong its own anomaly is, and whether anything about it changed that day.</p>",
+   "code": "score = 0.45 * coverage + 0.3 * (0.0 if sick_parents else 1.0) * (1.0 if c in members else 0.3) + 0.15 * min(1.0, own / 6) + 0.1 * bool(change)"
+  }
+ ],
+ "results": "<p><b>The demo.</b> A source stops sending \"won\" deals. All 9 jobs report success. 10 of 72 assets are flagged, grouped into 1 incident that reaches the executive revenue dashboard, and the source table is ranked first as the cause. Closing the incident early is refused; it closes after a clean day and a new rule on the source both check out.</p><img src=\"shots/rootcause.jpg\" alt=\"Blast radius: 10 assets downstream of raw.crm_opportunities drawn as a left-to-right graph from raw source to dashboards, all marked anomalous, 4 teams to notify. Root cause panel: raw.crm_opportunities ranked first with score 0.90 because 100% of the affected assets are downstream of it and its own inputs are healthy; the loudest alert was on a dashboard.\"><p><b>Across 12 simulated quarters with 108 planted failures of six kinds</b> (stale source, renamed column, data loaded twice, broken join, a category vanishing, a time-zone shift):</p><table><tr><th>Measure</th><th class=\"num\">This build</th><th class=\"num\">Simple way</th></tr><tr><td>Alerts that were real</td><td class=\"num\">97.6%</td><td class=\"num\">100%</td></tr><tr><td>Affected table-days that were flagged</td><td class=\"num\">77.7%</td><td class=\"num\">5.9%</td></tr><tr><td>True origin ranked first</td><td class=\"num\">94%</td><td class=\"num\">31%</td></tr></table><p>The simple ways: alert when the row count is three standard deviations from its two-week average; blame the table with the loudest alert. The simple alert is never wrong because it almost never fires.</p><ul><li>105 of 108 failures were caught on their first day, and each arrived as a single incident.</li><li>1,339 flagged table-days were grouped into 202 incidents, 6.6 alerts per incident.</li><li>The true origin was in the top three candidates for all 105.</li></ul><p><b>What it misses.</b> About a fifth of affected table-days, mostly small effects far downstream that stay under the alert threshold. Those tables were still listed in the incident's blast radius.</p><p><b>Checks.</b> 34 tests, including: healthy weekends raising no alerts, five other failure kinds traced to their origin through the API, an incident that cannot be closed while its data or its rule still fails, a repeated request not advancing the warehouse twice, and one company unable to see another's tables or incidents.</p>",
+ "next": "<ul><li>Point it at a real warehouse: reading real table statistics and real job history is where the noise will be.</li><li>Column-level lineage, so the cause can be a column, not a table.</li><li>Send the incident to the owning team's chat or pager.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/data-reliability-control-plane",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}

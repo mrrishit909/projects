@@ -1,0 +1,182 @@
+{
+ "service": "data-reliability-control-plane",
+ "run": "demo-1",
+ "tokens": {
+  "engineer": "acme-engineer-demo",
+  "viewer": "acme-viewer-demo",
+  "admin": "acme-admin-demo"
+ },
+ "steps": [
+  {
+   "title": "A healthy executive dashboard and its lineage",
+   "say": "Discovery reads the warehouse manifest and the orchestrator and builds the lineage graph. The executive revenue dashboard depends on dozens of tables it never mentions. Today everything upstream is healthy.",
+   "calls": [
+    {
+     "key": "disc",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/discovery:run"
+    },
+    {
+     "key": "dash",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets?name=dash.executive_revenue"
+    },
+    {
+     "key": "lin",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets/{{dash.items.0.id}}/lineage"
+    },
+    {
+     "key": "slo",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/slo"
+    }
+   ]
+  },
+  {
+   "title": "An upstream source quietly changes",
+   "say": "Overnight the CRM export stops sending opportunities in the 'won' stage. Every pipeline still finishes and reports success, and the row count barely moves.",
+   "calls": [
+    {
+     "key": "adv",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/simulator:advance",
+     "body": {
+      "failures": [
+       {
+        "kind": "category_disappearance",
+        "asset": "raw.crm_opportunities"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "title": "Distribution anomalies are detected",
+   "say": "No job failed, so no alert fired anywhere else. The control plane compares each table's profile with its own history and sees the shift.",
+   "calls": [
+    {
+     "key": "anom",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/anomalies?day={{adv.day}}"
+    },
+    {
+     "key": "raw",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets?name=raw.crm_opportunities"
+    },
+    {
+     "key": "prof",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets/{{raw.items.0.id}}/profile"
+    }
+   ]
+  },
+  {
+   "title": "Many symptoms, one incident",
+   "say": "Each affected table raised its own anomaly. Because they are connected through lineage they are grouped into a single incident, not a page of separate alerts.",
+   "calls": [
+    {
+     "key": "inc",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/incidents"
+    }
+   ]
+  },
+  {
+   "title": "Blast radius",
+   "say": "Everything downstream of the origin: which tables, dashboards and models are affected or about to be, and which teams to tell.",
+   "calls": [
+    {
+     "key": "blast",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/incidents/{{inc.items.0.id}}/blast-radius"
+    }
+   ]
+  },
+  {
+   "title": "Root cause, with evidence",
+   "say": "Candidates are ranked by how much of the incident sits downstream of them, whether their own inputs are healthy, and what changed that day. The loudest alert is usually not the origin.",
+   "calls": [
+    {
+     "key": "diag",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/incidents/{{inc.items.0.id}}:diagnose"
+    }
+   ]
+  },
+  {
+   "title": "Fix, guard with a contract, verify recovery",
+   "say": "Closing the incident before the fix is refused. After the source is fixed and a clean day arrives, a data contract is added so this exact failure is caught at the source next time, and the incident closes only once the data checks out.",
+   "calls": [
+    {
+     "key": "early",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/incidents/{{inc.items.0.id}}:resolve",
+     "expect_error": true
+    },
+    {
+     "key": "heal",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/simulator:advance",
+     "body": {
+      "failures": []
+     }
+    },
+    {
+     "key": "con",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/contracts",
+     "body": {
+      "asset_id": "{{raw.items.0.id}}",
+      "contract_type": "accepted_values",
+      "definition": {
+       "column": "stage",
+       "values": [
+        "prospect",
+        "qualified",
+        "proposal",
+        "won",
+        "lost"
+       ]
+      },
+      "severity": "high"
+     }
+    },
+    {
+     "key": "res",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/incidents/{{inc.items.0.id}}:resolve"
+    },
+    {
+     "key": "lin2",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets/{{dash.items.0.id}}/lineage"
+    },
+    {
+     "key": "audit",
+     "as": "admin",
+     "method": "GET",
+     "path": "/v1/audit?limit=8"
+    }
+   ]
+  }
+ ]
+}

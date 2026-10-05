@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Reliability Control Plane</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Data Reliability Control Plane</h1>
+  <span class="sub">An invented company's warehouse: 72 tables, dashboards and models. A source breaks without any job failing. How fast is it found and traced?</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div>
+    <div id="steps"></div>
+    <section class="step" id="roi"><div class="head"><div class="grow"><h2>What is it worth?</h2>
+      <p>Every number here is an assumption you can change. The demo measures detection and tracing, not your team's hours.</p></div></div>
+      <div class="out"><div class="card roi" id="roibox"></div></div></section>
+  </div>
+</main>
+<footer>The warehouse, its tables and the failure are simulated. Real warehouses have messier lineage and noisier metrics than this one.</footer>
+<script src="kit.js"></script>
+<script>
+const LAYERS = ['Raw sources', 'Staging', 'Intermediate', 'Marts', 'Dashboards and models'];
+// nodes: [{name, layer, anomalous, focus, dim}], edges: [{from, to}]
+function dag(nodes, edges) {
+  const cols = [0, 1, 2, 3, 4].map(l => nodes.filter(n => n.layer === l)), rows = Math.max(...cols.map(c => c.length)), W = 980, cw = 176, rh = 22, H = rows * rh + 30, pos = {};
+  cols.forEach((c, l) => c.forEach((n, i) => { pos[n.name] = [8 + l * (W - cw - 16) / 4, 26 + i * rh + (rows - c.length) * rh / 2]; }));
+  const by = Object.fromEntries(nodes.map(n => [n.name, n]));
+  let g = LAYERS.map((t, l) => `<text x="${8 + l * (W - cw - 16) / 4}" y="12" fill="#8b8b96">${t}</text>`).join('');
+  for (const e of edges) { const a = pos[e.from], b = pos[e.to]; if (!a || !b) continue; const hot = by[e.from].anomalous && by[e.to].anomalous, x1 = a[0] + cw, y1 = a[1] + 8, x2 = b[0], y2 = b[1] + 8, mx = (x1 + x2) / 2;
+    g += `<path d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" fill="none" stroke="${hot ? '#ef6a6a' : '#3a3a44'}" stroke-width="${hot ? 1.6 : 1}" opacity="${hot ? .9 : .7}"/>`; }
+  for (const n of nodes) { const [x, y] = pos[n.name];
+    g += `<rect x="${x}" y="${y}" width="${cw}" height="17" rx="4" fill="${n.anomalous ? '#4a1f22' : '#1b1b21'}" stroke="${n.anomalous ? '#ef6a6a' : n.focus ? '#7aa2ff' : '#34343d'}" stroke-width="${n.focus ? 2 : 1}"/>
+          <text x="${x + 6}" y="${y + 12}" fill="${n.anomalous ? '#ffb4b4' : n.dim ? '#8b8b96' : '#d6d6de'}" style="font-size:10.5px">${esc(n.name.length > 28 ? n.name.slice(0, 27) + '…' : n.name)}</text>`; }
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:760px" role="img">${g}</svg></div>`;
+}
+const lineage = (l, title) => card(title, dag(l.nodes, l.edges) + `<div class="legend"><span><i style="background:#ef6a6a"></i>anomalous today</span><span><i style="background:#7aa2ff"></i>the dashboard</span></div>`);
+const R = {
+  disc: d => kpis([{ label: 'Assets discovered', value: d.assets, sub: d.by_type.map(t => t.n + ' ' + t.asset_type.replace('_', ' ') + 's').join(', ') }, { label: 'Lineage edges', value: d.lineage_edges, sub: d.new_edges + ' new on this run' },
+    { label: 'Columns', value: d.columns }, { label: 'Orchestrator DAGs', value: d.dags }, { label: 'Days of profiles', value: d.profiled_days }]),
+  lin: l => lineage(l, `${l.asset.name} depends on ${l.upstream} upstream assets · ${l.nodes.filter(n => n.anomalous).length} anomalous`),
+  slo: s => card(`Freshness SLO: ${s.objective} · ${s.meeting} of ${s.of} critical data products met it over ${s.window_days} days`, table([{ k: 'name', label: 'Data product', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'attainment', label: 'Days fresh', num: 1, f: v => badge(fmt.pct(+v, 1), +v >= .99 ? 'good' : 'warn') }, { k: 'worst_lag_min', label: 'Worst delay', num: 1, f: v => fmt.n(v / 60, 1) + ' h' }], s.items.slice(0, 6))),
+  adv: a => kpis([{ label: 'Warehouse day processed', value: fmt.date(a.observed_at) }, { label: 'Pipeline runs', value: a.pipeline_runs.total, sub: a.pipeline_runs.succeeded + ' succeeded, ' + a.pipeline_runs.failed + ' failed' },
+    { label: 'Failure injected', value: a.injected.length ? esc(a.injected[0].kind.replace(/_/g, ' ')) : 'none', sub: a.injected.length ? 'on ' + a.injected[0].asset : '' }, { label: 'Tables profiled', value: a.profiles_written }]),
+  anom: a => kpis([{ label: 'Anomalies detected', value: `<span style="color:var(--bad)">${a.count}</span>` }, { label: 'Failed pipeline runs that day', value: a.pipeline_runs_that_day.failed || 0, sub: (a.pipeline_runs_that_day.success || 0) + ' reported success' }, { label: 'Detector', value: `<span class="mono small">${esc(a.detector)}</span>` }])
+    + card('Anomaly feed', table([{ k: 'asset', label: 'Asset', f: v => `<span class="mono">${esc(v)}</span>` }, { k: 'asset_type', label: 'Type', f: v => esc(v.replace('_', ' ')) }, { k: 'score', label: 'Score', num: 1, f: v => fmt.n(v, 1) },
+      { k: 'evidence', label: 'Evidence', f: e => `<span class="small">${e.signals.map(s => esc(s.detail)).join('<br>')}</span>` }], a.items.slice(0, 5)) + (a.count > 5 ? `<div class="small mute" style="margin-top:6px">and ${a.count - 5} more</div>` : '')),
+  prof: p => { const d = p.series.day, n = d.length, col = Object.keys(p.latest.distributions)[0], dist = p.latest.distributions[col];
+    return `<div class="grid2">${card(`${p.asset.name}: rows per day (looks normal)`, lineChart([{ name: 'row count', points: d.map((x, i) => [x, p.series.row_count[i]]) }], { h: 190, ymin: 0, xfmt: v => 'day ' + fmt.n(v), marks: [{ x: d[n - 1], label: '' }] }))}
+      ${card(`Share of rows by '${col}' today`, barChart(Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: k, value: v, color: v < .002 ? PALETTE[3] : PALETTE[0], note: v < .002 ? 'gone' : '' })), { fmt: v => fmt.pct(v, 1), max: .5 }))}</div>`; },
+  inc: i => { const x = i.items[0]; return kpis([{ label: 'Anomalies', value: i.anomalies_grouped }, { label: 'Incidents to look at', value: `<span style="color:var(--good)">${i.incidents}</span>` }, { label: 'Severity', value: badge(x.severity, 'bad'), sub: 'reaches a critical dashboard' }])
+    + card('Open incidents', table([{ k: 'title', label: 'Incident' }, { k: 'severity', label: 'Severity', f: v => badge(v, v === 'sev1' ? 'bad' : 'warn') }, { k: 'anomalies', label: 'Anomalies', num: 1 }, { k: 'opened_at', label: 'Opened', f: fmt.time },
+      { k: 'root_cause', label: 'Root cause', f: v => v ? esc(v) : '<span class="mute">not diagnosed yet</span>' }], i.items)); },
+  blast: b => kpis([{ label: 'Assets in blast radius', value: b.assets_in_blast_radius, sub: Object.entries(b.by_type).map(([k, v]) => v + ' ' + k.replace('_', ' ') + (v > 1 ? 's' : '')).join(', ') }, { label: 'Already showing the problem', value: b.already_anomalous },
+      { label: 'Critical assets hit', value: b.critical.length, sub: b.critical.join(', ') }, { label: 'Teams to notify', value: b.owners_to_notify.length, sub: b.owners_to_notify.join(', ') }])
+    + card('Downstream of the origin', dag(b.items.map(x => ({ name: x.name, layer: x.layer, anomalous: x.status === 'anomalous' })), b.edges)),
+  diag: d => { const r = d.root_cause; return card('Most likely origin', `<div style="font-size:17px;margin-bottom:6px"><span class="mono">${esc(r.asset)}</span> ${badge('owner: ' + r.owner)}</div><ul style="margin:0 0 4px 18px;padding:0">${r.why.split('; ').map(w => `<li>${esc(w)}</li>`).join('')}
+      ${r.own_signals.slice(1).map(w => `<li>${esc(w)}</li>`).join('')}<li>${d.pipeline_runs_that_day.failed || 0} pipeline runs failed that day, so nothing else pointed here</li></ul>`)
+    + card('Ranked candidates', table([{ k: 'asset', label: 'Candidate', f: v => `<span class="mono">${esc(v)}</span>` }, { k: 'score', label: 'Score', num: 1, f: v => fmt.n(v, 2) }, { k: 'coverage', label: 'Incident downstream of it', num: 1, f: v => fmt.pct(v) },
+      { k: 'anomalous_parents', label: 'Its own inputs', f: v => v.length ? badge('also anomalous', 'warn') : badge('healthy', 'good') }], d.candidates))
+    + `<div class="small mute">Baseline for comparison: the asset with the loudest alert is <span class="mono">${esc(d.baseline_loudest_alert)}</span>${d.baseline_loudest_alert === r.asset ? '' : ', a symptom far downstream'}.</div>`; },
+  early: e => `<div class="small" style="margin-bottom:10px">${badge('409 ' + e.code, 'warn')} Resolve attempted before the fix: ${esc(e.detail)}.</div>`,
+  heal: a => `<div class="small" style="margin-bottom:10px">${badge('next day', 'good')} Source fixed. ${a.profiles_written} tables profiled on ${fmt.date(a.observed_at)}: ${a.anomalies} anomalies.</div>`,
+  con: c => card('Data contract added at the source', `<span class="mono">${esc(c.asset)}.${esc(c.definition.column)}</span> must contain ${c.definition.values.map(v => badge(v)).join(' ')} · today: ${badge(c.passed_now ? 'passes' : 'fails', c.passed_now ? 'good' : 'bad')} <span class="mute small">${esc(c.message)}</span>`),
+  res: r => kpis([{ label: 'Incident', value: badge(r.status, 'good') }, { label: 'Assets rechecked', value: r.assets_rechecked, sub: r.anomalies_today_on_those_assets + ' anomalous today' }, { label: 'Contracts verified', value: r.contracts.filter(c => c.passed).length + ' of ' + r.contracts.length }]),
+  lin2: l => lineage(l, `${l.asset.name} and its ${l.upstream} upstream assets after recovery · ${l.nodes.filter(n => n.anomalous).length} anomalous`),
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 130))}</span>` }], a.events.slice().reverse())),
+};
+(function roi() {
+  const box = document.querySelector('#roibox');
+  box.innerHTML = `<div class="grid2"><div>
+    <label>Data incidents per month <input type="number" id="r_n" value="6"></label>
+    <label>Engineer hours to find the cause by hand <input type="number" id="r_h" value="5"></label>
+    <label>Share of that time saved, % <input type="number" id="r_s" value="60"></label>
+    <label>Loaded cost per engineer hour, $ <input type="number" id="r_w" value="110"></label>
+    <label>Subscription cost per year, $ <input type="number" id="r_c" value="20000"></label></div><div id="r_out"></div></div>`;
+  const calc = () => { const g = id => +document.querySelector(id).value, hrs = 12 * g('#r_n') * g('#r_h') * g('#r_s') / 100, val = hrs * g('#r_w');
+    document.querySelector('#r_out').innerHTML = kpis([{ label: 'Engineer hours saved a year', value: fmt.n(hrs) }, { label: 'Value of those hours', value: fmt.usd(val) }, { label: 'Net of subscription', value: fmt.usd(val - g('#r_c')) }])
+      + '<div class="small mute">This leaves out the larger and harder to measure cost: decisions made on a wrong dashboard before anyone noticed.</div>'; };
+  box.oninput = calc; calc();
+})();
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>
