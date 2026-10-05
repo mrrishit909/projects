@@ -1,0 +1,177 @@
+{
+ "service": "city-capital-planner",
+ "run": "demo-1",
+ "tokens": {
+  "planner": "acme-planner-demo",
+  "viewer": "acme-viewer-demo",
+  "admin": "acme-admin-demo"
+ },
+ "steps": [
+  {
+   "title": "The citywide risk map",
+   "say": "100,000 assets: water mains, road segments, drains, street lights, signals and public buildings. Each has a five-year failure probability from a model trained on ten years of the city's own history, multiplied by what a failure there would cost.",
+   "calls": [
+    {
+     "key": "sum",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/risk/summary"
+    },
+    {
+     "key": "t0",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/map/tiles/12/930/1560"
+    },
+    {
+     "key": "t1",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/map/tiles/12/931/1560"
+    },
+    {
+     "key": "t2",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/map/tiles/12/930/1561"
+    },
+    {
+     "key": "t3",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/map/tiles/12/931/1561"
+    }
+   ]
+  },
+  {
+   "title": "One water main, and why its risk is high",
+   "say": "The water main with the highest expected loss in the city. Age alone would not single it out; its own record and its surroundings do.",
+   "calls": [
+    {
+     "key": "top",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets?asset_class=water_main&order=expected_loss&limit=5"
+    },
+    {
+     "key": "risk",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets/{{top.items.0.id}}/risk"
+    }
+   ]
+  },
+  {
+   "title": "Nearby breaks and a cluster of complaints",
+   "say": "Within 400 metres: ten years of failures on neighbouring pipes, and residents' reports from the last 90 days. Reports of leaks grouped tightly together are an early sign the model does not use, shown here as independent evidence.",
+   "calls": [
+    {
+     "key": "near",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assets/{{top.items.0.id}}/nearby?radius_m=400"
+    },
+    {
+     "key": "clus",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/complaints/clusters?category=water_leak&limit=8"
+    }
+   ]
+  },
+  {
+   "title": "A five-year capital budget",
+   "say": "The backlog of candidate projects against a budget of $30 million a year for five years.",
+   "calls": [
+    {
+     "key": "back",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/projects/summary?annual_budget=30000000&years=5"
+    }
+   ]
+  },
+  {
+   "title": "Optimize the plan",
+   "say": "A solver picks which projects to fund in which year: most expected loss avoided, inside each year's budget, at least 35% of spending in lower-income districts, and never laying a pipe under a road that was just resurfaced.",
+   "calls": [
+    {
+     "key": "plan",
+     "as": "planner",
+     "method": "POST",
+     "path": "/v1/plans:optimize",
+     "body": {
+      "name": "Five-year plan",
+      "annual_budgets": [
+       30000000,
+       30000000,
+       30000000,
+       30000000,
+       30000000
+      ],
+      "constraints": {
+       "equity_min_share": 0.35,
+       "dig_once": true
+      }
+     }
+    },
+    {
+     "key": "out",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/plans/{{plan.result.plan_id}}/outcomes"
+    }
+   ]
+  },
+  {
+   "title": "Cut the budget by 20%",
+   "say": "The council asks what a 20% cut would cost. The plan is solved again with less money and the difference is stated in expected failures and dollars.",
+   "calls": [
+    {
+     "key": "plan2",
+     "as": "planner",
+     "method": "POST",
+     "path": "/v1/plans:optimize",
+     "body": {
+      "name": "Five-year plan, budget cut 20%",
+      "annual_budgets": [
+       24000000.0,
+       24000000.0,
+       24000000.0,
+       24000000.0,
+       24000000.0
+      ],
+      "constraints": {
+       "equity_min_share": 0.35,
+       "dig_once": true
+      }
+     }
+    },
+    {
+     "key": "cut",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/plans/{{plan2.result.plan_id}}/outcomes?compare_to={{plan.result.plan_id}}"
+    }
+   ]
+  },
+  {
+   "title": "Against the usual way: worst condition first",
+   "say": "Most capital plans fix whatever looks worst. Same budget, same candidate projects, two ways of choosing.",
+   "calls": [
+    {
+     "key": "cmp",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/plans/{{plan.result.plan_id}}/outcomes"
+    },
+    {
+     "key": "audit",
+     "as": "admin",
+     "method": "GET",
+     "path": "/v1/audit?limit=6"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infrastructure Failure Prediction &amp; Capital Planning</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Infrastructure Failure Prediction &amp; Capital Planning</h1>
+  <span class="sub">An invented city, Riverton: 100,000 pipes, roads, drains, lights, signals and buildings. Which will fail, what would it cost, and what should the city fix first with the money it has?</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div>
+    <div id="steps"></div>
+    <section class="step" id="roi"><div class="head"><div class="grow"><h2>What is it worth?</h2>
+      <p>The plan comparison from step 7 (run it first) and an assumed subscription price. Change either.</p></div></div>
+      <div class="out"><div class="card roi" id="roibox"><span class="mute">Run step 7 to load the figures.</span></div></div></section>
+  </div>
+</main>
+<footer>The city, its assets, its failures and its residents' reports are all synthetic. Costs come from simple invented tables, not from any real utility.</footer>
+<script src="kit.js"></script>
+<script>
+const M = x => x == null ? '–' : (Math.abs(x) >= 1e9 ? fmt.usd(x / 1e9, 2) + 'B' : Math.abs(x) >= 1e6 ? fmt.usd(x / 1e6, 1) + 'M' : Math.abs(x) >= 1e4 ? fmt.usd(x / 1e3, 0) + 'k' : fmt.usd(x, 0));
+const nice = s => String(s).replace(/_/g, ' ');
+const pc = (v, d = 0) => fmt.pct(v, d);
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const ramp = t => { t = Math.max(0, Math.min(1, t)); const c = t < .5 ? mix([24, 34, 62], [224, 166, 60], t * 2) : mix([224, 166, 60], [239, 80, 80], (t - .5) * 2); return `rgb(${c.join(',')})`; };
+let CITY = null;      // {w, s, e, n, cells} kept from step 1 so later steps can draw over the same map
+function cityMap(extra = '', W = 520) {
+  if (!CITY) return '';
+  const { w, s, e, n, cells, max } = CITY, X = lon => (lon - w) / (e - w) * W, Y = lat => (n - lat) / (n - s) * W, px = 300 / 15142 * W;
+  return `<svg viewBox="0 0 ${W} ${W}" width="100%" role="img" style="background:#0e0e12;border-radius:6px">${cells.map(c => `<rect x="${(X(c[0]) - px / 2).toFixed(1)}" y="${(Y(c[1]) - px / 2).toFixed(1)}" width="${(px + .4).toFixed(1)}" height="${(px + .4).toFixed(1)}" fill="${ramp(Math.pow(c[2] / max, 0.42))}" ${extra ? 'opacity=".35"' : ''}/>`).join('')}${typeof extra === 'function' ? extra(X, Y) : ''}</svg>`;
+}
+const rampLegend = `<div class="legend"><span><i style="background:${ramp(.05)}"></i>low</span><span><i style="background:${ramp(.5)}"></i>expected loss per 300 m block</span><span><i style="background:${ramp(1)}"></i>high</span></div>`;
+const R = {
+  sum: s => { const m = s.model, h = m.held_out, a = m.age_only_baseline;
+    return kpis([{ label: 'Assets', value: fmt.n(s.assets) }, { label: 'Expected failures a year', value: fmt.n(s.expected_failures_per_year), sub: 'recorded: ' + fmt.n(s.history.at(-2).failures) + ' in ' + s.history.at(-2).year + ', ' + fmt.n(s.history.at(-1).failures) + ' in ' + s.history.at(-1).year }, { label: 'Expected loss, next 5 years', value: M(s.expected_loss_5y) },
+      { label: 'Model against age alone (AUC)', value: fmt.n(h.auc, 3), sub: 'age alone: ' + fmt.n(a.auc, 3) + ', on held-out assets' }, { label: 'Riskiest 5% of assets', value: pc(h.failure_rate_in_top_5pct) + ' failed', sub: 'age alone: ' + pc(a.failure_rate_in_top_5pct) + '; average ' + pc(h.base_rate) }]); },
+  _step0: r => { const ts = [r.t0, r.t1, r.t2, r.t3], cells = ts.flatMap(t => t.cells), s = r.sum;
+    CITY = { w: Math.min(...ts.map(t => t.bounds[0])), s: Math.min(...ts.map(t => t.bounds[1])), e: Math.max(...ts.map(t => t.bounds[2])), n: Math.max(...ts.map(t => t.bounds[3])), cells, max: Math.max(...cells.map(c => c[2])) };
+    return `<div class="grid2">${card(`Risk map · ${fmt.n(cells.length)} blocks from 4 map tiles`, cityMap() + rampLegend)}
+      <div>${card('By asset class', table([{ k: 'asset_class', label: 'Class', f: nice }, { k: 'assets', label: 'Assets', num: 1, f: v => fmt.n(v) }, { k: 'mean_age', label: 'Mean age', num: 1 }, { k: 'expected_failures_per_year', label: 'Failures / yr', num: 1, f: v => fmt.n(v) },
+        { k: 'expected_loss_5y', label: 'Expected loss, 5 y', num: 1, f: M }], s.by_class))}
+      ${card('Failures recorded per year', lineChart([{ name: 'failures', points: s.history.map(h => [h.year, h.failures]), area: 1 }], { h: 170, ymin: 0, xfmt: v => String(Math.round(v)) }))}</div></div>`; },
+  top: t => card('Water mains with the highest expected loss', table([{ k: 'external_id', label: 'Main', f: v => `<span class="mono">${esc(v)}</span>` }, { k: 'material', label: 'Material', f: nice }, { k: 'installed_on', label: 'Laid', f: v => v.slice(0, 4) }, { k: 'district', label: 'District' },
+    { k: 'probability', label: 'Fails within 5 y', num: 1, f: v => pc(v) }, { k: 'consequence', label: 'Cost if it does', num: 1, f: M }, { k: 'expected_loss', label: 'Expected loss', num: 1, f: v => `<b>${M(v)}</b>` }], t.items)),
+  risk: r => { const a = r.asset, at = a.attributes, mx = Math.max(...r.evidence.map(e => Math.abs(e.effect)));
+    const val = e => e.feature === 'flood_zone' ? (e.value ? 'yes' : 'no') : e.feature === 'material' ? nice(e.value) : e.value == null ? 'none' : fmt.n(e.value, e.value < 10 && e.value % 1 ? 2 : 0);
+    const typ = e => e.feature === 'flood_zone' ? (e.typical ? 'yes' : 'no') : e.feature === 'material' ? nice(e.typical) : e.typical == null ? 'none' : fmt.n(e.typical, e.typical < 10 && e.typical % 1 ? 2 : 0);
+    return card(`${a.external_id}: ${at.diameter_mm} mm ${nice(a.material)} main, laid ${a.installed_on.slice(0, 4)}, ${a.district}`, kpis([{ label: 'Chance of a break within 5 years', value: `<span style="color:var(--bad)">${pc(r.failure_probability)}</span>`, sub: 'typical main: ' + pc(r.class_median_probability) },
+        { label: 'What age alone would say', value: pc(r.age_only_probability), sub: 'the baseline model' }, { label: 'Cost of one break here', value: M(r.consequence.total), sub: M(r.consequence.emergency_repair) + ' repair + ' + M(r.consequence.service_and_disruption) + ' disruption' },
+        { label: 'Expected loss', value: M(r.expected_loss), sub: 'rank ' + r.rank_in_class_by_expected_loss + ' of ' + fmt.n(r.class_size) + ' mains' }, { label: 'Its record', value: r.failures.length + ' breaks', sub: 'in ten years; last inspection score ' + (r.inspections[0] ? fmt.n(r.inspections[0].condition_score) : '–') + ' / 100' }])
+      + `<div class="grid2"><div><h3>What the model is leaning on</h3>${table([{ k: 'label', label: 'Fact' }, { k: 'value', label: 'This main', num: 1, f: (v, e) => val(e) }, { k: 'typical', label: 'Typical', num: 1, f: (v, e) => typ(e) },
+        { k: 'effect', label: 'Effect on probability', f: v => `<div style="display:flex;align-items:center;gap:6px"><div style="height:10px;width:${Math.max(2, 90 * Math.abs(v) / mx)}px;background:${v > 0 ? PALETTE[3] : PALETTE[1]};border-radius:2px"></div><span class="small">${v > 0 ? '+' : ''}${fmt.n(100 * v, 1)} pts</span></div>` }], r.evidence.slice(0, 5))}
+        <div class="small mute" style="margin-top:6px">${esc(r.evidence_note)}</div></div>
+        <div><h3>Breaks per 100 ${esc(nice(a.material))} mains per year, by age (ten years of records)</h3>${barChart(r.rate_by_age_for_material.map(x => ({ label: x.age + ' years', value: x.per_100_per_year, color: PALETTE[0], note: fmt.n(x.asset_years) + ' main-years' })), { fmt: v => fmt.n(v, 2) })}
+        <div class="small mute" style="margin-top:6px">Age matters, but even the oldest band breaks about ${fmt.n(r.rate_by_age_for_material.at(-1).per_100_per_year, 1)} times per 100 mains a year. This main's own history says far more.</div></div></div>`); },
+  near: n => { const a = n.asset, cl = n.complaint_clusters[0], W = 520, R0 = n.radius_m, dLat = R0 / 111320, dLon = R0 / (111320 * Math.cos(a.lat * Math.PI / 180));
+    const X = lon => (lon - (a.lon - dLon)) / (2 * dLon) * W, Y = lat => ((a.lat + dLat) - lat) / (2 * dLat) * W, line = (g, col, wd) => g.type === 'LineString' ? `<line x1="${X(g.coordinates[0][0]).toFixed(1)}" y1="${Y(g.coordinates[0][1]).toFixed(1)}" x2="${X(g.coordinates[1][0]).toFixed(1)}" y2="${Y(g.coordinates[1][1]).toFixed(1)}" stroke="${col}" stroke-width="${wd}" stroke-linecap="round"/>` : '';
+    const svg = `<svg viewBox="0 0 ${W} ${W}" width="100%" role="img" style="background:#0e0e12;border-radius:6px"><circle cx="${W / 2}" cy="${W / 2}" r="${W / 2 - 1}" fill="none" stroke="#2a2a33" stroke-dasharray="4 4"/>
+      ${n.neighbours.map(x => line(x.geometry, ramp(x.probability / .7), 2.2)).join('')}${n.failure_points.filter(p => p.asset_class === 'water_main').map(p => `<circle cx="${X(p.lon).toFixed(1)}" cy="${Y(p.lat).toFixed(1)}" r="2.2" fill="none" stroke="#fff" stroke-width=".7" opacity=".7"/>`).join('')}
+      ${n.recent_complaints.filter(c => c.category === 'water_leak').map(c => `<rect x="${(X(c.lon) - 2).toFixed(1)}" y="${(Y(c.lat) - 2).toFixed(1)}" width="4" height="4" fill="${PALETTE[5]}" opacity=".85"/>`).join('')}${line(a.geometry, '#fff', 5)}</svg>
+      <div class="legend"><span><i style="background:#fff"></i>the selected main</span><span><i style="background:${ramp(.9)}"></i>neighbouring mains, by break probability</span><span>○ past main breaks</span><span><i style="background:${PALETTE[5]}"></i>leak reports, last ${n.complaint_window_days} days</span></div>`;
+    const yrs = n.failures_by_year.map(y => ({ label: String(y.year), value: y.water_main || 0, color: PALETTE[0] }));
+    return kpis([{ label: `Failures within ${fmt.n(R0)} m, ten years`, value: fmt.n(n.failures_10y), sub: fmt.n(n.same_class_failures_10y) + ' of them on water mains' }, { label: 'Breaks per main here', value: fmt.n(n.failures_per_asset_here, 2), sub: 'citywide: ' + fmt.n(n.failures_per_asset_citywide, 2) },
+        { label: 'Leak reports in the nearest cluster', value: cl ? fmt.n(cl.complaints) : 0, sub: cl ? cl.last_30_days + ' in the last 30 days, centre ' + fmt.n(cl.distance_m) + ' m away' : 'no cluster nearby' }, { label: 'Mains in the circle', value: n.same_class_assets }])
+      + `<div class="grid2">${card(`${R0} m around ${a.external_id}`, svg)}<div>${card('Water main breaks nearby, by year', barChart(yrs))}${cl ? card('What residents wrote', `<div class="small">"${esc(cl.sample)}"</div><div class="small mute" style="margin-top:6px">First report ${fmt.date(cl.first_at)}, latest ${fmt.date(cl.last_at)}.</div>`) : ''}</div></div>`; },
+  clus: c => card(`Leak-report clusters citywide: ${c.clusters} clusters hold ${fmt.n(c.clustered)} of ${fmt.n(c.reports)} reports in ${c.window_days} days`, table([{ k: 'complaints', label: 'Reports', num: 1 }, { k: 'last_30_days', label: 'Last 30 days', num: 1 }, { k: 'radius_m', label: 'Radius', num: 1, f: v => fmt.n(v) + ' m' },
+    { k: 'sample', label: 'Example', f: v => `<span class="small">"${esc(v)}"</span>` }, { k: 'last_at', label: 'Latest', f: fmt.date }], c.items.slice(0, 5)) + `<div class="small mute" style="margin-top:6px">Rule: ${esc(c.rule)}.</div>`),
+  back: b => kpis([{ label: 'Candidate projects', value: fmt.n(b.candidate_projects), sub: fmt.n(b.assets_in_candidates) + ' assets' }, { label: 'Cost to do all of it', value: M(b.backlog_cost) }, { label: 'Budget', value: M(b.total_budget), sub: M(b.annual_budget) + ' a year for ' + b.years + ' years' },
+      { label: 'Budget covers', value: `<span style="color:var(--warn)">${pc(b.budget_share_of_backlog, 1)}</span>`, sub: 'of the backlog' }, { label: 'Expected loss a year, citywide', value: M(b.annual_expected_loss_citywide), sub: M(b.annual_expected_loss_in_candidates) + ' of it in these candidates' }])
+    + card('Candidates by type', table([{ k: 'project_type', label: 'Type', f: nice }, { k: 'projects', label: 'Projects', num: 1, f: v => fmt.n(v) }, { k: 'cost', label: 'Cost', num: 1, f: M }, { k: 'annual_loss', label: 'Expected loss a year they address', num: 1, f: M },
+      { k: 'annual_failures', label: 'Failures a year', num: 1, f: v => fmt.n(v) }], b.by_type) + `<div class="small mute" style="margin-top:6px">${esc(b.how_candidates_are_built)}.</div>`),
+  plan: j => { const r = j.result; return kpis([{ label: 'Solver', value: badge(r.solver_status.toLowerCase(), 'good'), sub: fmt.n(r.runtime_ms / 1000, 1) + ' s' }, { label: 'Yes / no decisions', value: fmt.n(r.decisions), sub: fmt.n(r.candidates) + ' projects x 5 years' }, { label: 'Projects funded', value: r.projects_selected },
+      { label: 'Expected loss avoided, 10 years', value: M(r.expected_loss_avoided) }]); },
+  out: o => { const p = o.optimized, yc = ['#7aa2ff', '#4fc3d9', '#3fb97a', '#e0a63c', '#b78cf2'];
+    return `<div class="grid2">${card('Funded projects, coloured by year', cityMap((X, Y) => o.project_points.map(q => `<circle cx="${X(q[0]).toFixed(1)}" cy="${Y(q[1]).toFixed(1)}" r="${Math.max(2.5, Math.sqrt(q[3] / 1e5)).toFixed(1)}" fill="${yc[q[2] - 1]}" stroke="#0e0e12" stroke-width=".6"/>`).join(''))
+        + `<div class="legend">${yc.map((c, i) => `<span><i style="background:${c}"></i>year ${i + 1}</span>`).join('')}<span class="mute">dot size = cost</span></div>`)}
+      <div>${kpis([{ label: 'Spend', value: M(p.total_spend), sub: 'of ' + M(p.budget) }, { label: 'In lower-income districts', value: pc(p.equity_share_of_spend), sub: 'floor: ' + pc(o.constraints.equity_min_share) }, { label: 'Roads resurfaced with their main', value: p.roads_resurfaced_with_their_main, sub: M(p.shared_trench_saving) + ' saved by sharing the trench' },
+        { label: 'Pipes laid under a fresh road', value: `<span style="color:var(--good)">${p.dig_once_conflicts}</span>` }])}
+      ${card('What the money goes to', table([{ k: 'project_type', label: 'Type', f: nice }, { k: 'projects', label: 'Projects', num: 1 }, { k: 'assets', label: 'Assets', num: 1, f: v => fmt.n(v) }, { k: 'cost', label: 'Cost', num: 1, f: M }], p.by_type))}</div></div>`
+      + card('Largest projects by loss avoided', table([{ k: 'name', label: 'Project' }, { k: 'start_year', label: 'Year', num: 1 }, { k: 'cost', label: 'Cost', num: 1, f: M }, { k: 'annual_loss_avoided', label: 'Loss avoided a year', num: 1, f: M },
+        { k: 'mean_probability', label: 'Mean 5-year failure chance', num: 1, f: v => pc(v) }], o.top_projects.slice(0, 6))); },
+  plan2: j => `<div class="small mute" style="margin-bottom:10px">Solved again with 20% less: ${j.result.projects_selected} projects, ${esc(j.result.solver_status.toLowerCase())} in ${fmt.n(j.result.runtime_ms / 1000, 1)} s.</div>`,
+  cut: c => { const k = c.compared_to;
+    return kpis([{ label: 'Budget', value: M(c.optimized.budget), sub: M(k.budget_saved) + ' less over five years' }, { label: 'Expected loss avoided', value: M(c.optimized.expected_loss_avoided), sub: pc(k.expected_loss_avoided_change_share, 1) + ' (' + M(k.expected_loss_avoided_change) + ')' },
+        { label: 'More failures expected, 10 years', value: `<span style="color:var(--bad)">+${fmt.n(k.additional_expected_failures)}</span>` }, { label: 'More emergency repair', value: `<span style="color:var(--bad)">+${M(k.additional_emergency_repair_cost)}</span>` }, { label: 'Projects dropped', value: k.projects_dropped }])
+      + card('Largest projects that no longer fit', table([{ k: 'name', label: 'Project' }, { k: 'cost', label: 'Cost', num: 1, f: M }, { k: 'annual_loss_avoided', label: 'Loss it would have avoided a year', num: 1, f: M }], k.largest_dropped))
+      + `<div class="small mute">Saving ${M(k.budget_saved)} costs ${M(k.additional_expected_loss)} in expected loss within ten years. The dropped work was the least valuable in the plan, and pipes last far longer than ten years, so the ten-year window understates what is given up.</div>`; },
+  cmp: o => { const a = o.optimized, w = o.worst_first, g = o.ratio_greedy, v = o.versus_worst_first, row = (label, f) => ({ label, w: f(w), g: f(g), a: `<b>${f(a)}</b>` });
+    return kpis([{ label: 'Loss avoided per dollar spent', value: fmt.n(a.risk_reduction_per_dollar, 2), sub: 'worst-first: ' + fmt.n(w.risk_reduction_per_dollar, 2) }, { label: 'Times better', value: `<span style="color:var(--good)">${fmt.n(v.times_better, 1)}×</span>`, sub: 'same budget, same candidates' },
+        { label: 'Extra loss avoided, 10 years', value: M(v.extra_expected_loss_avoided) }, { label: 'If nothing is done', value: M(o.do_nothing.expected_loss_in_window), sub: fmt.n(o.do_nothing.expected_failures_in_window) + ' failures expected in 10 years' }])
+      + card('Three ways to spend the same ' + M(a.budget), table([{ k: 'label', label: '' }, { k: 'w', label: 'Worst condition first', num: 1, f: x => x }, { k: 'g', label: 'Best ratio first (greedy)', num: 1, f: x => x }, { k: 'a', label: 'Optimized', num: 1, f: x => x }],
+        [row('Expected loss avoided, 10 years', x => M(x.expected_loss_avoided)), row('Loss avoided per dollar', x => fmt.n(x.risk_reduction_per_dollar, 2)), row('Failures avoided', x => fmt.n(x.failures_avoided)), row('Emergency repair avoided', x => M(x.emergency_repair_avoided)),
+         row('Projects', x => x.projects), row('Share of spend in lower-income districts', x => pc(x.equity_share_of_spend)), row('Pipes laid under a freshly resurfaced road', x => x.dig_once_conflicts), row('Saved by sharing a trench', x => M(x.shared_trench_saving))])
+        + `<div class="small mute" style="margin-top:6px">Worst-first prevents almost as many failures, but cheap ones: it fixes what looks bad, not what costs most when it breaks. Simply ranking by loss avoided per dollar gets most of the way; the solver adds about ${pc(a.expected_loss_avoided / g.expected_loss_avoided - 1, 1)} and keeps the coordination rules.</div>`); },
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 140))}</span>` }], a.events.slice().reverse())),
+  _after: (i, r) => { if (i === 6) roi(r); },
+};
+function roi(r) {
+  const v = r.cmp.versus_worst_first, box = document.querySelector('#roibox');
+  box.innerHTML = `<div class="grid2"><div>
+    <label>Extra expected loss avoided over 10 years against worst-first, $ <input type="number" id="r_x" value="${Math.round(v.extra_expected_loss_avoided)}"></label>
+    <label>Share of that you believe, % (assumption) <input type="number" id="r_s" value="25"></label>
+    <label>Subscription per year, $ (assumption) <input type="number" id="r_c" value="250000"></label></div><div id="r_out"></div></div>`;
+  const calc = () => { const g = id => +document.querySelector(id).value, gain = g('#r_x') * g('#r_s') / 100, cost = 10 * g('#r_c');
+    document.querySelector('#r_out').innerHTML = kpis([{ label: 'Loss avoided, 10 years', value: M(gain) }, { label: 'Subscription, 10 years', value: M(cost) }, { label: 'Net', value: M(gain - cost) }])
+      + '<div class="small mute">The comparison is with a pure worst-first plan in an invented city whose costs were made up. Real plans already weigh consequence to some degree, hence the cautious default of 25%.</div>'; };
+  box.oninput = calc; calc();
+}
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+ "title": "100,000 Pipes, Roads and Drains, and Money to Fix One in Ten. Which Ones?",
+ "tagline": "A planning system for a city's infrastructure. On an invented city it predicts which assets will fail within five years, prices each failure, and picks which projects to fund each year. With the same $150M, its plan avoided 3.7 times the expected loss of fixing whatever looks worst first. Checked against five simulated future years the model never saw.",
+ "kind": "Python · Risk and optimization",
+ "order": 111,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "scikit-learn gradient boosting",
+  "OR-Tools CP-SAT",
+  "DBSCAN clustering",
+  "Web-mercator map tiles",
+  "Postgres job queue",
+  "Docker Compose",
+  "28 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>synthetic city</b>: every asset, failure, inspection and resident report is generated, and the cost tables are invented. That is what lets the forecasts be checked against a simulated future. Two caveats that matter: a simple ranking by benefit per dollar gets within about 5% of the optimizer, and the plan counts benefits over ten years only, which favours cheap fixes. Not built: reading defects from photos, PostGIS, real GIS file formats, sensor feeds, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A city owns far more ageing infrastructure than it can afford to renew. Riverton, the invented city here, has 100,000 water mains, road segments, drains, lights, signals and buildings, a backlog of $1.6 billion, and $30 million a year. The usual rule is to fix what looks worst. But the pipe in the worst condition is not always the one most likely to burst, and the one most likely to burst is not always the one that matters most when it does. <em>Can the city's own records say which assets will fail, what each failure would cost, and which projects to fund first?</em></p><p>Blueprint 10 of ten in an enterprise build book, built as the demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Failure model:</b> the chance each asset fails within five years, learned from ten years of the city's failures and inspections.</li><li><b>Risk:</b> that chance times what a failure there would cost (repair plus disruption).</li><li><b>Evidence:</b> for any asset, which facts push its risk up, its own history, and what is happening around it.</li><li><b>Complaint clusters:</b> places where residents' reports of the same problem are piling up.</li><li><b>Risk map:</b> served as standard map tiles.</li><li><b>Capital plan:</b> which projects to fund in which year under a budget, with a rule for spending fairly and a rule against digging up a new road.</li></ul>",
+ "steps": [
+  {
+   "title": "Learn from the past without peeking",
+   "body": "<p>The model is taught on the city as it stood at the start of 2021: what was known then (age, material, soil, the last five years of failures and inspections) and what happened next (did it fail in 2021 to 2025). A test changes everything after 2021 and checks that not one input moves. To score today, the same recipe is applied to the latest five years.</p>",
+   "code": "t = year - world.YEARS[0]\nwindow = slice(max(0, t - 5), t)      # only the five years before the snapshot"
+  },
+  {
+   "title": "Always keep the simple answer beside it",
+   "body": "<p>The baseline is what an age-based replacement policy assumes: failure rate by how old an asset is against its expected life. It is stored next to every score. For the riskiest main in the city, the model says 89% and age alone says 17%.</p>",
+   "code": "edges = np.quantile(X[m, 2], np.linspace(0, 1, 11)[1:-1])\nself.tables[c] = (edges, [y[m][b == k].mean() for k in range(10)])"
+  },
+  {
+   "title": "Say why",
+   "body": "<p>For one asset, each fact is swapped for what is typical of its class and the chance is recomputed. The difference is that fact's effect. For the riskiest main: an inspection score of 10 out of 100 (+28 points), two of its own breaks in five years (+23), and 151 failures within about 225 metres (+13). These are not causes, only what the model is leaning on.</p>",
+   "code": "alt = row.copy()\nalt[j] = typical[j]\neffect = p - model.predict_proba(alt[None])[0, 1]"
+  },
+  {
+   "title": "Choose projects, not assets",
+   "body": "<p>Risky assets are bundled by block into projects. A solver then makes 19,730 yes or no decisions (each project, each year): avoid the most expected loss, stay inside each year's budget, spend at least 35% in lower-income districts, and never lay a pipe under a road that was just resurfaced. If the road and the pipe are done in the same year, they share a trench and the resurfacing costs 30% less.</p>",
+   "code": "m.Add(z <= x[(r, y)])\nm.Add(z <= sum(x[(w, y)] for w in by_road[r]))      # road and main in the same year"
+  },
+  {
+   "title": "Check the plan against the future",
+   "body": "<p>The simulator knows the true failure rates the model had to guess, and it can run five more years. So each plan is scored twice: by the model's numbers, and by the truth. The optimized plan's advantage held up: 1.43 dollars of loss avoided per dollar by the truth, against 0.36 for worst-first.</p>",
+   "code": "h = world.hazard(sub, world.TODAY.year - 1 + t, prior[g])\ntotal += float((h * (repair[g] + service[g])).sum()) * p[\"effectiveness\"]"
+  }
+ ],
+ "results": "<p><b>The model.</b> Of the 5% of assets it ranked riskiest today, 70.5% went on to fail in the simulated next five years. Ranking by age alone: 56.8%. Across all assets: 12.2%. It expected 3,461 failures a year citywide; the simulator then produced 3,535.</p><img src=\"shots/main.jpg\" alt=\"The five water mains with the highest expected loss, then the top one in detail: 89% chance of a break within 5 years against 17% from age alone and 6% for a typical main, $593k cost of one break, 5 breaks in ten years. A table of what the model leans on (inspection score 10 against a typical 73, two own failures, 151 failures nearby) and a bar chart of breaks per 100 cast-iron mains per year rising with age.\"><p><b>The plan.</b> $150M over five years, against a backlog of $1.6B. Benefits counted over ten years.</p><table><tr><th>Way of choosing</th><th class=\"num\">Loss avoided</th><th class=\"num\">Per dollar</th><th class=\"num\">Per dollar, by the simulator's truth</th></tr><tr><td>Worst condition first</td><td class=\"num\">$55M</td><td class=\"num\">0.37</td><td class=\"num\">0.36</td></tr><tr><td>Best ratio first (simple ranking)</td><td class=\"num\">$193M</td><td class=\"num\">1.30</td><td class=\"num\">1.36</td></tr><tr><td>Optimized</td><td class=\"num\">$203M</td><td class=\"num\">1.36</td><td class=\"num\">1.43</td></tr></table><img src=\"shots/plan.jpg\" alt=\"The optimized plan: solver optimal in 5.5 seconds over 19,730 decisions, 213 projects funded, $203.1M expected loss avoided. A map of the city with funded projects as dots coloured by year, concentrated in the old centre. 62% of spend in lower-income districts, 37 roads resurfaced with their main, 0 pipes laid under a fresh road. Most money goes to water main relining and road resurfacing.\"><p><b>What that table really says.</b> Nearly all the gain comes from weighing what a failure costs at all. A simple ranking gets within about 5% of the solver. What the solver adds is coordination: 37 roads resurfaced together with the pipe beneath them ($8.8M saved) and no new road dug up, where the simple ranking dug up two.</p><p><b>A 20% budget cut.</b> 64 projects drop out. Over ten years that means about 658 more failures and $28M more expected loss, for $30M saved. On these numbers the cut nearly pays for itself, and that is a warning about the numbers: pipes last far longer than the ten years counted here.</p><p><b>Checks.</b> 28 tests, including: no input using anything after the snapshot date, the four map tiles adding up to exactly the whole city, a good inspection lowering a risk score and a bad one raising it, an import with one bad record being refused whole, and one city unable to see another's assets or use its model.</p>",
+ "next": "<ul><li>Count a project's benefit over the asset's whole life, with failure rates that keep rising, in place of a fixed ten-year window.</li><li>Try it on a real utility's break records, where the data is patchier and the model's edge over age is unknown.</li><li>Read road and sidewalk defects from inspection photos, which the blueprint asks for and this build skips.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/city-capital-planner",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
