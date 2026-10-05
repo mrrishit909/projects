@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scientific Literature Discovery Engine</title>
+<link rel="stylesheet" href="kit.css">
+<style>.big { font-size:17px; margin:0 0 12px; } .path { font-family:var(--mono); font-size:12.5px; line-height:1.9; } .up { color:var(--good); } .down { color:var(--bad); }</style>
+</head>
+<body>
+<header class="top">
+  <h1>Scientific Literature Discovery Engine</h1>
+  <span class="sub">4,000 papers from an invented research field. What supports a claim, what contradicts it, and what has nobody tested yet?</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div><div id="steps"></div></div>
+</main>
+<footer>None of this is real science. The interventions and biomarkers have invented names and every paper is generated from a hidden cause-and-effect graph, which is what lets the output be checked. A hypothesis here is a suggestion to test, never a finding.</footer>
+<script src="kit.js"></script>
+<script>
+const DIR = { 1: ['increases', 'up'], '-1': ['decreases', 'down'], 0: ['no effect', 'mute'] };
+const dir = d => `<span class="${DIR[d][1]}">${d > 0 ? '▲' : d < 0 ? '▼' : '●'} ${DIR[d][0]}</span>`;
+const verdict = v => badge(v, v === 'contested' ? 'warn' : v === 'no effect' ? '' : 'good');
+const findings = rows => table([{ k: 'title', label: 'Paper', f: (v, r) => `${esc(v.slice(0, 58))} <span class="mute small">${r.year}</span>` }, { k: 'method', label: 'Design', f: v => esc(v.replace(' study', '').replace('randomised controlled trial', 'RCT')) }, { k: 'n', label: 'n', num: 1, f: v => fmt.n(v) },
+  { k: 'direction', label: 'Found', f: dir }], rows);
+const pooledRow = rows => table([{ k: 'group', label: '' }, { k: 'papers', label: 'Papers', num: 1 }, { k: 'increase', label: '▲', num: 1 }, { k: 'decrease', label: '▼', num: 1 }, { k: 'no_effect', label: 'None', num: 1 }, { k: 'score', label: 'Score', num: 1, f: v => fmt.n(v, 2) }, { k: 'verdict', label: 'Verdict', f: verdict }], rows);
+function graphSvg(g) {
+  const w = 640, h = 330, cx = w / 2, cy = h / 2, others = g.nodes.filter(n => n.id !== g.topic.id), pos = { [g.topic.id]: [cx, cy] };
+  others.forEach((n, i) => { const a = 2 * Math.PI * i / others.length - Math.PI / 2; pos[n.id] = [cx + 250 * Math.cos(a), cy + 125 * Math.sin(a)]; });
+  const col = e => e.verdict === 'increases' ? '#3fb97a' : e.verdict === 'decreases' ? '#ef6a6a' : '#6b6b78';
+  let s = g.edges.map(e => `<line x1="${pos[e.source][0]}" y1="${pos[e.source][1]}" x2="${pos[e.target][0]}" y2="${pos[e.target][1]}" stroke="${col(e)}" stroke-width="${1 + Math.min(5, Math.log2(e.papers))}" opacity=".75"><title>${e.verdict}, ${e.papers} papers</title></line>`).join('');
+  s += g.nodes.map(n => `<circle cx="${pos[n.id][0]}" cy="${pos[n.id][1]}" r="${n.id === g.topic.id ? 9 : 6}" fill="${{ intervention: '#7aa2ff', biomarker: '#e0a63c', outcome: '#b78cf2' }[n.kind]}"/><text x="${pos[n.id][0]}" y="${pos[n.id][1] + (pos[n.id][1] > cy ? 19 : -11)}" text-anchor="middle">${esc(n.name)}</text>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Evidence graph">${s}</svg><div class="legend"><span><i style="background:#3fb97a"></i>increases</span><span><i style="background:#ef6a6a"></i>decreases</span><span><i style="background:#6b6b78"></i>contested or no effect</span>
+    <span><i style="background:#7aa2ff"></i>intervention</span><span><i style="background:#e0a63c"></i>biomarker</span><span><i style="background:#b78cf2"></i>outcome</span><span>line width = number of papers</span></div>`;
+}
+const link = l => `${esc(l.statement)} <span class="mute">(${l.papers} papers: ${l.increase}▲ ${l.decrease}▼ ${l.no_effect} none)</span>`;
+const hyps = h => h.hypotheses.length ? h.hypotheses.map((x, i) => card(`Hypothesis ${i + 1} · path strength ${fmt.n(x.score, 2)}`, `<p class="big">${esc(x.statement[0].toUpperCase() + x.statement.slice(1))} ${badge('untested', 'warn')}</p>
+    <div class="path">${x.paths.map(p => `${link(p.first_link)}<br>${link(p.second_link)}<br><span class="mute">so, if both hold: ${esc(x.statement)}</span>`).join('<hr style="border-color:var(--line)">')}</div>
+    <p style="margin:10px 0 4px"><b>Evidence gap.</b> ${esc(x.evidence_gap)}</p><p style="margin:0"><b>How to test it.</b> ${esc(x.suggested_design)}</p>`)).join('')
+  + `<div class="small mute" style="margin:-4px 0 12px">${h.candidates_passing_the_gate} candidates passed the gate (${esc(h.gate)}). Showing the strongest ${h.hypotheses.length}.</div>`
+  : `<div class="card" style="border-color:var(--warn)">${badge('nothing proposed', 'warn')} ${esc(h.note)}</div>`;
+const R = {
+  ing: j => { const s = j.result, t = s.citation_treatment; return kpis([{ label: 'Papers', value: fmt.n(s.papers), sub: s.years[0] + ' to ' + s.years[1] }, { label: 'Findings extracted', value: fmt.n(s.claims), sub: s.papers_without_an_extractable_claim + ' papers with none' },
+      { label: 'Pairs studied', value: s.pairs_studied, sub: 'of ' + s.concepts + ' concepts' }, { label: 'Citations', value: fmt.n(s.citations) }, { label: 'Evidence links', value: fmt.n(s.evidence_edges), sub: 'a citing finding answering a cited one' }])
+    + card('What each citation was doing', barChart([{ label: 'Just mentions it', value: t.background, color: PALETTE[0] }, { label: 'Agrees with it', value: t.support, color: PALETTE[1] }, { label: 'Disagrees with it', value: t.contrast, color: PALETTE[3] }])); },
+  search: s => card(`${s.matches} papers match ${s.query}`, table([{ k: 'title', label: 'Paper', f: (v, r) => `${esc(v)} <span class="mute small">${r.published_at.slice(0, 4)}</span>` }, { k: 'cited_by', label: 'Cited by', num: 1 },
+    { k: 'claims', label: 'Finding extracted', f: v => `<span class="mono">${esc(v[0].claim_text.slice(0, 70))}</span>` }], s.items)),
+  ev: e => `<p class="big">Claim: <b>${esc(e.statement)}</b> <span class="mute small">from "${esc(e.claim.title)}" (${e.claim.year})</span></p>`
+    + kpis([{ label: 'Other papers on this pair', value: e.pooled.papers - 1 }, { label: 'Agree', value: `<span class="up">${e.counts.supporting}</span>` }, { label: 'Opposite direction', value: `<span class="down">${e.counts.contradicting}</span>` },
+      { label: 'Found no effect', value: e.counts.no_effect }, { label: 'Pooled verdict', value: e.pooled.verdict, sub: 'score ' + fmt.n(e.pooled.score, 2) + ' on a -1 to +1 scale' }])
+    + `<div class="grid2">${card('Strongest support', findings(e.supporting))}${card('Strongest contradiction', findings(e.contradicting))}</div>`
+    + card('What later papers said when they cited this one', table([{ k: 'treatment', label: '', f: v => badge(v === 'support' ? 'agrees' : 'disagrees', v === 'support' ? 'good' : 'bad') }, { k: 'context', label: 'In their words', f: v => `"${esc(v)}"` },
+        { k: 'year', label: 'Year', num: 1 }], e.direct_responses.what_citing_papers_said)),
+  rev: (v, all) => card(v.question + ' ' + v.method, `<div class="small mute" style="margin-bottom:8px">Found by search: ${v.flow.identified_by_search} · with a finding on this pair: ${v.flow.with_an_extractable_finding_on_this_pair} · included: ${v.flow.included}${v.cautions.length ? ' · caution: ' + esc(v.cautions.join('; ')) : ''}</div>
+      <div class="grid2"><div>${pooledRow(v.by_design)}</div><div>${pooledRow(v.by_period)}</div></div>`)
+    + `<div class="grid2">${card('Datasets behind the agreeing papers', barChart(all.ev.rests_on.datasets.map(d => ({ label: d.name, value: d.share_of_influence, note: d.papers + ' papers' })), { fmt: x => fmt.pct(x) }))}
+       ${card('Most influential agreeing papers (citation rank)', table([{ k: 'title', label: 'Paper', f: (t, r) => `${esc(t.slice(0, 52))} <span class="mute small">${r.year}</span>` }, { k: 'cited_by', label: 'Cited by', num: 1 }], all.ev.rests_on.most_influential_papers))}</div>`,
+  graph: g => card(`Everything studied around ${g.topic.name}`, graphSvg(g)),
+  hyp: hyps, hyp2: hyps,
+  search2: s => `<div class="small mute" style="margin-bottom:10px">Claim: ${esc(s.items[0].claims[0].claim_text)}.</div>`,
+  _step6: r => card('Checked against the simulator\'s hidden graph', table([{ k: 's', label: 'Hypothesis' }, { k: 't', label: 'Papers that tested it', num: 1, f: t => t.papers_testing_it }, { k: 't', label: 'Hidden truth', f: (t, row) => t.real_effect ? badge(t.direction === row.d ? 'real, direction right' : 'real, direction wrong', t.direction === row.d ? 'good' : 'warn') : badge('no such effect', 'bad') }],
+      r.hyp.hypotheses.map((h, i) => ({ s: h.statement, d: h.direction, t: r['t' + i] }))) + '<div class="small mute" style="margin-top:8px">On ten other generated fields the top five proposals were real effects 72% of the time, against 4% for random untested pairs. The fields are built so that two solid links usually imply a direct effect; real science is not.</div>'),
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 130))}</span>` }], a.events.slice().reverse())),
+};
+R._step6.first = true;
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+{
+ "service": "literature-discovery-engine",
+ "run": "demo-1",
+ "tokens": {
+  "admin": "uni-admin-demo",
+  "researcher": "uni-researcher-demo",
+  "reader": "uni-reader-demo"
+ },
+ "steps": [
+  {
+   "title": "Ingest 4,000 papers",
+   "say": "An invented research field: 20 interventions, 20 biomarkers, 20 outcomes, and twenty years of papers reporting on them with the usual noise. Each abstract is parsed for its findings, and each citation for whether it agrees, disagrees or just mentions.",
+   "calls": [
+    {
+     "key": "ing",
+     "as": "admin",
+     "method": "POST",
+     "path": "/v1/papers/ingest",
+     "body": {
+      "source": "demo-corpus"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Pick a claim",
+   "say": "Search for papers on kallexjorib and serum traphenjorase, and take the finding from the top result.",
+   "calls": [
+    {
+     "key": "search",
+     "as": "reader",
+     "method": "GET",
+     "path": "/v1/search?q=%22kallexjorib%22+%22serum+traphenjorase%22&limit=5"
+    }
+   ]
+  },
+  {
+   "title": "What supports it, and what contradicts it?",
+   "say": "Every other paper that tested the same pair, split by what it found and weighted by study design and sample size; then what later papers said when they cited this one.",
+   "calls": [
+    {
+     "key": "ev",
+     "as": "reader",
+     "method": "GET",
+     "path": "/v1/claims/{{search.items.0.claims.0.id}}/evidence"
+    }
+   ]
+  },
+  {
+   "title": "What does the supporting evidence rest on?",
+   "say": "A systematic-review table for the question: the verdict by study design and by period, and the datasets, methods and most-cited papers that carry it.",
+   "calls": [
+    {
+     "key": "rev",
+     "as": "reader",
+     "method": "POST",
+     "path": "/v1/reviews/systematic",
+     "body": {
+      "subject_id": "{{ev.claim.subject_id}}",
+      "object_id": "{{ev.claim.object_id}}"
+     }
+    },
+    {
+     "key": "graph",
+     "as": "reader",
+     "method": "GET",
+     "path": "/v1/graphs/topic/{{ev.claim.object_id}}"
+    }
+   ]
+  },
+  {
+   "title": "Three hypotheses nobody has tested",
+   "say": "If A reliably moves B, and B reliably moves C, and no paper has ever tested A against C, that is a candidate. Each one comes with the papers behind both links, the weakest point in the argument, and a study that could prove it wrong.",
+   "calls": [
+    {
+     "key": "hyp",
+     "as": "researcher",
+     "method": "POST",
+     "path": "/v1/hypotheses/generate",
+     "body": {
+      "claim_id": "{{search.items.0.claims.0.id}}",
+      "count": 3
+     }
+    }
+   ]
+  },
+  {
+   "title": "A claim with nothing solid to build on",
+   "say": "The same request for a finding whose concepts have no well-supported onward links. The gate holds: nothing is proposed rather than something weak.",
+   "calls": [
+    {
+     "key": "search2",
+     "as": "reader",
+     "method": "GET",
+     "path": "/v1/search?q=%22urinary+quatrafenone%22+%22wound+healing+time%22&limit=5"
+    },
+    {
+     "key": "hyp2",
+     "as": "researcher",
+     "method": "POST",
+     "path": "/v1/hypotheses/generate",
+     "body": {
+      "claim_id": "{{search2.items.0.claims.0.id}}",
+      "count": 3
+     }
+    }
+   ]
+  },
+  {
+   "title": "Were the hypotheses right?",
+   "say": "Only a simulation can answer this: the field was generated from a hidden cause-and-effect graph, so each hypothesis can be checked against it. Then the audit trail.",
+   "calls": [
+    {
+     "key": "t0",
+     "as": "researcher",
+     "method": "GET",
+     "path": "/v1/simulation/truth?subject_id={{hyp.hypotheses.0.subject_id}}&object_id={{hyp.hypotheses.0.object_id}}"
+    },
+    {
+     "key": "t1",
+     "as": "researcher",
+     "method": "GET",
+     "path": "/v1/simulation/truth?subject_id={{hyp.hypotheses.1.subject_id}}&object_id={{hyp.hypotheses.1.object_id}}"
+    },
+    {
+     "key": "t2",
+     "as": "researcher",
+     "method": "GET",
+     "path": "/v1/simulation/truth?subject_id={{hyp.hypotheses.2.subject_id}}&object_id={{hyp.hypotheses.2.object_id}}"
+    },
+    {
+     "key": "audit",
+     "as": "admin",
+     "method": "GET",
+     "path": "/v1/audit?limit=8"
+    }
+   ]
+  }
+ ]
+}
