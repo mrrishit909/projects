@@ -59,7 +59,26 @@
   const quad = (a, c, b, t) => [(1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]];
   const fmt = (n, d = 0) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-  window.T = { TAU, clamp, lerp, seg, ease, rng, gauss, hex, mix, wrap01, rr, txt, line, dot, path, pointOn, quad, fmt };
+  // Shared tile layout: left, bars [label, value, text, colour?] growing against the largest; right, stat rows [label, text, colour?] revealed in turn.
+  function versus(g, u, W, H, o) {
+    const ink = "#eef0f4", BL = "#4a95f0", ORG = "#ff8a3d", GR = "#8a8f98", n = o.bars.length, max = Math.max(...o.bars.map((b) => b[1]));
+    const x0 = W * 0.05, bw = W * 0.37, top = H * 0.25, step = Math.min(H * 0.28, (H * 0.66) / n), bh = Math.min(H * 0.11, step * 0.42);
+    txt(g, o.kicker, x0, H * 0.12, { size: H * 0.024, color: hex(ink, 0.5), spacing: 2.5 });
+    o.bars.forEach(([nm, v, s, c], i) => {
+      const y = top + i * step, t = ease.out5(seg(u, 0.05 + i * 0.1, 0.4 + i * 0.1)), col = c || (i ? ORG : BL), w = Math.max(H * 0.006, bw * (v / max) * t);
+      txt(g, nm, x0, y, { size: H * 0.026, color: hex(ink, 0.8), weight: 400 });
+      rr(g, x0, y + H * 0.022, bw, bh, bh * 0.2); g.fillStyle = hex(ink, 0.05); g.fill();
+      rr(g, x0, y + H * 0.022, w, bh, bh * 0.2); g.fillStyle = col; g.fill();
+      txt(g, s, x0 + w + H * 0.02, y + H * 0.022 + bh / 2, { size: Math.min(H * 0.045, bh * 0.8), color: col, base: "middle", alpha: seg(t, 0.6, 1) });
+    });
+    const rx = W * 0.64, rw = W * 0.31; txt(g, o.rkicker || "ALSO MEASURED", rx, H * 0.12, { size: H * 0.024, color: hex(ink, 0.5), spacing: 2.5 });
+    o.stats.forEach(([nm, v, c], i) => {
+      const y = H * 0.27 + i * H * 0.15, t = ease.out5(seg(u, 0.5 + i * 0.07, 0.7 + i * 0.07));
+      line(g, rx, y - H * 0.05, rx + rw, y - H * 0.05, hex(ink, 0.12 * t), 1); txt(g, nm, rx, y, { size: H * 0.024, color: hex(ink, 0.8), weight: 400, alpha: t }); txt(g, v, rx + rw, y + H * 0.05, { size: H * 0.04, color: c || GR, align: "right", alpha: t });
+    });
+  }
+
+  window.T = { TAU, clamp, lerp, seg, ease, rng, gauss, hex, mix, wrap01, rr, txt, line, dot, path, pointOn, quad, fmt, versus };
   window.SCENES = window.SCENES || {};
   window.scene = (def) => { window.SCENES[def.slug] = def; };
 })();
