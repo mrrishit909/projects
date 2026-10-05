@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building Energy Optimization</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Commercial Building Energy Optimization</h1>
+  <span class="sub">Twenty simulated office buildings. One of them: find the fault, forecast the peak, plan around it, prove the saving.</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div>
+    <div id="steps"></div>
+    <section class="step" id="roi"><div class="head"><div class="grow"><h2>What is it worth?</h2>
+      <p>Weekly figures come from the run above (run step 7 first). Portfolio size and season length are assumptions: change them.</p></div></div>
+      <div class="out"><div class="card roi" id="roibox"><span class="mute">Run step 7 to load the figures.</span></div></div></section>
+  </div>
+</main>
+<footer>The buildings, weather, tariff and faults are simulated. Nothing here has controlled real equipment.</footer>
+<script src="kit.js"></script>
+<script>
+const idx = a => a.map((v, i) => [i, v]);
+const hr = v => 'h ' + Math.round(v), dy = v => 'day ' + (Math.floor(v / 24) + 1);
+const R = {
+  stream: j => { const s = j.result; return kpis([{ label: 'Readings stored', value: fmt.n(s.stored), sub: s.sensors + ' sensors, 1 per minute, 7 days' }, { label: 'Missing', value: s.missing, sub: 'a 90-minute drop-out on one sensor' },
+      { label: 'Tagged stuck', value: s.quality.stuck, sub: 'a frozen return-air sensor' }, { label: 'Out of range', value: s.quality.out_of_range }, { label: 'Duplicates ignored', value: s.duplicates_ignored }])
+    + `<div class="grid2">${card('Building and chiller power, hourly', lineChart([{ name: 'building meter kW', points: idx(s.hourly.meter_kw) }, { name: 'chiller kW', points: idx(s.hourly.chiller_kw), color: PALETTE[2] }], { h: 210, xfmt: dy }))}
+       ${card('Zone and outdoor temperature', lineChart([{ name: 'zone °C', points: idx(s.hourly.zone_c), color: PALETTE[1] }, { name: 'outdoor °C', points: idx(s.hourly.oat_c), color: PALETTE[3] }], { h: 210, xfmt: dy }))}</div>`; },
+  state: s => `<div class="small mute" style="margin-bottom:10px">${esc(s.name)} at ${fmt.time(s.as_of)}: meter ${s.meter_kw} kW, zone ${s.zone_c} °C (band ${s.comfort_band_c.join(' to ')} °C while occupied), battery ${s.battery_soc_kwh} kWh, ${s.open_faults} open fault.</div>`,
+  faults: f => { const d = f.items.find(x => x.fault_type === 'chiller_degradation' && x.building === 'Harbor Tower') || f.items[0], e = d.evidence;
+    return kpis([{ label: 'Fault', value: `<span style="font-size:15px">${esc(d.fault_type.replace(/_/g, ' '))}</span>`, sub: d.building + ' · ' + d.external_id }, { label: 'Efficiency vs expected', value: `<span style="color:var(--bad)">${fmt.pct(e.cop_ratio_recent)}</span>`, sub: 'was ' + fmt.pct(e.cop_ratio_at_open) + ' when opened' },
+      { label: 'Wasted each day', value: fmt.n(e.wasted_kwh_per_day) + ' kWh', sub: fmt.usd(d.estimated_cost_per_day, 2) + ' a day' }, { label: 'Open since', value: fmt.date(d.opened_at), sub: d.detector_version }])
+    + `<div class="grid2">${card('Measured chiller efficiency ÷ expected at that outdoor temperature (daily)', lineChart([{ points: e.daily_ratio.map((v, i) => [i, v]).filter(p => p[1] != null), color: PALETTE[3], dots: 1 }],
+        { h: 210, xfmt: v => 'day ' + Math.round(v + e.first_day_shown), yfmt: v => fmt.pct(v), marks: [{ x: 30, label: 'fault opened' }] }))}
+      ${card(`Open faults across the portfolio · ${fmt.usd(f.cost_per_day_total, 0)} a day`, table([{ k: 'building', label: 'Building' }, { k: 'fault_type', label: 'Fault', f: v => esc(v.replace(/_/g, ' ')) }, { k: 'severity', label: 'Severity', f: v => badge(v, v === 'high' ? 'bad' : 'warn') },
+        { k: 'estimated_cost_per_day', label: '$ / day', num: 1, f: v => fmt.n(v, 2) }], f.items.slice(0, 6)))}</div>`; },
+  fc: f => kpis([{ label: 'Forecast peak', value: `<span style="color:var(--bad)">${fmt.n(f.peak_kw)} kW</span>`, sub: 'at ' + f.peak_hour + ':00' }, { label: 'Typical daily peak', value: fmt.n(f.typical_daily_peak_kw) + ' kW', sub: '90th percentile, last 28 days' },
+      { label: 'Spike', value: f.spike ? badge('yes', 'bad') : badge('no', 'good') }, { label: 'Forecast high', value: Math.max(...f.oat_forecast_c) + ' °C' }, { label: 'Demand charge if it sets the peak', value: fmt.usd(f.demand_charge_if_new_peak) }])
+    + card('Tomorrow, hour by hour', lineChart([{ name: `learned model (${f.model_version})`, points: idx(f.load_kw) }, { name: 'thermal model, same weather forecast', points: idx(f.load_kw_physics), color: PALETTE[3] }], { h: 220, xfmt: hr, ymin: 0 })
+      + `<div class="small mute" style="margin-top:6px">${esc(f.spike_reason)}. ${f.models_disagree ? `The learned model forecasts ${fmt.n(f.peak_kw_learned_model)} kW and the thermal model ${fmt.n(f.peak_kw_physics_model)} kW: a tree model cannot forecast above loads it has seen, so the spike flag takes the larger.` : ''}</div>`),
+  plan: p => { const s = p.schedule, e = p.expected; return kpis([{ label: 'Expected energy cost', value: fmt.usd(e.plan.energy_cost), sub: 'fixed schedule ' + fmt.usd(e.fixed_schedule.energy_cost) }, { label: 'Expected peak', value: fmt.n(e.plan.peak_kw) + ' kW', sub: 'fixed schedule ' + fmt.n(e.fixed_schedule.peak_kw) + ' kW' },
+      { label: 'Chiller efficiency used', value: fmt.pct(p.chiller_health_used), sub: 'from the fault evidence' }, { label: 'Solver', value: `<span style="font-size:15px">${p.solver.variables} variables</span>`, sub: p.solver.name }, { label: 'Safety envelope', value: p.safety_violations.length ? badge('fail', 'bad') : badge('pass', 'good') }])
+    + `<div class="grid2">${card('Grid power: plan against the fixed schedule', lineChart([{ name: 'plan kW', points: s.hour.map((h, i) => [h, s.grid_plan_kw[i]]), color: PALETTE[1] }, { name: 'fixed schedule kW', points: s.hour.map((h, i) => [h, s.grid_baseline_kw[i]]), color: '#6b6b78' },
+        { name: 'price ¢/kWh ×10', points: s.hour.map((h, i) => [h, s.price[i] * 1000]), color: PALETTE[2], dash: 1 }], { h: 220, xfmt: hr, ymin: 0 }))}
+      ${card('Battery', lineChart([{ name: 'power kW (+ charge)', points: s.hour.map((h, i) => [h, s.battery_kw[i]]), color: PALETTE[4] }, { name: 'state of charge kWh', points: s.hour.map((h, i) => [h, s.battery_soc_kwh[i]]), color: PALETTE[5] }], { h: 220, xfmt: hr }))}</div>`
+    + card('Control actions awaiting approval', table([{ k: 'equipment', label: 'Equipment' }, { k: 'action_type', label: 'Action', f: v => esc(v.replace(/_/g, ' ')) }, { k: 'requested_value', label: 'Value', num: 1 }, { k: 'safety_check', label: 'Safety', f: v => badge(v, v === 'pass' ? 'good' : 'bad') },
+        { k: 'status', label: 'Status', f: v => badge(v, 'warn') }], p.actions)); },
+  _step4: Object.assign(r => { const p = r.plan, s = p.schedule, b = p.comfort_band_c, occ = s.hour.filter((h, i) => s.occupied[i]);
+    return card(`Zone temperature: planned ${p.expected.occupied_zone_min_c} to ${p.expected.occupied_zone_max_c} °C while occupied; band ${b[0]} to ${b[1]} °C`, lineChart([{ name: 'plan °C', points: s.hour.map((h, i) => [h, s.zone_plan_c[i]]), color: PALETTE[1] },
+        { name: 'fixed schedule °C', points: s.hour.map((h, i) => [h, s.zone_baseline_c[i]]), color: '#6b6b78' }, { name: 'comfort band (occupied hours)', points: [[occ[0], b[1]], [occ.at(-1), b[1]]], color: PALETTE[3], dash: 1 }, { points: [[occ[0], b[0]], [occ.at(-1), b[0]]], color: PALETTE[3], dash: 1 }],
+        { h: 230, xfmt: hr, yfmt: v => fmt.n(v, 1) + '°' })); }, { first: true }),
+  unsafe: p => card('Request: let the occupied zone rise to 27 °C', `${badge(p.status + ' ' + p.code, 'bad')} ${esc(p.detail)}`),
+  denied: p => card('Operator tries to approve', `${badge(p.status + ' ' + p.code, 'bad')} ${esc(p.detail)}`),
+  ok2: (a, r) => card('Engineer approves both schedules', [r.ok1, a].map(x => `${badge(x.status, 'good')} ${esc(x.action_type.replace(/_/g, ' '))} · ${esc(x.approved_by)}`).join('<br>')),
+  run: j => { const s = j.result; return card(`Seven days applied in the simulator · job ${j.status}`, kpis([{ label: 'Energy cost', value: fmt.usd(s.actual.energy_cost), sub: 'fixed schedule ' + fmt.usd(s.fixed_schedule.energy_cost) }, { label: 'Peak demand', value: fmt.n(s.actual.peak_kw) + ' kW', sub: 'fixed schedule ' + fmt.n(s.fixed_schedule.peak_kw) + ' kW' },
+      { label: 'Energy', value: fmt.n(s.actual.kwh) + ' kWh', sub: 'fixed schedule ' + fmt.n(s.fixed_schedule.kwh) }, { label: 'Comfort violations', value: s.comfort_violation_minutes + ' min', sub: 'occupied minutes outside the band' }, { label: 'Schedules blocked by safety', value: s.schedules_blocked_by_safety }])); },
+  sav: v => { const m = v.measured, t = v.simulator_truth, row = (label, x, truth, unit, d = 0) => ({ label, measured: `${unit === '$' ? fmt.usd(x.savings, d) : fmt.n(x.savings, d) + ' ' + unit} ± ${unit === '$' ? fmt.usd(x.uncertainty_95, d) : fmt.n(x.uncertainty_95, d)}`,
+      est: x.established ? badge('established', 'good') : badge('inside the error band', 'warn'), truth: unit === '$' ? fmt.usd(truth, d) : fmt.n(truth, d) + ' ' + unit, fit: fmt.pct(x.cv_rmse, 1) });
+    return card(`Measurement and verification · ${v.mv_version} · baseline fitted on the 8 weeks before`, table([{ k: 'label', label: 'Saving over 7 days' }, { k: 'measured', label: 'Measured (baseline model − actual)', num: 1, f: x => x }, { k: 'est', label: '', f: x => x },
+        { k: 'truth', label: 'True (simulated counterfactual)', num: 1, f: x => x }, { k: 'fit', label: 'Baseline CV(RMSE)', num: 1, f: x => x }],
+        [row('Energy cost', m.cost, t.cost, '$'), row('Peak demand', m.peak, t.peak, 'kW'), row('Energy', m.kwh, t.kwh, 'kWh')])
+      + `<div class="small mute" style="margin-top:8px">The measurement understates the saving. The baseline was fitted on cooler weeks, and the chiller kept degrading, so it predicts less use than the old schedule would really have needed. Only a simulator can show that gap.</div>`)
+    + `<div class="grid2">${card('Daily energy cost: baseline model against actual', lineChart([{ name: 'baseline model $', points: idx(m.cost.daily_baseline), color: '#6b6b78' }, { name: 'actual $', points: idx(m.cost.daily_actual), color: PALETTE[1] }], { h: 210, xfmt: v => 'day ' + (Math.round(v) + 1), ymin: 0 }))}
+      ${card('Meter, hourly: controlled against the fixed schedule', lineChart([{ name: 'controlled kW', points: idx(v.hourly.meter_kw), color: PALETTE[1] }, { name: 'fixed schedule kW (simulated)', points: idx(v.hourly.meter_fixed_kw), color: '#6b6b78' }], { h: 210, xfmt: dy, ymin: 0 }))}</div>`; },
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object' || Array.isArray(v)).map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 130))}</span>` }], a.events.slice().reverse())),
+  _after: (i, r) => { if (i === 6) roi(r); },
+};
+function roi(r) {
+  const t = r.sav.simulator_truth, f = r.faults.items.find(x => x.building === 'Harbor Tower'), box = document.querySelector('#roibox');
+  box.innerHTML = `<div class="grid2"><div>
+    <label>Energy cost saved per building-week, $ (from the run) <input type="number" id="r_e" value="${Math.round(t.cost)}"></label>
+    <label>Peak reduction, kW (from the run) <input type="number" id="r_p" value="${Math.round(t.peak)}"></label>
+    <label>Demand charge, $ per kW-month (the tariff) <input type="number" id="r_d" value="18"></label>
+    <label>Fault waste found, $ per day (from the fault) <input type="number" id="r_f" value="${Math.round(f ? f.estimated_cost_per_day : 0)}"></label>
+    <label>Cooling-season weeks per year (assumption) <input type="number" id="r_w" value="20"></label>
+    <label>Buildings like this one (assumption) <input type="number" id="r_n" value="20"></label></div><div id="r_out"></div></div>`;
+  const calc = () => { const g = id => +document.querySelector(id).value, per = g('#r_e') * g('#r_w') + g('#r_p') * g('#r_d') * g('#r_w') / 4.3 + g('#r_f') * 7 * g('#r_w');
+    document.querySelector('#r_out').innerHTML = kpis([{ label: 'Per building per year', value: fmt.usd(per) }, { label: 'Portfolio per year', value: fmt.usd(per * g('#r_n')) }])
+      + '<div class="small mute">A hot week in a warm climate with a degraded chiller is close to a best case. Milder weeks save less.</div>'; };
+  box.oninput = calc; calc();
+}
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>

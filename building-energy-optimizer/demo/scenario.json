@@ -1,0 +1,145 @@
+{
+ "service": "building-energy-optimizer",
+ "run": "demo-1",
+ "tokens": {
+  "operator": "acme-operator-demo",
+  "engineer": "acme-engineer-demo",
+  "admin": "acme-admin-demo"
+ },
+ "steps": [
+  {
+   "title": "Stream one week of telemetry",
+   "say": "The simulated building runs for a week on its usual fixed schedule. Eight sensors report every minute; each reading passes through ingestion, where it is range-checked and tagged.",
+   "calls": [
+    {
+     "key": "b",
+     "as": "operator",
+     "method": "GET",
+     "path": "/v1/buildings?name=Harbor+Tower"
+    },
+    {
+     "key": "stream",
+     "as": "operator",
+     "method": "POST",
+     "path": "/v1/simulator:stream",
+     "body": {
+      "building_id": "{{b.items.0.id}}",
+      "days": 7
+     }
+    },
+    {
+     "key": "state",
+     "as": "operator",
+     "method": "GET",
+     "path": "/v1/buildings/{{b.items.0.id}}/state"
+    }
+   ]
+  },
+  {
+   "title": "Detect a deteriorating chiller",
+   "say": "Fault rules run over the whole history. The chiller is delivering less cooling per kilowatt than it should at these outdoor temperatures, and the gap is widening: here is what that wastes each day.",
+   "calls": [
+    {
+     "key": "faults",
+     "as": "operator",
+     "method": "GET",
+     "path": "/v1/faults"
+    }
+   ]
+  },
+  {
+   "title": "Forecast tomorrow's demand spike",
+   "say": "A model forecasts tomorrow hour by hour from the weather forecast, the occupancy schedule and recent load. A heat wave is coming.",
+   "calls": [
+    {
+     "key": "fc",
+     "as": "engineer",
+     "method": "GET",
+     "path": "/v1/buildings/{{b.items.0.id}}/forecast"
+    }
+   ]
+  },
+  {
+   "title": "Generate a pre-cooling and battery schedule",
+   "say": "A linear program plans 96 quarter-hours: cool the building's mass while power is cheap, coast through the expensive afternoon, and discharge the battery into the peak.",
+   "calls": [
+    {
+     "key": "plan",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/buildings/{{b.items.0.id}}/optimize",
+     "body": {}
+    }
+   ]
+  },
+  {
+   "title": "Enforce occupied-zone temperature limits",
+   "say": "The planned temperature stays inside the comfort band whenever people are in. An attempt to widen the band to save more is refused before any schedule is produced.",
+   "calls": [
+    {
+     "key": "unsafe",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/buildings/{{b.items.0.id}}/optimize",
+     "body": {
+      "comfort_max_c": 27.0
+     },
+     "expect_error": true
+    }
+   ]
+  },
+  {
+   "title": "Approve, then apply in the simulator",
+   "say": "An operator cannot approve control changes; an engineer can. The approved schedules then run for seven days against the real weather, re-planned each midnight.",
+   "calls": [
+    {
+     "key": "denied",
+     "as": "operator",
+     "method": "POST",
+     "path": "/v1/control-actions/{{plan.actions.0.id}}:approve",
+     "expect_error": true
+    },
+    {
+     "key": "ok1",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/control-actions/{{plan.actions.0.id}}:approve"
+    },
+    {
+     "key": "ok2",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/control-actions/{{plan.actions.1.id}}:approve"
+    },
+    {
+     "key": "run",
+     "as": "operator",
+     "method": "POST",
+     "path": "/v1/simulator:advance",
+     "body": {
+      "building_id": "{{b.items.0.id}}",
+      "days": 7
+     }
+    }
+   ]
+  },
+  {
+   "title": "Measured savings against a normalised baseline",
+   "say": "A baseline model fitted on the eight weeks before says what this week's weather would have cost on the old schedule. Because the building is simulated, the true answer is also known, so the measurement itself can be checked.",
+   "calls": [
+    {
+     "key": "sav",
+     "as": "engineer",
+     "method": "GET",
+     "path": "/v1/savings?building_id={{b.items.0.id}}"
+    },
+    {
+     "key": "audit",
+     "as": "admin",
+     "method": "GET",
+     "path": "/v1/audit?limit=10"
+    }
+   ]
+  }
+ ]
+}
