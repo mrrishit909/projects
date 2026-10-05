@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claims Triage, Fraud &amp; Damage Intelligence</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+.photos { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+.photo { position:relative; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#000; }
+.photo img { display:block; width:100%; image-rendering:pixelated; } .photo img.mask { position:absolute; inset:0; }
+.photo .cap { font:10.5px var(--mono); color:var(--mute); padding:4px 6px; background:var(--panel); min-height:34px; }
+.route { font-size:26px; font-weight:700; letter-spacing:.02em; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Claims Triage, Fraud &amp; Damage Intelligence</h1>
+  <span class="sub">An invented insurer: 100,000 policies, 50,000 claims, 25 planted fraud rings. One new collision claim, start to finish.</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div>
+    <div id="steps"></div>
+    <section class="step" id="roi"><div class="head"><div class="grow"><h2>What is it worth?</h2>
+      <p>Catch rates are from the held-out evaluation (docs/evaluation.md). Volumes and amounts are assumptions: change them.</p></div></div>
+      <div class="out"><div class="card roi" id="roibox"></div></div></section>
+  </div>
+</main>
+<footer>People, businesses, policies and claims are synthetic. The photos are drawings made by a script, and the damage model has only ever seen such drawings.</footer>
+<script src="kit.js"></script>
+<script>
+const photo = (m, withMask = true) => `<div class="photo"><img src="${m.image}" alt="${esc(m.filename)}">${withMask ? m.findings.filter(f => f.status !== 'rejected').map(f => `<img class="mask" src="${f.mask}" alt="">`).join('') : ''}
+  <div class="cap">${withMask ? (m.findings.map(f => `<span style="color:${f.low_confidence ? 'var(--warn)' : 'var(--text)'}">${esc(f.part)} ${fmt.pct(f.severity)} · ${fmt.pct(f.confidence)}</span>`).join('<br>') || 'no damage') : esc(m.filename)}</div></div>`;
+function graphSvg(g) {
+  const w = 720, h = 380, pos = {}, by = t => g.nodes.filter(n => n.type === t && !['claim', 'me', 'shop'].includes(n.id));
+  pos.me = [w / 2, h / 2]; pos.claim = [w / 2 - 190, 60]; pos.shop = [w / 2 - 190, h - 60];
+  by('claim').forEach((n, i, a) => pos[n.id] = [120 + i * ((w - 240) / Math.max(1, a.length - 1 || 1)) * (a.length > 1 ? 1 : 0) + (a.length > 1 ? 0 : 60), h / 2 + (i % 2 ? 0 : 0)]);
+  const cl = by('claim'); cl.forEach((n, i) => pos[n.id] = [60 + (i + 0.5) * (w / 2 - 80) / cl.length, h / 2 + (i % 2 ? 44 : -4)]);
+  const pe = by('person'); pe.forEach((n, i) => pos[n.id] = [w / 2 + 70 + (i % 2) * 150, 40 + Math.floor(i / 2) * ((h - 80) / Math.max(1, Math.ceil(pe.length / 2) - 1 || 1)) * (pe.length > 2 ? 1 : 0)]);
+  const col = n => n.flag ? '#ef6a6a' : n.type === 'repair_shop' ? '#e0a63c' : n.type === 'person' ? '#7aa2ff' : '#9a9aa6';
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%">${g.edges.filter(e => pos[e.src] && pos[e.dst]).map(e => `<line x1="${pos[e.src][0]}" y1="${pos[e.src][1]}" x2="${pos[e.dst][0]}" y2="${pos[e.dst][1]}" stroke="${e.label.startsWith('shares') ? '#7aa2ff' : e.label === 'repair at' ? '#e0a63c' : '#55555f'}" stroke-width="1" opacity=".7"/>`).join('')}
+    ${g.nodes.filter(n => pos[n.id]).map(n => `<g><title>${esc(n.detail || '')}</title><circle cx="${pos[n.id][0]}" cy="${pos[n.id][1]}" r="${n.id === 'me' ? 9 : 6}" fill="${col(n)}"/><text x="${pos[n.id][0]}" y="${pos[n.id][1] - 11}" text-anchor="middle" style="font-size:10px;fill:${n.flag ? '#ef6a6a' : '#c9c9d4'}">${esc(n.label.length > 24 ? n.label.slice(0, 23) + '…' : n.label)}</text></g>`).join('')}</svg>
+    <div class="legend"><span><i style="background:#ef6a6a"></i>confirmed fraud in its history</span><span><i style="background:#7aa2ff"></i>person (blue line: shares phone, address, bank or device)</span><span><i style="background:#e0a63c"></i>repair shop</span><span><i style="background:#9a9aa6"></i>claim</span></div>`;
+}
+const estCard = (e, title) => card(title, kpis([{ label: 'Repair estimate', value: `${fmt.usd(e.total_low)} to ${fmt.usd(e.total_high)}`, sub: e.vehicle_class + ' · ' + e.region + ' labour rates' }, { label: 'Deductible', value: fmt.usd(e.coverage.deductible) },
+    { label: 'Payable', value: `${fmt.usd(e.coverage.payable_low)} to ${fmt.usd(e.coverage.payable_high)}`, sub: e.coverage.covered ? 'covered' : e.coverage.issues.join('; ') }, { label: 'Source', value: `<span style="font-size:15px">${esc(e.source)}</span>`, sub: 'version ' + e.version + ' · ' + e.engine }])
+  + table([{ k: 'part', label: 'Part' }, { k: 'operation', label: 'Operation' }, { k: 'severity', label: 'Area damaged', num: 1, f: v => fmt.pct(v) }, { k: 'confidence', label: 'Confidence', num: 1, f: v => fmt.pct(v) },
+    { k: 'low', label: 'Low', num: 1, f: v => fmt.usd(v) }, { k: 'high', label: 'High', num: 1, f: v => fmt.usd(v) }], e.line_items));
+const R = {
+  claim: c => kpis([{ label: 'Claim', value: `<span style="font-size:15px">${esc(c.claim_number)}</span>`, sub: c.policy_number + ' · ' + c.loss_type }, { label: 'Claimant', value: c.claimant.matched_existing_person ? badge('known person', 'warn') : badge('new person', 'good'), sub: c.claimant.matched_on || '' },
+      { label: 'Police report', value: `<span style="font-size:15px">${esc(c.police_report.report_number)}</span>`, sub: c.police_report.fields_found + ' fields read · ' + c.police_report.location },
+      { label: 'Injuries in report', value: c.police_report.injuries_reported ? 'yes' : 'no', sub: 'vehicles involved: ' + c.police_report.vehicles_involved }]),
+  media: m => card(`${m.stored.length} photos stored · ${m.duplicates_ignored} duplicates ignored · each validated by content and hashed`,
+    `<div class="photos">${demo.scenario.steps[0].calls[1].body.images.map(i => photo({ image: 'data:image/png;base64,' + i.content_base64, filename: i.filename, findings: [] }, false)).join('')}</div>`),
+  job: j => `<div class="small mute" style="margin-bottom:10px">Job ${esc(j.status)} in ${j.attempts} attempt: ${j.result.findings} findings · models ${esc(Object.values(j.result.models).join(', '))}</div>`,
+  damage: d => card(`Damage masks · ${d.model_version} · findings under ${fmt.pct(d.low_confidence_below)} confidence are shown in amber`, `<div class="photos">${d.media.map(m => photo(m)).join('')}</div>`)
+    + card('Merged per part', table([{ k: 'object_class', label: 'Part' }, { k: 'photos', label: 'Seen in photos', num: 1, f: v => v + ' of ' + d.media.length }, { k: 'severity', label: 'Area damaged (mean)', num: 1, f: v => fmt.pct(v) },
+        { k: 'confidence', label: 'Confidence', num: 1, f: v => v < d.low_confidence_below ? `<span style="color:var(--warn)">${fmt.pct(v)}</span>` : fmt.pct(v) }], d.parts)),
+  estimate: e => estCard(e, 'Estimate from the vision findings'),
+  fraud: f => kpis([{ label: 'Fraud score', value: `<span style="color:var(--bad)">${fmt.n(f.fraud_score, 2)}</span>`, sub: 'referral threshold ' + fmt.n(f.siu_threshold, 2) }, { label: 'Earlier confirmed fraud', value: f.features.entity_prior_suspicious, sub: 'same person, other spellings' },
+      { label: 'People sharing details', value: f.features.linked_entities, sub: f.features.linked_prior_suspicious + ' confirmed-fraud claims among them' }, { label: 'Shop: confirmed-fraud share', value: fmt.pct(f.features.shop_suspicious_share), sub: f.features.shop_prior_claims + ' earlier claims' }])
+    + card('Connected entities', `<p style="margin:0 0 6px">${esc(f.summary)}</p>` + graphSvg(f.graph))
+    + card(`Why the score is high · ${f.model_version}`, table([{ k: 'reason', label: 'Reason' }, { k: 'value', label: 'Value', num: 1, f: v => fmt.n(v, 2) }, { k: 'contribution', label: 'Score falls by, if typical', num: 1, f: v => fmt.n(v, 2) }], f.reasons)),
+  triage: t => card('Routing decision', `<div class="route" style="color:var(--bad)">${esc({ siu: 'SPECIAL INVESTIGATIONS', adjuster: 'ADJUSTER', straight_through: 'STRAIGHT-THROUGH' }[t.route])}</div>
+      <div class="small mute" style="margin:4px 0 10px">score ${t.fraud_score} against threshold ${t.siu_threshold} · ${esc(t.model_version)} · rule: ${esc(t.rule)}</div>`
+    + table([{ k: 'code', label: 'Reason code', f: v => `<span class="mono">${esc(v)}</span>` }, { k: 'text', label: 'Meaning' }, { k: 'weight', label: 'Weight', num: 1, f: v => v == null ? '' : fmt.n(v, 2) }], t.reasons)),
+  override: (o, r) => card('Adjuster override', `${badge(o.finding.status, 'bad')} <b>${esc(o.finding.part)}</b> finding (model confidence ${fmt.pct(o.finding.model_confidence)}): “${esc(demo.scenario.steps[5].calls[0].body.reason)}”
+      <div style="margin-top:8px">` + kpis([{ label: 'Estimate before', value: `${fmt.usd(r.estimate.total_low)} to ${fmt.usd(r.estimate.total_high)}` }, { label: 'Estimate after', value: `${fmt.usd(o.estimate.low)} to ${fmt.usd(o.estimate.high)}` },
+        { label: 'Training labels captured', value: o.feedback_labels, sub: 'finding, decision, reason, model version' }]) + '</div>'),
+  estimate2: e => estCard(e, 'Estimate after the override'),
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 140))}</span>` }], a.events.slice().reverse())),
+};
+(function roi() {
+  const box = document.querySelector('#roibox');
+  box.innerHTML = `<div class="grid2"><div>
+    <label>Claims per year (assumption) <input type="number" id="r_n" value="50000"></label>
+    <label>Share that is fraud, % (the synthetic book: 1.75) <input type="number" id="r_f" value="1.75" step="0.05"></label>
+    <label>Average paid on a fraudulent claim, $ (assumption) <input type="number" id="r_v" value="6500"></label>
+    <label>Fraud caught referring the top 2%: graph model, % (evaluation) <input type="number" id="r_m" value="54.2" step="0.1"></label>
+    <label>Fraud caught referring the top 2%: red-flag checklist, % (evaluation) <input type="number" id="r_b" value="17.6" step="0.1"></label></div><div id="r_out"></div></div>`;
+  const calc = () => { const g = id => +document.querySelector(id).value, fr = g('#r_n') * g('#r_f') / 100;
+    document.querySelector('#r_out').innerHTML = kpis([{ label: 'Fraudulent claims a year', value: fmt.n(fr) }, { label: 'Stopped with the checklist', value: fmt.usd(fr * g('#r_b') / 100 * g('#r_v')) },
+      { label: 'Stopped with the graph model', value: fmt.usd(fr * g('#r_m') / 100 * g('#r_v')) }, { label: 'Difference', value: fmt.usd(fr * (g('#r_m') - g('#r_b')) / 100 * g('#r_v')), sub: 'same investigator workload' }]); };
+  box.oninput = calc; calc();
+})();
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>
