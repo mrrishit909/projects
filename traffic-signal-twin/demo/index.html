@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic Digital Twin</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header class="top">
+  <h1>Traffic Digital Twin &amp; Signal Optimisation</h1>
+  <span class="sub">Sixteen signals in an invented city. A stadium empties while a lane is shut. Is there a safer, faster timing plan?</span>
+  <span class="mode">…</span>
+  <button class="primary" id="runall">Run all steps</button>
+</header>
+<main>
+  <nav class="steps"></nav>
+  <div><div id="steps"></div></div>
+</main>
+<footer>The city, its traffic and its detectors are simulated by a simple queue model, far cruder than a real street. Results mean "better in this model". No plan is ever sent to a signal controller: the system proposes, a traffic engineer decides.</footer>
+<script src="kit.js"></script>
+<script>
+const P = 92, M = 70, D = { N: [0, 1], S: [0, -1], E: [1, 0], W: [-1, 0] };
+const col = v => v > 80 ? '#ef6a6a' : v > 30 ? '#e0a63c' : v > 10 ? '#7aa2ff' : '#3d3d48';
+// values: per-link number (queue); net: /v1/network response
+function mapSvg(net, values, unit = 'vehicles queued') {
+  const X = x => M + x * P, Y = y => M + (net.grid - 1 - y) * P, size = 2 * M + (net.grid - 1) * P;
+  let s = '';
+  for (const k of net.links) {
+    const [dx, dy] = D[k.heading], ox = -dy * 5, oy = dx * 5, v = values ? values[k.link] : 0;
+    s += `<line x1="${X(k.to[0] - dx * (k.entry ? 0.55 : 1)) + ox}" y1="${Y(k.to[1] - dy * (k.entry ? 0.55 : 1)) - oy}" x2="${X(k.to[0]) + ox}" y2="${Y(k.to[1]) - oy}" stroke="${values ? col(v) : '#4d4d59'}" stroke-width="${values ? 2 + Math.min(7, v / 25) : 2.5}" ${k.lane_closed ? 'stroke-dasharray="6 4"' : ''} stroke-linecap="round">
+      <title>into (${k.to}) heading ${k.heading}${values ? ': ' + fmt.n(v) + ' ' + unit : ''}${k.lane_closed ? ' · one lane shut' : ''}</title></line>`;
+  }
+  for (const n of net.intersections) s += `<circle cx="${X(n.x)}" cy="${Y(n.y)}" r="7" fill="#0b0b0c" stroke="#9a9aa6" stroke-width="1.5"><title>${esc(n.name)}</title></circle>`;
+  const [sx, sy] = net.stadium;
+  s += `<rect x="${X(sx) + 18}" y="${Y(sy) - 44}" width="46" height="26" rx="5" fill="#2a2110" stroke="#e0a63c"/><text x="${X(sx) + 41}" y="${Y(sy) - 27}" text-anchor="middle" style="fill:#e0a63c">stadium</text>`;
+  const lg = values ? [['#3d3d48', 'under 10'], ['#7aa2ff', '10 to 30'], ['#e0a63c', '30 to 80'], ['#ef6a6a', 'over 80 ' + unit]] : [['#4d4d59', 'road, one line per direction']];
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:440px" role="img" aria-label="Network map">${s}</svg><div class="legend">${lg.map(([c, t]) => `<span><i style="background:${c}"></i>${esc(t)}</span>`).join('')}<span>dashed = lane shut</span></div>`;
+}
+const H = h => fmt.n(h) + ' h', S = s => fmt.n(s) + ' s';
+const simCard = (m, all, title) => kpis([{ label: 'Person-hours of delay', value: fmt.n(m.person_delay_h) }, { label: 'Mean delay per vehicle', value: S(m.mean_delay_s) }, { label: 'Mean bus delay', value: S(m.bus_delay_s) }, { label: 'Longest queue', value: fmt.n(m.max_queue_veh), sub: 'vehicles' },
+    { label: 'Blocked by a full road ahead', value: fmt.n(m.spillback_link_steps), sub: 'link-steps of spillback' }, { label: 'CO2 (assumed factors)', value: fmt.n(m.co2_kg / 1000, 1) + ' t' }])
+  + card(title, mapSvg(all.net, m.max_queue_by_link, 'vehicles at worst'));
+const R = {
+  scn: s => kpis([{ label: 'Signalised intersections', value: s.intersections }, { label: 'Road links', value: s.links, sub: s.entries + ' entries from outside' }, { label: 'Vehicles expected', value: fmt.n(s.vehicles_expected), sub: 'in ' + s.horizon_min + ' minutes' },
+    { label: 'Stadium empties', value: 'minute ' + s.event.ends_at_minute, sub: 'for ' + s.event.lasts_min + ' minutes' }, { label: 'Lane shut', value: s.lane_closure.map(p => '(' + p + ')').join(' → ') }]),
+  net: n => card(`The network · today: ${n.plan_in_field.cycle} s cycle, equal greens, no coordination`, mapSvg(n)),
+  feed: j => { const f = j.result, c = f.check_against_the_simulated_field; return kpis([{ label: 'Detector readings', value: fmt.n(f.readings_stored), sub: f.minutes + ' minutes' }, { label: 'Queue readings lost', value: f.queue_readings_missing },
+      { label: 'Error: filter', value: c.estimate_rmse_veh + ' veh' }, { label: 'Error: latest reading alone', value: c.latest_reading_rmse_veh + ' veh' }, { label: 'Error: counts alone', value: c.counts_only_rmse_veh + ' veh', sub: 'they drift' }])
+    + `<div class="small mute" style="margin:-4px 0 12px">Errors are against the simulated field, ${esc(c.note)}.</div>`; },
+  state: (s, all) => `<div class="grid2">${card(`Estimated queues at minute ${s.as_of_minute} · ${fmt.n(s.vehicles_queued)} vehicles`, mapSvg(all.net, Object.fromEntries(s.links.map(l => [l.link, l.queue_veh]))))}
+    ${card('Longest queues', table([{ k: 'intersection', label: 'Approach to' }, { k: 'direction', label: 'Heading' }, { k: 'queue_veh', label: 'Estimate', num: 1, f: (v, r) => `${fmt.n(v)} ± ${r.plus_minus}` }, { k: 'latest_reading', label: 'Last reading', num: 1, f: v => v == null ? 'missing' : fmt.n(v) },
+      { k: 'level', label: '', f: v => badge(v, v === 'free' ? 'good' : v === 'moderate' ? 'info' : v === 'heavy' ? 'warn' : 'bad') }], s.worst))}</div>`,
+  base: (j, all) => simCard(j.result, all, 'Worst queue on each link, today\'s timing'),
+  opt: j => { const o = j.result, rows = [['Person-hours of delay', 'person_delay_h', fmt.n], ['Mean delay per vehicle', 'mean_delay_s', S], ['Mean bus delay', 'bus_delay_s', S], ['Longest queue (vehicles)', 'max_queue_veh', fmt.n], ['Spillback (link-steps)', 'spillback_link_steps', fmt.n],
+      ['Mean pedestrian wait', 'pedestrian_wait_s', v => fmt.n(v, 1) + ' s'], ['Stops', 'stops', fmt.n], ['CO2, assumed factors (kg)', 'co2_kg', fmt.n]];
+    return kpis([{ label: 'Person delay', value: fmt.pct(o.person_delay_change), sub: 'on ' + o.held_out_days + ' unseen evenings' }, { label: 'Better on every evening', value: o.better_on_every_day ? 'yes' : 'no' }, { label: 'Cycle', value: o.plan.cycle + ' s', sub: 'was ' + o.in_field_plan.cycle + ' s' },
+        { label: 'Simulated hours searched', value: fmt.n(o.simulations_run) }, { label: 'Safety rules broken', value: o.safety_checks.violations.length, sub: 'shortest green ' + o.safety_checks.shortest_green_s + ' s' }])
+      + card('Mean over five evenings the search never saw', table([{ k: 'k', label: '' }, { k: 'a', label: 'In the field', num: 1 }, { k: 'p', label: 'Greens by load only', num: 1 }, { k: 'b', label: 'Proposed', num: 1 }], rows.map(([k, f, fn]) => ({ k, a: fn(o.in_field[f]), p: fn(o.proportional_greens_only[f]), b: fn(o.proposed[f]) })))
+        + `<div class="small mute" style="margin-top:8px">Stops rise with the shorter cycle; that is the cost of clearing queues sooner. Largest change to any intersection's green share: ${fmt.pct(o.safety_checks.largest_change_of_green_share, 1)} (limit 15%). ${esc(o.next[0].toUpperCase() + o.next.slice(1))}.</div>`); },
+  after: (j, all) => `<div class="grid2">${card('Vehicles queued through the hour, same evening', lineChart([{ name: 'today\'s timing', points: all.base.result.queued_by_minute.map((v, i) => [i, v]), color: PALETTE[3] }, { name: 'proposed', points: j.result.queued_by_minute.map((v, i) => [i, v]), color: PALETTE[1] }],
+      { h: 230, w: 460, xfmt: v => 'min ' + Math.round(v), ymin: 0, marks: [{ x: 10, label: 'event ends' }] }))}${card('Worst queue on each link, proposed timing', mapSvg(all.net, j.result.max_queue_by_link, 'vehicles at worst'))}</div>`,
+  unsafe: u => `<div class="card" style="border-color:var(--bad)">${badge('refused', 'bad')} <b>Unsafe plan.</b> ${esc(u.detail)}.</div>`,
+  self: u => `<div class="card" style="border-color:var(--bad)">${badge('refused', 'bad')} <b>Not allowed to approve.</b> ${esc(u.detail)}. A second rule, enforced in the database as well, stops even an engineer from deciding a proposal they filed themselves.</div>`,
+  approve: a => card(`Proposal ${a.status} by ${a.decided_by}`, `<div class="card" style="border-color:var(--warn)">${badge('not deployed', 'warn')} ${esc(a.deployment)}</div>`
+    + table([{ k: 'intersection', label: 'Intersection' }, { k: 'version', label: 'Plan version', num: 1 }, { k: 'cycle', label: 'Cycle', num: 1, f: S }, { k: 'green_ns', label: 'Green N-S', num: 1, f: S }, { k: 'green_ew', label: 'Green E-W', num: 1, f: S }, { k: 'offset', label: 'Offset', num: 1, f: S }], a.export.slice(0, 8))
+    + '<div class="small mute" style="margin-top:6px">First 8 of 16 intersections. Each phase change also has 4 s of yellow and all-red.</div>'),
+  audit: a => card(`Audit log · hash chain ${a.chain_valid ? 'verifies' : 'BROKEN'}`, table([{ k: 'at', label: 'When', f: fmt.time }, { k: 'action', label: 'Action', f: v => `<span class="mono">${esc(v)}</span>` },
+    { k: 'detail', label: 'Detail', f: d => `<span class="small">${esc(Object.entries(d).filter(([, v]) => typeof v !== 'object').map(([k, v]) => `${k}: ${v}`).join(' · ').slice(0, 130))}</span>` }], a.events.slice().reverse())),
+};
+const demo = new Demo(R); demo.init();
+</script>
+</body>
+</html>

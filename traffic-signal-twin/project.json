@@ -1,0 +1,55 @@
+{
+ "title": "Can Better Signal Timing Empty a Stadium Faster?",
+ "tagline": "A digital twin of 16 traffic signals in an invented city. With a stadium emptying and a lane shut, a search over 578 simulated evenings found a timing plan that cut delay by 56% in the model without ever shortening a pedestrian crossing. It cannot touch a real signal: it files a proposal, and a second person has to approve it.",
+ "kind": "Python \u00b7 Simulation \u00b7 Smart cities",
+ "order": 119,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "NumPy traffic simulator",
+  "Hill-climbing optimiser",
+  "Kalman filter",
+  "Hard safety constraints",
+  "Two-person approval",
+  "Docker Compose",
+  "39 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The city and its traffic are simulated</b> by a simple queue model that I wrote, far cruder than a real street: no lane changing, no driver behaviour. Every result means \"better in this model\", not a forecast for a real junction. Emissions use assumed factors. Not built: a real road network, reinforcement learning, any connection to signal controllers (on purpose), Kafka, Terraform, single sign-on.",
+ "problem": "<p>When a stadium empties, the signals around it keep running the plan written for an ordinary evening. Queues block the junctions behind them, buses are stuck in the same jam, and the fix is usually found months later in a study. <em>Can a model of the network test a better timing plan before anyone touches a signal, and do it without quietly taking the time away from people crossing the road?</em></p><p>Blueprint 8 of ten in a second build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page of maps, started by one <code>docker compose up</code>.</p><ul><li><b>A traffic simulator:</b> queues, green lights, and jams that spill back into the junction behind.</li><li><b>A live picture:</b> the queue on every road, estimated from imperfect detectors.</li><li><b>An optimiser</b> that searches for better timing inside fixed safety rules.</li><li><b>Evidence:</b> every proposal tested on evenings the search never saw.</li><li><b>Approval:</b> a second person decides; the system only exports the plan.</li></ul>",
+ "steps": [
+  {
+   "title": "Simulate an hour in 25 milliseconds",
+   "body": "<p>Every five seconds, each road releases waiting vehicles if its light is green and the road ahead has room. If the road ahead is full, nothing moves and the queue grows backwards into the previous junction. That one rule produces the gridlock that matters at a stadium. Being this simple makes the model fast enough to run hundreds of times, which is what a search needs.</p>",
+   "code": "out = np.minimum(q, net[\"sat\"] * green)\nratio = np.where(want > room, room / np.maximum(want, 1e-9), 1.0)"
+  },
+  {
+   "title": "Know what is on the road",
+   "body": "<p>Detectors miscount by a few percent, and one queue reading in ten never arrives. Counting cars in and out drifts further from the truth every minute; the queue readings are noisy. A filter on each road combines the two, trusting the counts less the more traffic has passed. Its error was 4.3 vehicles, against 5.9 for readings alone and 16.7 for counts alone.</p>",
+   "code": "k = p / (p + QUEUE_NOISE ** 2)\nx, p = x + k * (z - x), (1 - k) * p"
+  },
+  {
+   "title": "Make safety a wall, not a price",
+   "body": "<p>The cheapest way to cut car delay is to give the busy road a long green and leave people crossing it a few seconds. So pedestrian time is not something the optimiser can trade away: no green may be shorter than 19 seconds (time to walk a 14-metre crossing), and no plan may differ too far from the one in use. A plan that breaks a rule is refused with the rule named.</p>",
+   "code": "if g < MIN_GREEN or ew < MIN_GREEN:\n    out.append(f\"intersection {n}: a green of {min(g, ew)} s is shorter than the {MIN_GREEN} s a pedestrian needs to cross\")"
+  },
+  {
+   "title": "Search, then test on evenings it never saw",
+   "body": "<p>The optimiser nudges one junction's green time or start time, keeps the change if the simulated evening improves, and repeats a few hundred times for three cycle lengths. Because a plan can simply memorise the two evenings it was tuned on, the result is scored on five different ones, next to today's plan and a simpler textbook method.</p>",
+   "code": "if s < cur:\n    plan, cur = trial, s"
+  },
+  {
+   "title": "Propose, never apply",
+   "body": "<p>The result is a proposal. The person who requested it cannot approve it; that rule is enforced in the program and again inside the database. Approval writes a new version of the plan for each junction, marked \"approved, not deployed\", for an engineer to export. There is no code path to a signal controller.</p>",
+   "code": "CHECK (decided_by IS NULL OR decided_by <> created_by)"
+  }
+ ],
+ "results": "<p><b>The stadium evening, on five test evenings the search never saw:</b></p><img src=\"shots/compare.jpg\" alt=\"Comparison table: person-hours of delay 740 in the field, 593 with greens by load only, 324 proposed; mean delay per vehicle 388, 293 and 158 seconds; bus delay 192, 188 and 66 seconds; spillback 1,225, 768 and 0.\"><table><tr><th></th><th class=\"num\">Today</th><th class=\"num\">Proposed</th></tr><tr><td>Delay per vehicle</td><td class=\"num\">388 s</td><td class=\"num\">158 s</td></tr><tr><td>Bus delay</td><td class=\"num\">192 s</td><td class=\"num\">66 s</td></tr><tr><td>Junctions blocked</td><td class=\"num\">1,225</td><td class=\"num\">0</td></tr><tr><td>Pedestrian wait</td><td class=\"num\">13.3 s</td><td class=\"num\">11.2 s</td></tr><tr><td>Stops</td><td class=\"num\">11,445</td><td class=\"num\">13,192</td></tr></table><p>\"Junctions blocked\" counts five-second steps in which a full road ahead held a queue back. Stops went <i>up</i>: the shorter cycle clears queues sooner but stops each car more often.</p><p><b>Two honest findings.</b> The gain is this large because \"today's plan\" in my model is a poor one (equal greens, no coordination); a real city's plan would already be tuned. And when I ran the stadium plan on an ordinary evening expecting it to do badly, it still beat today's plan, which confirmed that most of the gain is not about the event at all.</p><p><b>Checks.</b> 39 tests, including: vehicles are conserved, queues never exceed the road, the optimiser only returns safe plans, a resent detector reading cannot move an estimate twice, and one city cannot see or decide another's plans.</p>",
+ "next": "<ul><li>A real network and a proper microsimulator (SUMO), with the model checked against real counts first.</li><li>A realistic starting plan, so the gain is measured against something an engineer already tuned.</li><li>Proper signal-timing standards for clearance intervals, not just a minimum green.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/traffic-signal-twin",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}

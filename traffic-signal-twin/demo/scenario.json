@@ -1,0 +1,25 @@
+{
+ "service": "traffic-signal-twin",
+ "run": "demo-1",
+ "tokens": {"engineer": "city-engineer-demo", "analyst": "city-analyst-demo", "viewer": "city-viewer-demo"},
+ "steps": [
+  {"title": "Build the twin, and tonight's problem", "say": "Sixteen signalised intersections in an invented city. A stadium in the north-east corner empties from minute 10, and the main road away from it has a lane shut. Today every signal runs the same 90-second cycle with equal greens.",
+   "calls": [{"key": "scn", "as": "analyst", "method": "POST", "path": "/v1/scenarios", "body": {"name": "Stadium event with a lane closure", "event": true, "closure": [[3, 3], [2, 3]], "demand_scale": 1.0}},
+             {"key": "net", "as": "viewer", "method": "GET", "path": "/v1/network"}]},
+  {"title": "What is on the road right now?", "say": "Detectors miscount by a few percent and a tenth of queue readings never arrive. Thirty minutes of detector data are fed in, and a filter on each link combines counts with readings into an estimated queue, with a margin.",
+   "calls": [{"key": "feed", "as": "analyst", "method": "POST", "path": "/v1/scenarios/{{scn.scenario_id}}/telemetry:replay", "body": {"through_minute": 30}}, {"key": "state", "as": "viewer", "method": "GET", "path": "/v1/network/state"}]},
+  {"title": "The evening with today's timing", "say": "The whole hour is simulated in five-second steps under the plan in the field: vehicles queue, are released on green if there is room ahead, and back up into the intersection behind when there is not.",
+   "calls": [{"key": "base", "as": "analyst", "method": "POST", "path": "/v1/simulations", "body": {"scenario_id": "{{scn.scenario_id}}", "plan": "in_field", "seed": 11}}]},
+  {"title": "Search for a better plan", "say": "The optimiser tries three cycle lengths and hundreds of small changes to greens and offsets, keeping only changes that help and never a plan that breaks a safety rule. The result is then tested on five evenings of demand it never saw, beside the plan in the field and a simpler method.",
+   "calls": [{"key": "opt", "as": "analyst", "method": "POST", "path": "/v1/signals/optimize", "body": {"scenario_id": "{{scn.scenario_id}}", "effort": 110}},
+             {"key": "after", "as": "analyst", "method": "POST", "path": "/v1/simulations", "body": {"scenario_id": "{{scn.scenario_id}}", "plan": "{{opt.result.proposal_id}}", "seed": 11}}]},
+  {"title": "Two things the system refuses", "say": "A hand-made plan that gives cars a long green by leaving pedestrians eight seconds to cross is refused, with the rule it breaks. And the analyst who asked for the optimised plan cannot approve it.",
+   "calls": [{"key": "unsafe", "as": "analyst", "method": "POST", "path": "/v1/proposals", "expect_error": true,
+              "body": {"scenario_id": "{{scn.scenario_id}}", "cycle": 90, "green_ns": [74, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41], "offset": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}},
+             {"key": "self", "as": "analyst", "method": "POST", "path": "/v1/proposals/{{opt.result.proposal_id}}:decide", "expect_error": true, "body": {"approve": true, "note": "Looks good to me."}}]},
+  {"title": "An engineer approves, and nothing is deployed", "say": "A traffic engineer reviews the evidence and approves. Approval produces a versioned plan for each intersection to export. This system has no connection to any signal controller.",
+   "calls": [{"key": "approve", "as": "engineer", "method": "POST", "path": "/v1/proposals/{{opt.result.proposal_id}}:decide", "body": {"approve": true, "note": "Reviewed against the event plan; minimum greens and offsets checked."}}]},
+  {"title": "The audit trail", "say": "Who created the scenario, who proposed the plan, who approved it and why: recorded in a log that cannot be edited.",
+   "calls": [{"key": "audit", "as": "engineer", "method": "GET", "path": "/v1/audit?limit=8"}]}
+ ]
+}
