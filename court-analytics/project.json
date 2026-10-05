@@ -1,0 +1,55 @@
+{
+ "title": "How Sure Can Anyone Be About a Motion?",
+ "tagline": "Court analytics on an invented court system: similar cases, whether a cited case has since been overruled, a judge's record with error bars, and an estimated chance a motion is granted. Checked against a simulation's hidden truth, the estimates were well calibrated, but the stated range held the true answer only 40% of the time, and the project says so.",
+ "kind": "Python \u00b7 Statistics \u00b7 Legal analytics",
+ "order": 116,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security, full-text search)",
+  "Empirical Bayes shrinkage",
+  "Logistic regression + bootstrap",
+  "Kaplan-Meier survival",
+  "TF-IDF similarity",
+  "scikit-learn",
+  "Docker Compose",
+  "29 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>No court, judge, party or case here is real:</b> every name is invented and every ruling is drawn from a simulation, which is what lets the estimates be checked against the truth. It is deliberately not built on real dockets: publishing statistical profiles of real, named judges from a portfolio project would be wrong. Nothing here is legal advice. No language model is used. Not built: PDF parsing, real court data feeds, Kafka, Terraform, single sign-on.",
+ "problem": "<p>Before filing a motion, a lawyer wants to know: how have similar cases gone, is the case I am citing still good law, and how does this judge usually rule? Tools that answer with one confident percentage hide two things: small samples (a judge with three rulings is not \"100% likely to grant\") and everything the data cannot see. <em>Can software answer those questions and be honest about how much it knows?</em></p><p>Blueprint 5 of ten in a second build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Similar cases</b> by the wording of their facts.</li><li><b>Citation check:</b> has a cited case been followed, distinguished or overruled since?</li><li><b>Judge record:</b> grant rates with a range, adjusted for small samples.</li><li><b>Estimate:</b> chance a motion is granted, its range, and what moved it.</li><li><b>Memo:</b> every sentence lists the records it rests on.</li></ul>",
+ "steps": [
+  {
+   "title": "Do not trust three rulings",
+   "body": "<p>A judge who granted 3 of 3 motions has a \"100%\" record that means almost nothing. Each judge's rate is pulled towards a typical judge of these courts, strongly when there are few rulings and barely at all when there are a hundred, and shown with a range. For the demo judge: 61 of 114 granted, put at 53% with a range of 46% to 61%.</p>",
+   "code": "a, b = prior[0] + granted, prior[1] + n - granted\nmean = a / (a + b)"
+  },
+  {
+   "title": "Keep the future out of the past",
+   "body": "<p>The model learns only from rulings before 2023 and is tested on the two years after. A subtler leak: a judge's grant rate is an input, and each training ruling is part of that rate. So when a ruling is used for training, it is first removed from its own judge's record.</p>",
+   "code": "if leave_out:   # a training row must not see its own outcome in the judge's record\n    g, n = g - m[\"granted\"], n - 1"
+  },
+  {
+   "title": "Check what the brief cites",
+   "body": "<p>Every later order that cited a case is read for how it treated it. In the demo, one of the brief's four authorities has been overruled according to two later orders, which are quoted; another has been distinguished four times and followed once. A docket number that is not on record is reported as unchecked instead of being passed over.</p>",
+   "code": "status = \"overruled\" if n[\"overruled\"] else \"caution\" if n[\"criticized\"] >= 2 or n[\"distinguished\"] > n[\"followed\"] else \"good\""
+  },
+  {
+   "title": "Count the cases that are still open",
+   "body": "<p>\"Half of cases close within X days\" is wrong if you only look at closed cases: the long ones are still open. A standard survival method counts open cases for as long as they have been open. Against the simulation's truth it was off by 0.8%; the closed-cases-only median was off by 10%.</p>",
+   "code": "s *= 1 - ((t == day) & e).sum() / at_risk"
+  },
+  {
+   "title": "Say what the range does not cover",
+   "body": "<p>The estimate comes with a range that widens when the judge is new (40% to 87%, against 61% to 71% for a judge with 114 rulings). In the simulation I could compare it with the true probability: the range contained it only 40% of the time, not the 80% its label suggests, because it measures the model's doubt about itself, not what the model cannot see. The product says exactly that next to every range.</p>",
+   "code": "\"interval\": \"80% range from refitting the model on resampled data and from uncertainty in the judge's record. It does not cover what the model cannot see.\""
+  }
+ ],
+ "results": "<p><b>The demo motion:</b> estimated 66% chance of being granted (range 61% to 71%) against a 49% base rate. Of the 40 most similar cases, 12 had this motion and 11 were granted. One cited case had been overruled.</p><img src=\"shots/thin.jpg\" alt=\"The same motion before a judge appointed last year: 63% estimated, range 40% to 87%, with a warning that the judge had almost no rulings when the model was fitted.\"><p><b>On rulings the model never saw</b> (six other simulated court systems):</p><table><tr><th></th><th class=\"num\">Ranking</th><th class=\"num\">Error</th></tr><tr><td>This model</td><td class=\"num\">0.741</td><td class=\"num\">0.206</td></tr><tr><td>Judge's rate alone</td><td class=\"num\">0.727</td><td class=\"num\">0.211</td></tr><tr><td>Motion base rate</td><td class=\"num\">0.650</td><td class=\"num\">0.231</td></tr><tr><td>Knowing the truth</td><td class=\"num\">0.788</td><td class=\"num\">0.187</td></tr></table><p>Ranking is AUC (1.0 is perfect, 0.5 is guessing); error is the Brier score (lower is better). Even knowing the true probability only reaches 0.788, because a ruling is still a coin flip around it. When the model said 70%, about 70% were granted.</p><p><b>Checks.</b> 29 tests, including: the confidential facts of a brief never appearing in the audit log, one firm unable to see another's briefs or records, and training rows not seeing their own outcome.</p>",
+ "next": "<ul><li>Model how much outcomes vary beyond what the inputs explain, so the range can be honest in both directions.</li><li>Partial grants and appeals, which this build treats as granted or denied.</li><li>Calibration checks across more party types.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/court-analytics",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
