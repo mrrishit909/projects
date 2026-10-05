@@ -1,0 +1,54 @@
+{
+ "title": "Who Gets Cut Off, and Who Gets Help First?",
+ "tagline": "A hurricane command system on an invented coastal county: it forecasts which neighbourhoods will lose every road to a hospital, turns citizen reports into incidents, and assigns all 24 response units at once. At peak surge it reached 18 of 35 severe emergencies where sending the nearest unit in call order reached 14.",
+ "kind": "Python \u00b7 Optimization \u00b7 Emergency response",
+ "order": 112,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Monte Carlo risk model",
+  "Assignment solver (SciPy)",
+  "Linear programming (HiGHS)",
+  "scikit-learn",
+  "Docker Compose",
+  "87 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>simulated county and storm</b>: the map, the people, the surge and every citizen report are generated, so each part can be checked against a known answer. The surge is a simple formula, not a real storm-surge model. No alert is ever sent: alerts are stored only. Not built: live weather and road feeds, satellite image analysis, PostGIS, Kafka, Terraform, single sign-on.",
+ "problem": "<p>When a hurricane comes ashore, an emergency operations centre has too many calls and too few boats and ambulances, on a road network that is changing by the hour. Dispatchers usually send the nearest free unit to each call as it comes in. <em>Can software forecast which neighbourhoods will be cut off before it happens, and get more of the serious emergencies reached with the same units?</em></p><p>Blueprint 1 of ten in a second build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a map page, started by one <code>docker compose up</code>.</p><ul><li><b>Risk forecast:</b> the chance each neighbourhood has no open road to a working hospital.</li><li><b>Shelter allocation:</b> who goes to which shelter, within capacity, with the least total driving.</li><li><b>Report intake:</b> sorts citizen reports, merges repeats of the same emergency, files noise.</li><li><b>Dispatch:</b> assigns every unit to every open incident in one solve, over the roads still open.</li><li><b>Storm simulator:</b> stands in for live feeds, so the forecast can be scored against what then happens.</li></ul>",
+ "steps": [
+  {
+   "title": "Replay the storm 300 times",
+   "body": "<p>Two things are uncertain before landfall: how high the surge will be (4.5 m, give or take 0.7) and the elevation survey (off by about 0.25 m). So the storm is replayed 300 times with both varied. In each replay, flooded roads and bridges are removed and the road network is checked: can this neighbourhood still reach a working hospital? The share of replays where it cannot is its risk. This catches something a flood line misses: blocks that stay dry but are surrounded.</p>",
+   "code": "peak, e = rng.normal(mean, sd), elev + rng.normal(0, SURVEY_ERROR, N)\niso += isolated(w, world.closed(w, peak, target_hour, e), hospitals)"
+  },
+  {
+   "title": "One emergency, four reports",
+   "body": "<p>Each report is sorted into water rescue, medical, fire, utility or noise. A report of the same type from the same block joins the incident already open and raises its confidence; a single social-media post is not enough to send a unit. Merging is a real tradeoff: merging across neighbouring blocks hid a third of the real incidents inside others, so this build merges within a block only and accepts some duplicates.</p>",
+   "code": "def corroborate(confidence, credibility):\n    return 1 - (1 - confidence) * (1 - credibility)"
+  },
+  {
+   "title": "Assign every unit in one solve",
+   "body": "<p>For every unit and every incident the travel time is computed over the roads open right now (boats can cross flooded roads slowly; ambulances cannot). Then one exact solve picks the pairing with the lowest total of severity squared times travel time. Each incident also has a \"nobody comes\" option costed at two hours, so when units run out it is the least severe that wait.</p>",
+   "code": "cost[:, :m] = wt[:, None] * eta\ncost[np.arange(n), m + np.arange(n)] = wt * UNSERVED_S\nrows, cols = linear_sum_assignment(cost)"
+  },
+  {
+   "title": "Break something on purpose",
+   "body": "<p>In the demo the ambulance on the most severe call reports itself out of service. Its incident goes back to the queue and the plan is solved again: 4 units are redirected and 18 keep their call. A database rule makes it impossible for one unit to hold two live dispatches, and a retried request replays its first answer instead of dispatching twice.</p>",
+   "code": "CREATE UNIQUE INDEX dispatches_one_job_per_unit\n  ON dispatches (resource_id) WHERE status = 'en_route';"
+  },
+  {
+   "title": "Score the forecast against what happened",
+   "body": "<p>Because the storm is simulated, the forecast made at hour 0 can be checked at hour 6. The real surge came in at 4.9 m, higher than forecast: 36 neighbourhoods were cut off, the forecast had flagged 29 of them and raised no false alarm. Across 200 other simulated storms its error score was 0.027, against 0.037 for a plain flood-line rule.</p>",
+   "code": "assert v[\"model\"][\"brier\"] < v[\"baseline\"][\"brier\"]"
+  }
+ ],
+ "results": "<p><b>At peak surge:</b> 51 confirmed emergencies, 24 units, 76 road segments under water, one bridge left.</p><table><tr><th></th><th class=\"num\">Solved together</th><th class=\"num\">Call order</th></tr><tr><td>Severe reached</td><td class=\"num\">18 of 35</td><td class=\"num\">14 of 35</td></tr><tr><td>Time to a severe one</td><td class=\"num\">6.0 min</td><td class=\"num\">7.9 min</td></tr></table><img src=\"shots/peak.jpg\" alt=\"Map of the county at peak surge: the coast and river banks are covered in dashed red closed roads, one bridge remains, filled discs mark incidents with a unit sent and rings mark incidents still waiting.\"><p><b>On 40 other simulated counties:</b></p><table><tr><th></th><th class=\"num\">This build</th><th class=\"num\">Simple way</th></tr><tr><td>Weighted wait</td><td class=\"num\">19.5% lower</td><td class=\"num\">call order</td></tr><tr><td>Severe left waiting</td><td class=\"num\">416</td><td class=\"num\">558</td></tr><tr><td>Forecast error</td><td class=\"num\">0.027</td><td class=\"num\">0.037</td></tr></table><p>The forecast error is a Brier score (lower is better) over 200 storms; the simple way is \"below the forecast water line\".</p><p><b>Shelters.</b> 29 neighbourhoods (53,464 people) were told to leave. With an assumed 12% needing a public shelter, 4,300 were placed and 2,115 had no place. The system reports that gap instead of hiding it.</p><p><b>Checks.</b> 87 tests, including: the solver never doing worse than call order on 40 random cases, shelter capacity never exceeded, a retried report not counted twice, and one county unable to see or reset another's data.</p>",
+ "next": "<ul><li>Real inputs: weather-service surge forecasts and a real road network.</li><li>A person's approval step before a plan goes live.</li><li>Better merging of reports, using caller identity or address.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/disaster-response-coordinator",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
