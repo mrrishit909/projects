@@ -1,0 +1,55 @@
+{
+ "title": "Where Is the Money Leaking Out of Accounts Payable?",
+ "tagline": "A spend-analysis system that merges the many spellings of each supplier, catches invoices paid twice, reads contracts for their agreed rates and checks every invoice against them. On an invented company's year of payables it found $6.2M of planted leakage (1.1% of spend), and 195 duplicate payments where the usual check finds 50.",
+ "kind": "Python · Procurement analytics",
+ "order": 108,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Entity resolution",
+  "scikit-learn",
+  "Rule-based contract extraction",
+  "SQL analytics",
+  "Postgres job queue",
+  "Docker Compose",
+  "21 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>synthetic ledger</b>: every vendor, invoice and contract is invented and the leakage was planted, so each engine can be checked against a known answer. The data is far more regular than a real ledger (descriptions come from a phrase bank, contracts from three phrasings per clause), which is why some scores are near 100%. No language model is used: contract terms are read with rules. Not built: real ERP connectors, currencies other than dollars, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A large company pays tens of thousands of invoices a year through several systems, each with its own vendor list. The same supplier ends up as \"Wren Cloud Services Ltd\", \"WREN CLOUD SVCS LTD.\" and two more. Nobody can then see total spend with that supplier, an invoice entered twice under two spellings looks like two different bills, and nobody checks the consultant's hourly rate against the contract. <em>Can software clean the vendor list, find what was paid twice or overpaid, and point to the contract clause that proves it?</em></p><p>Blueprint 7 of ten in an enterprise build book, built as the demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Vendor matching:</b> decides which vendor records are the same company, and remembers when a person overrules it.</li><li><b>Classification:</b> files uncategorized invoice lines into a spend taxonomy.</li><li><b>Duplicate detection:</b> the same bill paid twice, even with a retyped number.</li><li><b>Contract reading:</b> rate cards, rebate clauses, renewal dates, each stored with the clause and sentence it came from.</li><li><b>Leakage check and opportunities:</b> every invoice line against its contract, then a ranked list of what to recover or renegotiate, and a dossier per vendor.</li></ul>",
+ "steps": [
+  {
+   "title": "Decide which records are one company",
+   "body": "<p>Names are cleaned first: legal endings dropped, abbreviations spelled out. Only records that share a name word, a tax id or a bank account are compared at all. For each such pair a small model weighs five pieces of evidence: shared words, shared letter sequences, and whether tax id, bank account and address agree, are missing, or conflict. A missing detail counts for nothing; a conflicting one counts against. 985 records became 413 companies.</p>",
+   "code": "agree = lambda k: 0.0 if not a.get(k) or not b.get(k) else 1.0 if a[k] == b[k] else -1.0"
+  },
+  {
+   "title": "A duplicate hides behind two small changes",
+   "body": "<p>An invoice paid twice rarely has the same number twice. It comes back as \"000552-A\", or with \"INV-\" dropped, or a letter O for a zero. So invoice numbers are reduced to their digits before comparing, and a pair must also share the vendor, the exact total, and dates within two weeks. 85 of the 195 duplicates were entered under a different spelling of the vendor: they cannot be found until the vendor list is merged.</p>",
+   "code": "digits = re.sub(r\"\\D\", \"\", number.upper().replace(\"O\", \"0\"))\nreturn digits.lstrip(\"0\") or \"0\""
+  },
+  {
+   "title": "Read the contract, keep the receipt",
+   "body": "<p>Each contract is read for its hourly rates, rebate terms, payment days, price cap and end date. Every extracted term is stored with its clause number and the exact sentence it was read from, so a finding can be checked by a person in seconds. This build uses hand-written patterns, which work because the invented contracts use a few phrasings; real contracts would need more than that.</p>",
+   "code": "terms.append({\"term_type\": t, \"key\": k, \"value\": v, \"citation_anchor\": section, \"quote\": s})"
+  },
+  {
+   "title": "Check every line against its contract",
+   "body": "<p>Consulting lines say things like \"Senior Consultant - 40 hrs @ 210.00\". The role, hours and rate are parsed out and compared with the contract's rate for that role; the difference times the hours is the finding. Rebates work the same way: if spend passed the contract's threshold, the percentage is owed, minus any credit already received.</p>",
+   "code": "\"variance\": round((float(ln[\"unit_price\"]) - agreed) * qty, 2)"
+  },
+  {
+   "title": "Check the answer against what was planted",
+   "body": "<p>Because the leakage was planted by the data generator, the end-to-end test recomputes it independently and compares: overbilling within 1%, missed rebates within 5%, duplicates within 3 pairs. A load test also earned its keep: three screens rescanned the whole ledger on every request and the service managed 10 requests a second. Remembering those scans until the data changes took it to 336.</p>",
+   "code": "assert float(leak[\"rate_above_contract\"][\"amount\"]) == pytest.approx(over, rel=0.01)"
+  }
+ ],
+ "results": "<p><b>One year, $550M of spend, 41,021 invoices.</b> Leakage found: $6.23M, 1.1% of spend.</p><table><tr><th>Kind</th><th class=\"num\">Findings</th><th class=\"num\">Amount</th></tr><tr><td>Paid twice</td><td class=\"num\">195</td><td class=\"num\">$3.03M</td></tr><tr><td>Billed above contract rate</td><td class=\"num\">1,023</td><td class=\"num\">$1.80M</td></tr><tr><td>Rebate earned, not credited</td><td class=\"num\">34</td><td class=\"num\">$1.40M</td></tr></table><img src=\"shots/leakage.jpg\" alt=\"Leakage summary: $6.23M found, 1.13% of spend, split into paid twice, billed above the contract rate and rebates not credited; a table of vendors billing above their rate card; and the largest findings, each with its contract clause.\"><p><b>Against the simple way of doing each job:</b></p><table><tr><th>Job</th><th class=\"num\">This build</th><th class=\"num\">Simple way</th></tr><tr><td>Matching vendor records (share of true matches found)</td><td class=\"num\">99.8%</td><td class=\"num\">82.6%</td></tr><tr><td>Duplicates found (3 years, 571 planted)</td><td class=\"num\">571</td><td class=\"num\">156</td></tr><tr><td>Categorizing lines</td><td class=\"num\">99.0%</td><td class=\"num\">72.5%</td></tr></table><p>The simple ways: identical name after cleaning; same vendor record with an identical invoice number; keyword rules. The near-perfect scores reflect how regular the invented data is.</p><p><b>Also in the demo.</b> Six vendors selling overlapping collaboration software, with an estimate for moving the four smallest onto the two largest (using a stated 12% assumption); and a negotiation dossier for a consulting firm showing its contract rates beside what it actually billed, 133 days before the contract ends.</p><p><b>Checks.</b> 21 tests, including: a person's \"these are not the same company\" being remembered on the next run, a second import of the same period adding nothing, vendor ids staying stable across re-runs, SQL typed into an analytics parameter being refused, and one company unable to see another's ledger.</p>",
+ "next": "<ul><li>Run it on a real payables extract: that is where name matching and contract reading will be tested properly.</li><li>A language model for contract terms, kept to the same cited-clause output.</li><li>Parent and subsidiary roll-up, other currencies, and three-way matching against receipts.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/spend-intelligence",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
