@@ -1,0 +1,55 @@
+{
+ "title": "Where Did I Eat in Chicago, and Who Was There?",
+ "tagline": "A private search engine over one invented person's photos, receipts, e-mail, calendar and messages. It answers questions that no single record holds by walking from trip to photo to receipt to people, showing every step. On 291 such questions it found the right receipt 93% of the time; ordinary vector search managed 9%.",
+ "kind": "Python \u00b7 Search \u00b7 Knowledge graph",
+ "order": 113,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 + pgvector",
+  "Row-level security",
+  "Hybrid search (vectors + full text)",
+  "Entity resolution",
+  "scikit-learn (LSA)",
+  "Postgres job queue",
+  "Docker Compose",
+  "29 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice, on a <b>generated archive</b>: the person, their contacts and all 2,549 records are invented, so every step can be checked against a known answer. There are <b>no image files</b>: a \"photo\" is the time, GPS and tags a phone's tagger would produce, and receipts arrive as already-scanned text. No language model and no outside service is used. Not built: real app connectors, image or face recognition, encrypted sync, Kafka, Terraform, single sign-on.",
+ "problem": "<p>Years of photos, receipts, e-mails, calendar entries and messages sit in separate apps. The photo of a red motorcycle does not know which restaurant it was taken outside; the receipt does not know who was at the table; the calendar entry has neither. <em>Can software connect them well enough to answer \"find the Italian restaurant from my 2024 Chicago trip where I photographed a red motorcycle, then show the receipt and who I was with\", without sending anything private to an outside service?</em></p><p>Blueprint 2 of ten in a second build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL (with the pgvector extension), a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Indexer:</b> groups records into moments and trips, recovers restaurants from receipts, links names to contacts.</li><li><b>Search:</b> meaning and exact words combined, all computed locally.</li><li><b>Step-by-step answers:</b> trip, photo, moment, receipt, people, each with its source records.</li><li><b>Timeline, connections and summaries</b> built only from records.</li><li><b>Purge:</b> deleting a record removes everything derived from it, and it stays deleted.</li></ul>",
+ "steps": [
+  {
+   "title": "Turn a pile of records into moments",
+   "body": "<p>Records are sorted by time. A new moment starts after two hours of silence, or when the GPS jumps more than 600 metres; a calendar entry counts for its whole length. A run of days with records in one city away from home is a trip. This simple rule grouped records correctly far more often than \"same calendar day\" (score 0.91 against 0.70).</p>",
+   "code": "if cur and (a[\"at\"] - end > GAP or (g and loc and km(g, loc) > SPLIT_KM)):\n    out.append(cur)"
+  },
+  {
+   "title": "Read restaurants off scanned receipts",
+   "body": "<p>Scanners confuse letters and digits, so one restaurant shows up as BELLAVITA and BELLAV1TA. Merchant lines are \"folded\" (1 back to I, 0 to O, 5 to S, 8 to B) before comparing, which collapses the variants into one place. The cuisine comes from a vote over dish words on its receipts.</p>",
+   "code": "UNFOLD = str.maketrans(\"1058\", \"IOSB\")\nre.sub(r\"[^A-Z ]\", \" \", s.upper().translate(UNFOLD))"
+  },
+  {
+   "title": "Refuse to guess which Alex",
+   "body": "<p>Two contacts are both called Alex. An e-mail address or full name links for certain. A bare first name is linked only if one contact fits, or if the calendar entry in the same moment names one of them. Otherwise it is left unlinked. Guessing would have named a wrong person about 1.5% of the time; refusing never did, at the price of some people going unnamed.</p>",
+   "code": "elif len(here) == 1:\n    out.append((i, next(iter(here)), 0.7, \"first name, settled by the calendar entry of the same moment\"))\nelse:\n    unresolved += 1"
+  },
+  {
+   "title": "Answer in hops, not in one search",
+   "body": "<p>Searching for the whole sentence returns photos of red bicycles and motorcycles from other trips. So the question is first broken into parts by rules: year, city, cuisine, the photographed object. Then each hop narrows the next: find the trip, search photos only inside its dates, take the moment that photo belongs to, then the receipt and the people in that moment. A hop that finds nothing stops the chain with the reason.</p>",
+   "code": "photos = nearest(c, embed(c, t, \"photo \" + p[\"object\"]), 6,\n                 \" AND a.kind = 'photo'\" + when, params)"
+  },
+  {
+   "title": "Make delete mean delete",
+   "body": "<p>Purging a record removes its text, its search vector and every link built from it; a test checks that zero derived rows remain and that the content is nowhere in the audit log. A fingerprint of the purged record is kept so the next import cannot bring it back. Asked again, the system says the receipt is not in the archive instead of inventing a total.</p>",
+   "code": "assert again[\"receipt\"] is None and \"No receipt\" in again[\"sentence\"]"
+  }
+ ],
+ "results": "<p><b>The demo question</b> is answered in five hops: <i>Osteria Bellavita, 20 March 2024, $153.60, with Lucas Moreau</i>, each hop listing its source records.</p><p><b>On 291 questions</b> across six other generated archives:</p><table><tr><th></th><th class=\"num\">In hops</th><th class=\"num\">One search</th></tr><tr><td>Right receipt</td><td class=\"num\">92.8%</td><td class=\"num\">8.9%</td></tr><tr><td>Right restaurant</td><td class=\"num\">93.8%</td><td class=\"num\">\u2013</td></tr><tr><td>Right people, exactly</td><td class=\"num\">79.4%</td><td class=\"num\">\u2013</td></tr></table><p>\"One search\" is ordinary vector search for the whole sentence. The hop method declined 10 questions rather than guess. People are the weak spot: one in five present goes unnamed, mostly at dinners with no calendar entry.</p><img src=\"shots/purged.jpg\" alt=\"After the receipt is purged, the same question is answered with the restaurant and the companion, and a notice that no receipt for this meal is in the archive; the Find the receipt step shows nothing found.\"><p><b>After the purge</b> the same question still finds the restaurant and the companion, and says plainly that the receipt is gone.</p><p><b>Checks.</b> 29 tests, including: filtered vector search matching a brute-force scan, a second import adding nothing and not restoring a purged record, and one person's archive unreachable from another's.</p><p><b>Honest limit.</b> The generated archives are much tidier than a real one. The numbers show that structure beats a single search on questions with several conditions; they are not real-world accuracy.</p>",
+ "next": "<ul><li>Real photos with an on-device image model, and real app exports.</li><li>Time zones, which this build ignores.</li><li>Update the index when records arrive instead of rebuilding it.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/life-search-engine",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
