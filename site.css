@@ -77,7 +77,7 @@ footer a{text-decoration:none}
 
 /* ---- interactive layer (case.js); without the script none of these elements exist ---- */
 .progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--accent);transform-origin:0 50%;transform:scaleX(0);z-index:30;pointer-events:none}
-.toc{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);display:flex;gap:4px;padding:6px;border:1px solid var(--line);border-radius:999px;background:rgba(244,241,234,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:20;max-width:calc(100vw - 32px);overflow-x:auto;scrollbar-width:none}
+.toc{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);display:flex;gap:4px;padding:6px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:20;max-width:calc(100vw - 32px);overflow-x:auto;scrollbar-width:none}
 .toc.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .toc a{flex:none;text-decoration:none;color:var(--muted);padding:8px 14px;border-radius:999px;transition:background .2s,color .2s}
 .toc a:hover{color:var(--ink)}
@@ -92,7 +92,7 @@ pre:hover .copy,.copy:focus-visible{opacity:1}
 .zoomable{cursor:zoom-in;transition:border-color .2s,transform .3s cubic-bezier(.2,.7,.2,1)}
 .zoomable:hover{border-color:var(--faint);transform:scale(1.005)}
 dialog.zoom{max-width:min(96vw,1600px);max-height:94vh;padding:0;border:0;background:transparent;cursor:zoom-out}
-dialog.zoom::backdrop{background:rgba(244,241,234,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+dialog.zoom::backdrop{background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 dialog.zoom img{display:block;max-width:100%;max-height:88vh;margin:0 auto;border-radius:10px}
 dialog.zoom p{margin:10px 0 0;text-align:center;color:var(--muted)}
 th.sortable{cursor:pointer;user-select:none}
@@ -101,7 +101,7 @@ th.sortable::after{content:" \2195";opacity:.35}
 th[aria-sort=ascending]::after{content:" \2191";opacity:1}
 th[aria-sort=descending]::after{content:" \2193";opacity:1}
 .body tr{transition:background .15s}
-.body tr:hover td{background:rgba(138,127,106,.08)}
+.body tr:hover td{background:color-mix(in srgb,var(--muted) 8%,transparent)}
 .next{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px 32px}
 .next .cap,.next .t{grid-column:1}
 .next video{grid-column:2;grid-row:1 / span 2;width:min(320px,30vw);aspect-ratio:1.72;object-fit:cover;border-radius:12px;border:6px solid var(--panel);background:var(--panel);filter:contrast(.92) brightness(1.04);transition:transform .4s cubic-bezier(.2,.7,.2,1)}
