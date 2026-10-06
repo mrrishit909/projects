@@ -1,0 +1,142 @@
+{
+ "service": "sports-opponent-intelligence",
+ "run": "demo-1",
+ "tokens": {
+  "coach": "club-coach-demo",
+  "analyst": "club-analyst-demo",
+  "viewer": "club-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "Load a league and a match file",
+   "say": "An invented regional league: eight teams, rosters, 160 games of possession logs (15,360 possessions with the play called, the game situation, the defending lineup and the points), and the tracking record of our next opponent's latest match: ten players and the ball, ten frames a second, no labels.",
+   "calls": [
+    {
+     "key": "load",
+     "as": "coach",
+     "method": "POST",
+     "path": "/v1/league:load",
+     "body": {
+      "seed": 17
+     }
+    }
+   ]
+  },
+  {
+   "title": "Register the match and process it",
+   "say": "The match file is registered against its game; the checksum must match the tracking held for it. Then the record is cut into possessions at dead balls and each play is named from its geometry: a screen and a roll, the ball living near the basket, a pass to a shooter, a start from the back court. The hidden log says how many were right.",
+   "calls": [
+    {
+     "key": "video",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/videos",
+     "body": {
+      "game_id": "{{load.result.match_file.game_id}}",
+      "uri": "{{load.result.match_file.uri}}",
+      "fps": 10,
+      "duration_s": "{{load.result.match_file.duration_s}}",
+      "checksum": "{{load.result.match_file.checksum}}"
+     }
+    },
+    {
+     "key": "analyze",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/games/{{load.result.match_file.game_id}}/analyze"
+    },
+    {
+     "key": "events",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/games/{{load.result.match_file.game_id}}/events"
+    }
+   ]
+  },
+  {
+   "title": "What do they do with the clock running down?",
+   "say": "The opponent's possessions, logs and tracking together, in late-clock situations: the share of each play with a 95% interval, how much more often than their habit (lift), and the points it earns. The generator's hidden probabilities are shown beside the estimates. Then the clips: possessions matching plain words, with the frame range in the match file.",
+   "calls": [
+    {
+     "key": "tend",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/opponents/Prairie/tendencies?situation=late_clock"
+    },
+    {
+     "key": "clips",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/clips/search?query=Prairie+late+clock+pick+and+roll&limit=8"
+    }
+   ]
+  },
+  {
+   "title": "Which defensive lineup?",
+   "say": "Two of our five-man units against this opponent, 2,000 simulated games each: a situation, then the opponent's play, then points with the mean each lineup allows for that play, estimated from the possessions it has defended and shrunk toward the averages. The raw plus-minus sits beside it, and so does the hidden truth.",
+   "calls": [
+    {
+     "key": "sim",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/simulations/lineup",
+     "body": {
+      "opponent": "Prairie",
+      "lineups": [
+       0,
+       3
+      ],
+      "possessions": 96,
+      "runs": 2000
+     }
+    }
+   ]
+  },
+  {
+   "title": "An analyst corrects a play",
+   "say": "Possession 3 of the match was named isolation; the analyst watches it and marks it a pick and roll. The correction is stored for retraining, the event changes, and every tendency built from events reflects it at once: the mid clock counts move by one.",
+   "calls": [
+    {
+     "key": "fix",
+     "as": "analyst",
+     "method": "PATCH",
+     "path": "/v1/annotations/{{events.items.2.id}}",
+     "body": {
+      "event_type": "pick_and_roll",
+      "note": "Screener popped to the arc; the rule saw no roll and called it an isolation."
+     }
+    },
+    {
+     "key": "tend2",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/opponents/Prairie/tendencies?situation=mid_clock"
+    }
+   ]
+  },
+  {
+   "title": "The pre-game report",
+   "say": "Tendencies by situation with intervals and confidence, the lineup the simulation favours, linked clips, and a section on what the report cannot tell you. Exported as JSON and as text.",
+   "calls": [
+    {
+     "key": "report",
+     "as": "coach",
+     "method": "GET",
+     "path": "/v1/reports/scout?opponent=Prairie"
+    }
+   ]
+  },
+  {
+   "title": "The audit trail",
+   "say": "Who loaded the league, registered the file, ran the analysis, simulated, and corrected which label: recorded in a log that cannot be edited.",
+   "calls": [
+    {
+     "key": "audit",
+     "as": "coach",
+     "method": "GET",
+     "path": "/v1/audit?limit=10"
+    }
+   ]
+  }
+ ]
+}

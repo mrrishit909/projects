@@ -1,0 +1,54 @@
+{
+ "title": "What Does the Opponent Run When the Clock Runs Down?",
+ "tagline": "A scouting system for a simulated basketball league: it names 89 of 96 plays in a match from tracking alone, learns an opponent's late-clock habits with honest intervals, simulates which defensive lineup to use, lets an analyst correct a play, and writes a report that says what it cannot tell you.",
+ "kind": "Python · Simulation · Sports analytics",
+ "order": 125,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Geometric play rules",
+  "Wilson intervals",
+  "Shrinkage estimates",
+  "Monte Carlo simulation",
+  "Docker Compose",
+  "13 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The league is simulated</b>: its logs and the tracking record come from a generator I wrote, which is what lets every play name and tendency be checked against the truth. There is no video: tracks are drawn, not detected, and the play rules were written for the generator's signatures, so their accuracy is a statement about the generator. No language model is used. Not built: video, detection and tracking, learned play recognition, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A club gets its next opponent's last match as a tracking file: ten players and a ball, ten positions a second, no labels. An analyst wants to know what the opponent runs when the clock is low, which of the club's five-man units should defend them, and wants the clips. Scouting reports usually state tendencies as facts; with a few hundred possessions they are estimates with wide intervals. <em>Can software name the plays, state the habits honestly, pick a lineup with its uncertainty, and take a correction when it gets a play wrong?</em></p><p>Blueprint 4 of fifteen in a third build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>A simulator</b> of a league: hidden play-calling by situation, hidden lineup defence, 80 games of logs and one match of tracking.</li><li><b>Play recognition</b> from geometry, with the evidence stored on every possession.</li><li><b>Tendencies</b> with 95% intervals, lift and points per possession; a clip search in plain words.</li><li><b>A lineup simulation</b> with shrunk estimates beside raw plus-minus and the hidden truth.</li><li><b>Corrections</b> kept for retraining, and a report that names its confidence.</li></ul>",
+ "steps": [
+  {
+   "title": "One frame changed the answer",
+   "body": "<p>The first segmenter defined a dead ball as the ball being still at midcourt. The first frame of every dead ball is the ball jumping to midcourt, so each possession was cut one frame late, and that frame put the ball far from everyone: the rules read a pass and a long shot, and named 21 isolations spot-ups. Accuracy was 42%. Defining a dead ball by where the ball is, not how fast it moves, took it to 93%. Play recognition is only as good as the cut under it.</p>",
+   "code": "still = (np.abs(ball[:, 0] - 14.0) < 1.0) & (np.abs(ball[:, 1] - 7.5) < 1.0)"
+  },
+  {
+   "title": "Rules that say why",
+   "body": "<p>Each play is named by what the players did: a start from the back court is a transition; the ball living within 3.5 metres of the basket is a post-up; a teammate who comes within 1.6 metres of the handler and then goes to the basket is a screen and roll; a change of handler before a shot from range is a spot-up; the rest is isolation. The reason is stored with every possession, so an analyst correcting a play can see what the rules saw.</p>",
+   "code": "if close.min() < 1.6 and rolled and ball[when, 0] < 24.5:\n    return \"pick_and_roll\", {**ev, \"screen_gap_m\": round(float(close.min()), 2), \"screen_frame\": when, \"why\": \"a teammate came within 1.6 m of the handler and then went to the basket\"}"
+  },
+  {
+   "title": "A tendency is an interval",
+   "body": "<p>Prairie runs the pick-and-roll on 37% of late-clock possessions. With 518 possessions that is 33 to 41 percent, and the report says so. Lift compares the situation with the team's overall habit: 1.5 times means it is a plan, not a coincidence. On three other leagues the hidden share fell inside the 95% interval 93% of the time, and splitting by situation cut the error from 6.5 points to 1.7.</p>",
+   "code": "c, h = (p + z * z / (2 * n)) / d, z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d"
+  },
+  {
+   "title": "Lineups play too few possessions to trust the raw number",
+   "body": "<p>A five-man unit's record against one play might be 36 possessions. The estimate is pulled toward the lineup's own average and the league's average for that play, by 25 and 40 pseudo-possessions, and the raw figure is shown beside it with the count. Against the hidden truth the shrunk figures are closer. The simulation then plays 2,000 games: a situation, the opponent's play, points with the mean the lineup allows. Lineup 3 allowed 22 fewer points than lineup 0; the chance lineup 0 does better was 8%.</p>",
+   "code": "per[p] = {\"n\": len(pts), \"estimate\": round((sum(pts) + SHRINK_PLAY * prior) / (len(pts) + SHRINK_PLAY), 3), \"raw\": round(float(np.mean(pts)), 3) if pts else None}"
+  },
+  {
+   "title": "A score is mostly chance",
+   "body": "<p>On fifteen held-out games the simulation predicted the points scored against us to within 8.1 points on average; so did raw plus-minus. A game's score has a standard deviation of about ten points on this generator, so neither can do much better. The honest claim is narrower: the shrunk estimates are closer to the hidden quality of each lineup, which is what a coach can act on. The report says this in its last section.</p>",
+   "code": "md += [\"## What this report cannot tell you\", \"- Shares come with intervals; a lift under 1.2 is habit, not a plan.\""
+  }
+ ],
+ "results": "<p><b>The demo.</b> Prairie in late-clock situations, with the generator's hidden probabilities beside the estimates:</p><img src=\"shots/tendency.jpg\" alt=\"Bar chart of five plays for Prairie late clock: pick and roll 37 percent with interval 32 to 41 and lift 1.52, isolation 32, spot up 21, post up 8, transition 3; beside it the generator's hidden shares of 38, 32, 19, 8 and 3 percent.\"><p>Two lineups' estimated points allowed per play, with the raw figure, the count, and the hidden truth:</p><img src=\"shots/lineups.jpg\" alt=\"Table of points allowed per possession by play for two lineups: estimates such as 1.07 against a truth of 1.07 and 0.73 against 0.80 for lineup 0; lineup 3 estimates 0.67, 0.82, 0.64, 0.55 and 0.77 against truths of 0.85, 0.97, 1.03, 0.86 and 0.94.\"><p><b>On three other simulated leagues:</b></p><table><tr><th></th><th class=\"num\">System</th><th class=\"num\">Simple</th></tr><tr><td>Plays named right</td><td class=\"num\">92.4%</td><td class=\"num\">35.7%</td></tr><tr><td>Share error</td><td class=\"num\">1.7 pts</td><td class=\"num\">6.5 pts</td></tr><tr><td>In the 95% band</td><td class=\"num\">93.1%</td><td class=\"num\">–</td></tr><tr><td>Lineup error</td><td class=\"num\">0.09–0.13</td><td class=\"num\">0.14–0.18</td></tr><tr><td>Game score error</td><td class=\"num\">8.1 pts</td><td class=\"num\">8.1 pts</td></tr></table><p>\"Simple\" is the obvious rule in each case: always naming the commonest play, a team's overall habit regardless of situation, and raw plus-minus for lineups.</p><p><b>Honest limits.</b> The play rules were written for the generator's five signatures and fail only on the two variants it was built to fail on; real tracking is far messier and this says nothing about video. The lineup simulation predicts a game's score no better than raw plus-minus, because a score is mostly chance. In the demo, lineup 3's estimates ran well below the truth on three plays; shrinkage toward averages cannot fix a lineup that was simply lucky in its 36 possessions.</p><p><b>Checks.</b> 13 tests, including: every possession is found by segmentation, the rules fail only on the pop and the early pass, hidden shares fall inside the intervals, shrunk estimates are no worse than raw, a file with the wrong checksum is refused, a correction changes the event and is counted, and one club cannot see another's league.</p>",
+ "next": "<ul><li>Real tracking (public datasets where the licence allows) to see which rules survive.</li><li>A learned play model trained on the analysts' corrections, which is what the correction loop is for.</li><li>Lineups on offence as well as defence.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/sports-opponent-intelligence",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
