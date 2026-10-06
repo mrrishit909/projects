@@ -1,0 +1,54 @@
+{
+ "title": "What Is a 12% Price Rise Really Worth?",
+ "tagline": "An invented subscription business as calibrated agents (customer cohorts, prospects, a competitor, a retention desk): a 12% rise and a competitor discount through 10,000 seeded scenarios, the worst one replayed bit for bit, the unknowns ranked by Sobol analysis, and a decision that abstains. The agents say +$1.85M over a year where the true world gives +$1.92M; a spreadsheet says +$8.02M.",
+ "kind": "Python · agent-based simulation · Sobol",
+ "order": 154,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "NumPy agent-based simulation",
+  "Binomial and Poisson GLMs (Newton)",
+  "Profile likelihood + Laplace",
+  "Sobol indices (Saltelli / Jansen)",
+  "Docker Compose",
+  "9 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The business is simulated</b>: its customers, 36 months of history, the competitor and the true behaviour behind them come from a generator in the repository, which is what lets every forecast be scored against the truth. <b>No language model is used</b>: the blueprint's bounded LLM agents are left out, because an LLM's behaviour can be neither calibrated against churn history nor replayed bit for bit. Not built: employees and suppliers as agents, an assumptions workspace UI, SSE progress, real data, Kafka, Kubernetes, single sign-on.",
+ "problem": "<p>A software company wants to raise prices 12%. Finance has a spreadsheet: last year's churn, a price elasticity from comparing markets, revenue up $8M. But customers react to a rise, the competitor may answer with a discount, the retention team fills up, and the company has never raised prices by more than 10%. <em>Can a lab of calibrated agents say what the rise is worth, how sure it is, what the answer depends on, and reproduce any scenario on demand?</em></p><p>Blueprint 18 of twenty in a fourth build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>A simulator</b> of customer cohorts (market x plan x tenure band), prospect pools, a competitor per market and a retention desk with a capacity, drawn binomially month by month; the true world adds three hidden price-sensitivity tiers.</li><li><b>Calibration</b> of every agent from 36 months of confounded history: a binomial hazard with market effects and a profiled notice-shock curvature, Poisson signups, the competitor's reactions read off a noisy price scrape.</li><li><b>Seeded experiments</b>: every scenario draws its own parameters from the calibration's uncertainty from <code>(entropy, index)</code> alone, so any one replays bit for bit.</li><li><b>Sobol sensitivity</b> with a quadratic surrogate, and <b>decision records</b> that abstain when the plan extrapolates and need a second person to sign.</li></ul>",
+ "steps": [
+  {
+   "title": "A history that misleads a spreadsheet",
+   "body": "<p>59,733 customers on three plans in eight markets, $5.26M a month, and 36 months of what billing and the CRM recorded for every cohort. Management raised prices in loyal markets and right after the competitor raised its own, 19 times, never by more than 10%. Compare markets, as a spreadsheet does, and higher prices go with less churn: an elasticity of −0.52, the wrong sign.</p>",
+   "code": "p0 = np.exp(-0.35 * u + r.normal(0, 0.03, M))     # loyal markets carry higher prices"
+  },
+  {
+   "title": "Agents calibrated, not assumed",
+   "body": "<p>Cancellation requests are fitted as a binomial hazard with plan, market and tenure effects, the price gap to the competitor, and a notice shock κ·(rise/5%)^ψ in the month of a rise, its curvature ψ profiled on a grid. Inside the history the fit is right: a 4% rise brings +20% requests against a true +19%. At 12% it extrapolates: +145% against a true +110%, with a band 15 times wider. The competitor answered 6 of 10 large rises with a discount.</p>",
+   "code": "fits = [irls(*churn_design(obs, psi)) for psi in PSI_GRID]\nw = np.exp(ll - ll.max()); w /= w.sum()"
+  },
+  {
+   "title": "10,000 scenarios, each its own seed",
+   "body": "<p>Scenario <i>i</i> uses <code>default_rng([entropy, i])</code> and nothing else: it draws ψ from the profile likelihood, the other parameters from the Laplace approximation, the competitor's reaction probability from its Beta posterior, then runs every arm on those draws, so changes against the status quo are paired. Three arms, 30,000 runs, 23 seconds: 2.3 ms a scenario.</p>",
+   "code": "rng = np.random.default_rng([entropy, i])\np, comp = draw(cal, rng)"
+  },
+  {
+   "title": "The worst one, replayed bit for bit",
+   "body": "<p>Only seeds and results are stored for the batch. The worst scenario for the discount arm, number 8,788 at −$2.05M, is re-run from its entropy, index and policy version: the SHA-256 of its monthly outputs matches, and this time all 32 events are recorded. It drew a curvature of 2.6 against a best estimate of 1.8: the tail the history cannot rule out.</p>",
+   "code": "same = digest(o) == r[\"result_hash\"]"
+  },
+  {
+   "title": "What it depends on, and who decides",
+   "body": "<p>Sobol indices over seven inputs from 9,216 runs: the notice-shock curvature (0.33), our customers' sensitivity to the competitor's price (0.26) and the depth of its discount (0.25) explain the most; a quadratic surrogate reproduces held-out runs with R² 0.98. The policy abstains: revenue rises over a year in 99% of scenarios, but by month 12 it is below the status quo in 57%, and 12% is beyond the history. The strategist cannot sign their own proposal; the partner records a staged test.</p>",
+   "code": "elif worst >= 0.9 and pmrr[arm] >= 0.5 and not extrapolating:\n    outcome = \"adopt\""
+  }
+ ],
+ "results": "<p><b>The demo.</b> Calibrated churn response against the truth and the spreadsheet; right inside the history, an extrapolation beyond it:</p><img src=\"shots/rise.jpg\" alt=\"Chart of cancellation requests in the month of a rise from 0% to 16%: calibrated agents with an 80% band widening sharply past 10%, the simulation truth just below the median, the spreadsheet flat and slightly negative; marks at the history's largest rise (10%) and the proposal (12%). Text: a 4% rise brings +20% against a true +19%; at 12% the median says +145%, the truth +110%, band +115% to +180%.\"><p>10,000 scenarios of the revenue change, and month-by-month revenue:</p><img src=\"shots/distributions.jpg\" alt=\"Histograms of the 12-month revenue change: price +12% centred near +$1.85M with the truth at +$1.92M; with a 20% competitor discount centred near +$0.42M with the truth at +$0.30M; table with P(up) 99.5% and 77.4%, spreadsheet +$8.02M for both. Below, monthly revenue from month 1 to 12 with 10th to 90th percentile bands: both rises start above the status quo and fall below it by month 12.\"><p><b>On five other simulated businesses:</b></p><table><tr><th></th><th class=\"num\">Calibrated agents</th><th class=\"num\">Spreadsheet</th></tr><tr><td>Churn response to a 4% rise</td><td class=\"num\">within 3 points of the truth</td><td class=\"num\">elasticity −0.79 to +0.63</td></tr><tr><td>Churn response to a 12% rise</td><td class=\"num\">−21% to +70% of the truth</td><td class=\"num\">–</td></tr><tr><td>12-month revenue change, +12%</td><td class=\"num\">10–37% off the truth</td><td class=\"num\">about 3x the truth</td></tr><tr><td>Same, with a competitor discount</td><td class=\"num\">8–85% off</td><td class=\"num\">about 3x and more</td></tr><tr><td>Sign of month-12 revenue change</td><td class=\"num\">right in 9 of 10</td><td class=\"num\">–</td></tr><tr><td>True outcomes inside the 80% interval</td><td class=\"num\">58%</td><td class=\"num\">–</td></tr></table><p>The agents beat the spreadsheet by a wide margin, but the number asked for, the year's gain, is off by tens of percent: each year's revenue is forecast within a few percent, and the gain is a small difference of two large numbers. The intervals are too narrow, because the hidden sensitivity tiers are a misspecification no parameter uncertainty covers. What holds up is the shape: the rise pays for a year and then costs.</p><p><b>Honest limits.</b> Synthetic business and history; rule-based and probabilistic agents only; a replay is bit for bit on the platform that ran it (the same seeds on macOS give a different history).</p><p><b>Checks.</b> 9 tests, including: customers are conserved and a full desk saves exactly its capacity, a scenario replays bit for bit on its own and inside a batch, market effects undo the confounding the spreadsheet falls into and the curvature's interval holds the truth, the competitor's promotions and reactions are read correctly off a noisy scrape, the replay of the demo's outlier matches its stored hash, the proposer cannot approve, and one client cannot see another's scenario.</p>",
+ "next": "<ul><li>A staged test as a first-class plan: a rise in two markets, with the posterior on the curvature updated from its result.</li><li>Distribute a batch across workers by scenario index, which the seeding scheme already allows.</li><li>A richer misspecification check: fit the tier mixture and see whether the intervals become honest.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/enterprise-simulation-lab",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
