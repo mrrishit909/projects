@@ -1,0 +1,278 @@
+{
+ "service": "enterprise-knowledge-graph",
+ "run": "demo-1",
+ "tokens": {
+  "steward": "halden-steward-demo",
+  "analyst": "halden-analyst-demo",
+  "viewer": "halden-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "Six source systems, one sync",
+   "say": "An invented company, Halden Systems: about a hundred people in fourteen teams, 45 services, ten vendor decisions, fourteen months of work spread over an HR directory, a git service catalog, a wiki, a ticket tracker, a CRM and a chat tool, each with its own permissions. The extractor and the linker are trained on an annotated fifth of the documents and scored on held-out annotations. Then one full connector sync brings everything in: the people and their groups, every container's ACL, and every document, cut into chunks, read for entities and assertions, resolved and reconciled.",
+   "calls": [
+    {
+     "key": "load",
+     "method": "POST",
+     "path": "/v1/corpus:load",
+     "as": "steward",
+     "body": {
+      "seed": 7
+     }
+    },
+    {
+     "key": "sync",
+     "method": "POST",
+     "path": "/v1/connectors/sync",
+     "as": "steward",
+     "body": {
+      "mode": "full"
+     }
+    },
+    {
+     "key": "ov0",
+     "method": "GET",
+     "path": "/v1/overview",
+     "as": "steward"
+    },
+    {
+     "key": "ov_a",
+     "method": "GET",
+     "path": "/v1/overview",
+     "as": "analyst"
+    },
+    {
+     "key": "ov_v",
+     "method": "GET",
+     "path": "/v1/overview",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Who is who",
+   "say": "The same person appears as a full name, an initial, a handle, an email and a typo; two different people share an initial and a surname; two others share a full name. Entity resolution scores each mention against the HR directory, the catalog and the CRM, reading the mention's own document for context, and abstains when two candidates score alike. A team was renamed: older documents use the old name, and the HR directory knows only the new one. The corpus says so, which makes it a merge proposal, not a merge: the analyst proposes it, cannot approve it, and the steward does.",
+   "calls": [
+    {
+     "key": "res",
+     "method": "GET",
+     "path": "/v1/resolution",
+     "as": "steward"
+    },
+    {
+     "key": "prop",
+     "method": "POST",
+     "path": "/v1/merges",
+     "as": "analyst",
+     "body": {
+      "keep_id": "{{res.queue.0.keep.id}}",
+      "merge_id": "{{res.queue.0.merge.id}}",
+      "reason": "the announcement says the team was renamed"
+     }
+    },
+    {
+     "key": "self",
+     "method": "POST",
+     "path": "/v1/merges/{{prop.merge_id}}/approve",
+     "as": "analyst",
+     "expect_error": true
+    },
+    {
+     "key": "approve",
+     "method": "POST",
+     "path": "/v1/merges/{{prop.merge_id}}/approve",
+     "as": "steward"
+    },
+    {
+     "key": "team",
+     "method": "GET",
+     "path": "/v1/entities/{{res.queue.0.keep.id}}",
+     "as": "analyst"
+    }
+   ]
+  },
+  {
+   "title": "Why was this vendor selected?",
+   "say": "The procurement analyst asks why Ember Observability was chosen. The answer is built only from facts in sources she may read, and every sentence cites the chunks it rests on: the selection, the reasons, the decision owner, the alternatives and why each was rejected. A verifier re-reads every citation. Search shows how retrieval found them: BM25 and the graph (the vendor's decision and its facts) fused by rank, both computed inside her view.",
+   "calls": [
+    {
+     "key": "ask",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "analyst",
+     "body": {
+      "question": "Why was Ember Observability selected as our observability platform?"
+     }
+    },
+    {
+     "key": "find",
+     "method": "POST",
+     "path": "/v1/search",
+     "as": "analyst",
+     "body": {
+      "query": "why did we pick Ember for the monitoring platform",
+      "k": 8
+     }
+    }
+   ]
+  },
+  {
+   "title": "A service fails: who owns it?",
+   "say": "The generator is told that rate-limiter starts failing tomorrow; two days pass. An incremental sync fetches only what changed in the sources since each cursor and makes it queryable. The on-call engineer asks who owns the failing service. The answer is the reconciled owner today, not the one an edited but stale service page still names, and it says which sources disagree. Asked about March, it gives the owner then.",
+   "calls": [
+    {
+     "key": "adv",
+     "method": "POST",
+     "path": "/v1/simulator:advance",
+     "as": "steward",
+     "body": {
+      "days": 2,
+      "inject": {
+       "kind": "service_failure",
+       "service": "rate-limiter"
+      }
+     }
+    },
+    {
+     "key": "sync2",
+     "method": "POST",
+     "path": "/v1/connectors/sync",
+     "as": "steward",
+     "body": {
+      "mode": "incremental"
+     }
+    },
+    {
+     "key": "own",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "viewer",
+     "body": {
+      "question": "Who owns rate-limiter? It is failing right now."
+     }
+    },
+    {
+     "key": "then",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "viewer",
+     "body": {
+      "question": "Who owned rate-limiter in March 2026?"
+     }
+    },
+    {
+     "key": "svc",
+     "method": "GET",
+     "path": "/v1/entities/{{own.entities.0.id}}",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Trace the evidence",
+   "say": "Every fact has a provenance: each assertion behind it with its sentence, the extractor and its confidence, the chunk and the source object (system, container, version, when it was synced), and how each name in it was resolved. For the vendor decision that is the evaluation page, the private channel and the announcement; for the ownership it is the handover, the catalog and the tickets, with the stale page listed as contradicting.",
+   "calls": [
+    {
+     "key": "prov",
+     "method": "GET",
+     "path": "/v1/facts/{{ask.sentences.0.facts.0}}/provenance",
+     "as": "analyst"
+    },
+    {
+     "key": "prov2",
+     "method": "GET",
+     "path": "/v1/facts/{{own.sentences.0.facts.0}}/provenance",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Without source permission",
+   "say": "The on-call engineer asks the same question. He cannot read procurement's space, the private evaluation channel, the security review or the contracts, so his answer is built from the engineering announcement alone, and it does not hint that more exists. Asked what the contract costs, he gets an abstention where the analyst gets the figure. Searching for the rejected vendor's security finding returns nothing restricted, the provenance of a fact he cannot see is a 404 exactly like a fact that does not exist, and the vendor's graph shows only what his sources say.",
+   "calls": [
+    {
+     "key": "ask_viewer",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "viewer",
+     "body": {
+      "question": "Why was Ember Observability selected as our observability platform?"
+     }
+    },
+    {
+     "key": "price_viewer",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "viewer",
+     "body": {
+      "question": "How much does the Ember Observability contract cost?"
+     }
+    },
+    {
+     "key": "price_analyst",
+     "method": "POST",
+     "path": "/v1/answers",
+     "as": "analyst",
+     "body": {
+      "question": "How much does the Ember Observability contract cost?"
+     }
+    },
+    {
+     "key": "find_viewer",
+     "method": "POST",
+     "path": "/v1/search",
+     "as": "viewer",
+     "body": {
+      "query": "Cinder security review breach rejected",
+      "k": 5
+     }
+    },
+    {
+     "key": "prov_viewer",
+     "method": "GET",
+     "path": "/v1/facts/{{ask.facts.4.id}}/provenance",
+     "as": "viewer",
+     "expect_error": true
+    },
+    {
+     "key": "graph_viewer",
+     "method": "POST",
+     "path": "/v1/graph/query",
+     "as": "viewer",
+     "body": {
+      "name": "Ember Observability",
+      "depth": 2
+     }
+    },
+    {
+     "key": "graph_analyst",
+     "method": "POST",
+     "path": "/v1/graph/query",
+     "as": "analyst",
+     "body": {
+      "name": "Ember Observability",
+      "depth": 2
+     }
+    }
+   ]
+  },
+  {
+   "title": "The security suite and the audit trail",
+   "say": "The suite tries to pull restricted facts out through every channel for every principal with a distinct set of readable containers: provenance and entity lookups on everything they cannot see, graph queries, questions and searches naming every vendor and every restricted literal. It also checks the API users' answers and search results against an index built without the objects they cannot read, and runs the same probes with the permission filter off to show it would notice a leak. Then the audit trail, hash-chained.",
+   "calls": [
+    {
+     "key": "suite",
+     "method": "POST",
+     "path": "/v1/security/suite",
+     "as": "steward"
+    },
+    {
+     "key": "audit",
+     "method": "GET",
+     "path": "/v1/audit?limit=40",
+     "as": "steward"
+    }
+   ]
+  }
+ ]
+}
