@@ -18,7 +18,7 @@
   "13 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/telecom-self-healing/source",
+ "repo": "https://github.com/mrrishit909/telecom-self-healing",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The network is simulated</b>: sites, cells, links, traffic, counters and alarms come from a generator in the repository, and the demo's faults are injected by telling the generator about them, which is what lets every incident and ranking be checked against the truth. The digital twin is the service's own model; the generator then shows what really happened. No operator data. Not built: a temporal graph neural network, bounded automation, vendor connectors, Kafka, ClickHouse, Neo4j, Kubernetes, single sign-on.",

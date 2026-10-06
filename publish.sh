@@ -16,7 +16,8 @@ cd "$dir"
 if git ls-files | grep -E '(^|/)\.env$'; then echo "STOP: a .env file is tracked"; exit 1; fi
 secret='(sk-ant-[A-Za-z0-9_-]{20,}|sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{40,}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[A-Z0-9]{16}|-----BEGIN [A-Z ]*PRIVATE KEY)'
 # (no grep -q: it exits early, git log gets SIGPIPE, and pipefail would hide the match)
-if git log -p HEAD | grep -E "$secret" >/dev/null; then echo "STOP: something in the git history looks like a secret"; exit 1; fi
+# AKIAIOSFODNN7EXAMPLE is AWS's documented example key (cloud-finops-optimizer's demo shows the API refusing it); allowed
+if git log -p HEAD | grep -oE "$secret" | grep -vx 'AKIAIOSFODNN7EXAMPLE' >/dev/null; then echo "STOP: something in the git history looks like a secret"; exit 1; fi
 big=$(git ls-files -z | xargs -0 du -k 2>/dev/null | awk '$1 > 49000 {print $2}')
 if [ -n "$big" ]; then echo "STOP: files over 49 MB: $big"; exit 1; fi
 

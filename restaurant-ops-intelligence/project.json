@@ -17,7 +17,7 @@
   "13 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/restaurant-ops-intelligence/source",
+ "repo": "https://github.com/mrrishit909/restaurant-ops-intelligence",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The chain is simulated</b>: stores, customers, kitchens, suppliers, weather and walk-ins come from a generator in the repository, and the late truck and the storm are injected by telling the generator about them, which is what lets every forecast, plan and alarm be checked against the truth. The replay re-runs the same generator, so its waste and lost sales are as right as the simulator. No real restaurant data. Not built: LightGBM or PyTorch forecasters, a labor scheduler, store-to-store transfers, real POS, supplier and weather connectors, Kafka, ClickHouse, Kubernetes, Terraform, single sign-on.",
