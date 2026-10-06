@@ -1,0 +1,146 @@
+{
+ "service": "patent-landscape-engine",
+ "run": "demo-1",
+ "tokens": {
+  "attorney": "ipteam-attorney-demo",
+  "analyst": "ipteam-analyst-demo",
+  "viewer": "ipteam-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "An invented field: electric-vehicle battery packs",
+   "say": "A synthetic corpus of 4,000 patents from ten assignees, 2008 to 2025, in families, with claims, inventors, classifications and about 19,000 citations, plus 600 papers. Behind every document is a hidden set of technical concepts, each of which the text can say three ways that often share no word: a cold plate is also a coolant channel plate and a liquid heat-exchange panel. Every claim is parsed into its elements at ingest.",
+   "calls": [
+    {
+     "key": "load",
+     "as": "attorney",
+     "method": "POST",
+     "path": "/v1/corpus:load",
+     "body": {
+      "seed": 13
+     }
+    }
+   ]
+  },
+  {
+   "title": "A proposed invention, element by element",
+   "say": "An engineer proposes a pack of sodium-ion cells submerged in a dielectric fluid, with off-gas sensing and a burst membrane, written in their own words. The parser splits the claim into four elements. Retrieval takes the top 150 by BM25 and the citations of the top ten, then re-ranks each candidate by how many elements its best passage covers, in either wording. The simulation truth shows how keyword search, the LSA space and a fusion of keywords, TF-IDF and LSA would have ranked the same claim. A claim with no elements to parse is refused.",
+   "calls": [
+    {
+     "key": "search",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/search/prior-art",
+     "body": {
+      "title": "Submerged sodium-ion pack with off-gas venting",
+      "claim": "An energy storage apparatus comprising: a plurality of Na-ion battery cells arranged in a tray; a dielectric fluid bath in which the cells are submerged; an early venting alarm that monitors the gas above the fluid; and a burst membrane in the lid of the tray.",
+      "k": 10,
+      "benchmark_id": "INV-DEMO"
+     }
+    },
+    {
+     "key": "bad",
+     "expect_error": true,
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/search/prior-art",
+     "body": {
+      "title": "Vague idea",
+      "claim": "A better battery that lasts longer and is safer."
+     }
+    }
+   ]
+  },
+  {
+   "title": "The evidence: a claim chart and the citation trail",
+   "say": "The closest reference against each element, with the passage that discloses it, and that reference's citations backward and forward: where an examiner would look next.",
+   "calls": [
+    {
+     "key": "chart",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/claims/compare",
+     "body": {
+      "claim": "An energy storage apparatus comprising: a plurality of Na-ion battery cells arranged in a tray; a dielectric fluid bath in which the cells are submerged; an early venting alarm that monitors the gas above the fluid; and a burst membrane in the lid of the tray.",
+      "number": "{{search.results.0.number}}"
+     }
+    },
+    {
+     "key": "graph",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/patents/{{search.results.0.number}}/graph"
+    },
+    {
+     "key": "export",
+     "as": "viewer",
+     "method": "POST",
+     "path": "/v1/claim-charts/export",
+     "body": {
+      "session_id": "{{search.session_id}}",
+      "format": "json"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Who files where, and what nobody has filed",
+   "say": "The field clustered in the LSA space, with each assignee's patents per cluster, and the white space: pairs of ideas that papers since 2021 put together far more often than patents do. The proposed invention sits in it. Then two portfolios side by side: this team's company and its largest competitor in chemistry.",
+   "calls": [
+    {
+     "key": "land",
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/landscapes",
+     "body": {
+      "clusters": 12,
+      "since": 2021
+     }
+    },
+    {
+     "key": "mine",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assignees/Kestrel Motors/portfolio"
+    },
+    {
+     "key": "rival",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/assignees/Voltaris Energy/portfolio"
+    }
+   ]
+  },
+  {
+   "title": "Sign-off and the audit trail",
+   "say": "The analyst who ran the search cannot sign it off as the basis for a filing decision; the attorney can. Every step is in a hash-chained audit log.",
+   "calls": [
+    {
+     "key": "self",
+     "expect_error": true,
+     "as": "analyst",
+     "method": "POST",
+     "path": "/v1/search-sessions/{{search.session_id}}/sign-off",
+     "body": {
+      "note": "looks novel to me"
+     }
+    },
+    {
+     "key": "signoff",
+     "as": "attorney",
+     "method": "POST",
+     "path": "/v1/search-sessions/{{search.session_id}}/sign-off",
+     "body": {
+      "note": "No single reference discloses all four elements; the closest combination is noted for the obviousness analysis"
+     }
+    },
+    {
+     "key": "audit",
+     "as": "attorney",
+     "method": "GET",
+     "path": "/v1/audit?limit=12"
+    }
+   ]
+  }
+ ]
+}
