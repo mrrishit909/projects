@@ -16,7 +16,7 @@
   "14 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/enterprise-knowledge-graph/source",
+ "repo": "https://github.com/mrrishit909/enterprise-knowledge-graph",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The company is simulated</b>: people, teams, services, vendors, documents and the permissions on them come from a generator in the repository, which also records what every document truly says, so extraction, resolution, ownership and leakage can be scored. <b>No language model is used</b>: extraction, resolution and answers are deterministic models trained here, and because the text comes from templates, their scores show the method works and beats its baselines on this corpus, not how it would read real prose. Not built: an LLM extractor, a neural cross-encoder, Neo4j, OpenSearch, pgvector, Kafka, real connectors, single sign-on.",

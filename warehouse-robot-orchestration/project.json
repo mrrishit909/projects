@@ -18,7 +18,7 @@
   "15 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/warehouse-robot-orchestration/source",
+ "repo": "https://github.com/mrrishit909/warehouse-robot-orchestration",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The warehouse is simulated</b>: its layout, 250 robots, batteries, orders and disruptions come from a generator in the repository, and the disruptions are injected by telling the generator, which is what lets an independent checker judge every move. The floor executes moves exactly (no wheel slip, no kinematics), so the collision-free result is the planner's, not a real robot's. No real warehouse data. Not built: ROS2 or MQTT robot adapters, a WebSocket telemetry feed, an RL congestion policy, order batching, Kafka, Kubernetes, single sign-on.",

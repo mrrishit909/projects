@@ -17,7 +17,7 @@
   "13 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/cloud-finops-optimizer/source",
+ "repo": "https://github.com/mrrishit909/cloud-finops-optimizer",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The clouds are simulated</b>: six accounts, their workloads, prices and bills come from a generator in the repository, and pull requests and purchases are \"shipped\" by telling the generator, which is what lets every recommendation and every verified dollar be checked against the truth. No real cloud account or billing data is used and nothing is ever applied to infrastructure. Not built: real cloud connectors, three-year terms and spot, a deep forecaster, Kafka, ClickHouse, single sign-on.",

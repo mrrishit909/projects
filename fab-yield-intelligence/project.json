@@ -16,7 +16,7 @@
   "12 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/fab-yield-intelligence/source",
+ "repo": "https://github.com/mrrishit909/fab-yield-intelligence",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The fab is simulated</b>: tools, chambers, lots, sensor summaries and 540-die test maps come from a generator in the repository, and the demo's fault is injected by telling the generator about it, which is what lets every alarm and ranking be checked against the truth. The counterfactual re-runs the same generator, so its numbers are as right as the simulator's physics. No real fab data. Not built: a CNN, inspection imagery, causal discovery, Kafka, Flink, ClickHouse, Terraform, single sign-on.",

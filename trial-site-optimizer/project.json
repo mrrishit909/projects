@@ -18,7 +18,7 @@
   "13 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/trial-site-optimizer/source",
+ "repo": "https://github.com/mrrishit909/trial-site-optimizer",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The network is simulated</b>: sites, investigators, patients, protocols and enrolment come from a generator in the repository, which knows each patient's real state today and each site's real enrolment rate, and that is what lets every translation, eligibility decision, forecast and portfolio be checked against the truth. No real patient, site or investigator data is used, and no language model or outside service is called. Not built: a language-model parser (the grammar abstains instead), FHIR ingestion, real publication data, Kafka, Kubernetes, single sign-on.",

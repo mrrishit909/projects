@@ -16,7 +16,7 @@
   "15 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/scope3-carbon-accounting/source",
+ "repo": "https://github.com/mrrishit909/scope3-carbon-accounting",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The company is simulated</b>: its six ERPs' vendor masters and invoice lines, the shipments, the utility bills and the suppliers' disclosures come from a generator in the repository, and so does the emission-factor catalogue, whose values are illustrative rather than an official dataset. The generator knows the true supplier behind every vendor record, the true category of every line and every supplier's true intensity, which is what lets every figure be checked; the service never reads it. Not built: Kafka, a data warehouse, Neo4j, pgvector, a learned embedding model or an LLM, market-based Scope 2, Scope 3 categories beyond 1, 2, 4 and 6, single sign-on.",
