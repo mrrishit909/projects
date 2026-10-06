@@ -1,0 +1,53 @@
+{
+ "title": "Is Copper in Surplus Right Now?",
+ "tagline": "A research desk over an invented copper market where official statistics arrive two months late: a Kalman nowcast of the supply-demand balance that names what moved it signal by signal (error 2.8 kt/week against 15.8 for the last official figure), change points on cargo flows, sourced events, and a scenario engine that keeps structure apart from any price call.",
+ "kind": "Python \u00b7 Kalman filter \u00b7 Time series",
+ "order": 130,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Kalman filter",
+  "CUSUM change points",
+  "Monte Carlo",
+  "Docker Compose",
+  "12 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The market is simulated</b>: mines, ports, cargoes, prices and statistics come from a generator in the repository, and the demo's disruption is injected by telling the generator what happens, which is what lets every nowcast be checked against the truth. Nothing here is real data or trading advice. No language model is used. Not built: exchange, EIA/USGS, NOAA or AIS connectors, news extraction, a feature store, more than one commodity, Kafka, Terraform, single sign-on.",
+ "problem": "<p>A desk watching a metal knows the price today and the fundamentals two months ago. Official production and consumption arrive after the quarter they describe; shipping, exchange stocks and the futures curve arrive at once. The question is whether the market is in surplus or deficit right now, and when the answer changes, which data changed it. The trap is to answer with a price forecast dressed as analysis. <em>Can software nowcast the balance with an honest band, say exactly which signals moved it, catch a disruption in the shipping data before the statistics show it, and run a scenario without pretending to call the price?</em></p><p>Blueprint 9 of fifteen in a third build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>Signals with the right information set</b>: official figures only where published, proxies for the weeks since.</li><li><b>A two-state Kalman nowcast</b> (supply, demand) with each observation's contribution kept, back-tested against the last official figure and a regression.</li><li><b>Revision explanations</b>: the change between two runs split by signal, plus re-anchoring on newly published figures.</li><li><b>Change points</b> on departures by origin and overdue cargo by port; <b>sourced events</b> recorded by an analyst.</li><li><b>Scenarios</b> that propagate assumed cuts and delays to stocks and cover, with a price band labelled structural.</li></ul>",
+ "steps": [
+  {
+   "title": "A market where the statistics are late",
+   "body": "<p>Three mining regions ship through three ports to three importers, one to three cargoes a route a week with a planned and a realised transit. The balance of supply over demand moves exchange stocks (half of it visible, the rest reverting off-warrant), stocks set weeks of cover, and cover sets the price level and the 3-month spread. Official production and demand are published eight weeks after each four-week period; shipping, stocks, prices and a macro index are seen the same week. Sixteen mine outages happen in the six years of history, which is what the detector and the models learn from.</p>",
+   "code": "def official_available(w, now):\n    return (period_of(w) + 1) * PERIOD + LAG <= now"
+  },
+  {
+   "title": "A nowcast that remembers who told it what",
+   "body": "<p>Three observation equations are fitted on published weeks: departures on last week's supply, stock change on the balance and the stock level, demand on the macro index. A Kalman filter runs over all weeks with today's information set, anchored by official figures where they exist and carried by the proxies since. The period balance is the filtered supply minus demand averaged over the period. Every observation's innovation times its gain is kept, so the nowcast can say what each signal contributed, and a revision between two runs is split into the new weeks' innovations by signal plus what newly published figures did to the weeks before.</p>",
+   "code": "K = Pp @ H / s\nxp = xp + K * y\ncontrib[w, k] = (K[S_] - K[D_]) * y"
+  },
+  {
+   "title": "The shipping data speaks before the ministry does",
+   "body": "<p>Eight weeks after the load, with Chile quietly losing a third of its output and Callao congested, the two newly published official periods still show a surplus. A two-sided CUSUM per series, standardised by the trailing year with the last eight weeks excluded so a drift cannot hide itself, flags Antofagasta departures down 28 kt a week and overdue cargo out of Callao up 31 kt. The nowcast swings from +12.8 to \u22129 kt a week, and the page shows departures contributed \u221240, stock draws \u221217, the macro index +9 and re-anchoring +26.</p>",
+   "code": "z = (series[t] - ref.mean()) / max(ref.std(), 1e-6)\ns_neg = max(0.0, s_neg - z - k)"
+  },
+  {
+   "title": "A scenario that is not a price call",
+   "body": "<p>Assumptions in: the outage runs eight more weeks, the port stays congested four. Production cuts lower the balance for their weeks; congestion holds a port's flow at sea for the extra weeks and lands it afterwards; both go through the fitted stock equation in 400 paths. Out: stocks and cover with bands, and a price band from log price regressed on cover, with that regression's residual. The response says the relation is structural and fitted on this market's history, and the evaluation shows it has no directional skill. The generator's own future is shown beside the scenario and differs, because the assumption outlasts the real outage.</p>",
+   "code": "for k in range(s[\"start\"] + T, min(weeks, s[\"start\"] + T + e)):\n    arrival_shift[k] -= flow      # still at sea\nfor k in range(s[\"start\"] + L + T, min(weeks, s[\"start\"] + L + T + e)):\n    arrival_shift[k] += flow      # lands when the port clears"
+  },
+  {
+   "title": "Provenance over extraction",
+   "body": "<p>The blueprint has a news service with embeddings. Here an analyst records an event with a type, a region, a severity and a source URI, and the timeline shows events, nowcast runs with their bands, anomalies and the feed's own clock in order. No text is extracted and no language model is used; the honest version of a news service for a slice this size is a form with a required source field.</p>",
+   "code": "source_uri: str = Field(min_length=8, max_length=300)"
+  }
+ ],
+ "results": "<p><b>The demo.</b> Over 5,281 cargoes and six years of weeks, the load-time back-test puts the nowcast's error at 2.8 kt a week against 4.9 for a regression on the same signals and 15.8 for the last official figure. The revised nowcast after eight weeks of data, and what moved it:</p><img src=\"shots/revision.jpg\" alt=\"Revision card: balance nowcast \u22129 kt/wk with band \u221224 to +5.9, eight weeks ago +12.8, revision \u221221.8, last official +10.9 still showing a surplus, regression baseline \u221216.6; bars for departures \u221240.2, stock change \u221216.9, macro +9.3, re-anchoring and drift +26; exchange stocks ahead 862, 865, 869 kt; the real balance \u22123.7 inside the band.\"><p>Baseline against the disruption continuing: stocks, cover and a price band labelled structural.</p><img src=\"shots/scenario.jpg\" alt=\"Scenario card: stocks in 12 weeks 869 kt baseline against 781 kt with the disruption, \u221287.5 kt, 4.27 weeks of cover; price band $6,793 to $7,988 around $7,366 against $7,165 now; two line charts of stock paths and price pressure with bands.\"><p><b>On three other simulated markets, 32 periods each:</b></p><table><tr><th></th><th class=\"num\">System</th><th class=\"num\">Baseline</th></tr><tr><td>Balance nowcast error (kt/week)</td><td class=\"num\">2.3\u20132.9</td><td class=\"num\">11.8\u201328.6 last official</td></tr><tr><td>Truth inside the 80% band</td><td class=\"num\">84\u201391%</td><td class=\"num\">\u2013</td></tr><tr><td>Stocks 12 weeks ahead (kt)</td><td class=\"num\">39\u201371</td><td class=\"num\">45\u201383 random walk</td></tr><tr><td>Outages caught</td><td class=\"num\">24 of 32</td><td class=\"num\">5 false alarms in 18 port-years</td></tr><tr><td>Price direction, 12 weeks</td><td class=\"num\">34\u201353%</td><td class=\"num\">50% coin toss</td></tr></table><p>The nowcast's gain is large because the simulator's relations are stable and the past comes from the same process; a real market would give some back. The stock forecast beats a random walk by a little. The price relation has no directional skill, which is why the scenario engine uses it only to put a band on an assumed stock path.</p><p><b>Honest limits.</b> One commodity, generated data, no revisions to official figures, and a detector that needs five to seven weeks and misses a quarter of outages. The band is a little wide.</p><p><b>Checks.</b> 12 tests, including: the world is deterministic and the demo shocks land where they should, signals respect the publication lag, the nowcast beats the regression and the last official figure over 20 periods with the band holding, CUSUM finds a step and stays quiet on noise, the anomalies name the demo's outage and congestion, delayed cargo in a scenario is never lost, a revision's drivers sum to the revision, an event without a timezone or a scenario with an unknown region is refused, and one desk cannot see another's forecasts.</p>",
+ "next": "<ul><li>Revisions to official data, with the filter re-anchoring on the revised figure and the revision shown as its own driver.</li><li>A second commodity sharing the macro state, which is where a factor model starts to earn its place.</li><li>A real public series (exchange stocks, trade statistics) to see how much of the nowcast's gain survives ragged data.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/commodity-intelligence",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
