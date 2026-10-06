@@ -1,0 +1,55 @@
+{
+ "title": "Will the Synergies Pay for the Premium?",
+ "tagline": "An invented $1.2B acquisition read end to end: contract rules that find 14 of 16 change-of-control exits (and say which wording they miss), two customer masters matched into one entity graph, synergies as distributions from a model fitted to 240 past deals, and fast against staged ERP integration by Monte Carlo against a $260M premium (51% chance of covering it, where the plan as written says $397M).",
+ "kind": "Python · Statistics · Monte Carlo",
+ "order": 156,
+ "demo_label": "Run the six-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Mixed-effects maximum likelihood",
+  "Censored MLE",
+  "Monte Carlo simulation",
+  "Critical path scheduling",
+  "Entity resolution",
+  "Docker Compose",
+  "11 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>Everything is simulated</b>: the acquirer, the target, both customer masters, the contracts, the cyber report, both application portfolios and the database of past deals come from a generator in the repository, with a hidden true process the models never see; it is shown beside every result only to score them. The contract and cyber \"extraction\" is hand-written rules and the executive summary is filled-in templates: no language model is used. The matching, the rules and the clusters were written by the same hand as the generator, so their recall is an upper bound. Not built: OCR and data-room connectors, a graph database, key-person and litigation risk, revenue lost to change-of-control exits inside the value model, Kafka, Kubernetes, SSO.",
+ "problem": "<p>An acquirer pays a premium over what the target is worth alone, and the synergies are supposed to pay it back. Management's case says how much; the history of deals says acquirers usually get most of the cost synergies and much less of the revenue, that ERP programmes run late, and that a cutover can stop orders for weeks. Meanwhile the data room hides contracts that let big customers walk on a change of control. <em>Can a platform read the data room, put honest distributions on the synergies, compare a fast and a staged integration against the premium, and keep score after close?</em></p><p>Blueprint 20 of twenty in a fourth build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>A synthetic data room</b>: financials, 420 and 2,600 customers, forty contracts, a cyber assessment, 40 applications, and 240 past deals generated from a true process the models never see.</li><li><b>Risk rules with evidence</b>: change-of-control and convenience clauses, open cyber findings, concentration, each stored with the sentence it came from.</li><li><b>An entity graph</b> from matching the two customer masters.</li><li><b>A synergy model</b> fitted to every report of every past deal, including those still ramping and those that went quiet.</li><li><b>Fast against staged ERP</b>: critical-path plans, team size by enumeration, 10,000 draws each against the premium.</li><li><b>Four-eyes decisions</b>, quarterly realisation tracking, and an executive summary that cites its rows.</li></ul>",
+ "steps": [
+  {
+   "title": "A data room with a truth behind it",
+   "body": "<p>The generator writes the target's twelve quarters ($310M revenue, 13.9% EBITDA), 420 customers with a heavy tail (the largest is 15.1%), and the acquirer's CRM, which holds 30% of them in its own spellings plus sister companies with the same name and another legal suffix. Forty contracts mix five change-of-control wordings and three convenience wordings into boilerplate. The 240 past deals realise their synergies through a log-linear process with two kinks the model is not told about, and disclose at their first anniversary and at their latest date, unless they fell behind and went quiet.</p>",
+   "code": "weak = (np.exp(lc) < 0.7) | (np.exp(lr) < 0.3)\nsilent = (months > 12) & weak & (r.random(n) < 0.75)"
+  },
+  {
+   "title": "Rules that say what they missed",
+   "body": "<p>Sentence rules flag change-of-control and convenience clauses; a regular expression reads each cyber finding; every risk is stored with its document, clause and sentence. The rules find 14 of the 16 change-of-control contracts with no false alarms: fourteen customers, 37% of revenue. They miss one wording every time (\"more than fifty percent of the voting securities\", which never names the event), so the page calls the exposure a floor, and an amendment uploaded in the demo with that kind of wording is shown being missed.</p>",
+   "code": "((r\"\\b(acquired|merged? (into|with)|merger|...)\\b\", r\"\\b(terminat\\w*|end this agreement)\\b\"),\n \"acquisition or merger gives a right to end\")"
+  },
+  {
+   "title": "Synergies from deals that are not finished",
+   "body": "<p>A fifth of the past deals are still ramping and more than a quarter of the older ones went quiet. Bankers' comparables (deals three years on that still disclose) run high; taking every latest figure as final runs low. The model fits log(reported / announced) to the deal's features plus k·log(months/36) for the ramp plus a deal effect and reporting noise, by maximum likelihood over every report. On fresh deals its median error is 0.13–0.14 of the case for cost and 0.16 for revenue, against 0.18–0.19 and 0.51–0.53 for management's case, and its 80% intervals cover 75–83%.</p>",
+   "code": "res = optimize.minimize(lambda th: -_gls(deals, *np.exp(th))[2], np.log([0.3, 0.1]), method=\"Nelder-Mead\")"
+  },
+  {
+   "title": "Fast or staged, against the premium",
+   "body": "<p>The target's ERP carries eight interfaces; each is a workstream. Fast is one cutover; staged runs North America, Europe and Asia-Pacific in turn. Team size is chosen by enumeration (two interface teams for both), then 10,000 draws of lateness (fitted ×1.27 of plan), cutover incidents (31% fast, 11% per staged wave) and synergy realisation run five years of weekly value plus nine times run-rate. Fast: $268M expected, 51% chance of covering the $260M premium; staged $263M, 48%. The plans as written say $397M and $389M; the truth says $282M for both.</p>",
+   "code": "loss += incident[:, c] * inc_weeks[:, c] * revenue / 52 * share * COSTS[\"lost_margin_on_disrupted_revenue\"] * ..."
+  },
+  {
+   "title": "Four eyes, then a year of reports",
+   "body": "<p>The analyst proposes fast with its evidence; their own approval is refused; the deal lead approves. Four quarterly reports update the forecast, each divided by the fitted ramp, with the ramp's shared error in the covariance: revenue lands at $16.6M (truth $17.3M, inside the band) where the straight line from the fourth quarter says $10.1M; cost at $29.6M, with the truth of $32.4M just above the band. Revenue at 37% of the case opens a review task instead of changing anything.</p>",
+   "code": "Si = np.linalg.inv(m[\"report_sd\"] ** 2 * np.eye(len(y)) + k_var * np.outer(lm, lm))"
+  }
+ ],
+ "results": "<p><b>The demo.</b> The risk register, each risk with the sentence it came from:</p><img src=\"shots/risks.jpg\" alt=\"Risk step: largest customer 15.1%, top ten 37%; change-of-control exposure 37%, 14 customers, $115M; 12 contracts terminable for convenience; 3 open critical or high cyber findings, 2 internet-facing, $2.2M to fix; 48% of revenue from shared customers, exact names find 8%, truth 46%. Below, a risk register table with severity, kind, title, exposure and the evidence sentence from each contract or the cyber report.\"><p>Fast against staged ERP, against the premium:</p><img src=\"shots/erp.jpg\" alt=\"Integration step: fast expected value $268M (plan as written $397M), staged $263M ($389M), fast minus staged $5.4M, 51% chance of covering the premium (truth 58%); a chart of the value distributions for fast, staged and the truth with the premium and the plan as written marked; a side-by-side table: two interface teams each, weeks 38/48/68 and 62/78/111, incident 30% and 28%, 80% ranges $194M–$350M and $188M–$344M, truth $282M for both; a Gantt chart of the fast plan.\"><p><b>On five data rooms the demo never uses:</b></p><table><tr><th></th><th class=\"num\">System</th><th class=\"num\">Baseline</th></tr><tr><td>Synergy realisation error, cost</td><td class=\"num\">0.13–0.14</td><td class=\"num\">0.18–0.19 management's case</td></tr><tr><td>Synergy realisation error, revenue</td><td class=\"num\">0.16</td><td class=\"num\">0.51–0.53 management; 0.22–0.28 comparables</td></tr><tr><td>Tracker after four quarters, revenue error</td><td class=\"num\">0.01–0.02</td><td class=\"num\">0.17–0.23 straight line</td></tr><tr><td>Tracker 80% band covers, cost</td><td class=\"num\">49–81%</td><td class=\"num\">–</td></tr><tr><td>Fast vs staged, same choice as the truth</td><td class=\"num\">2 of 5</td><td class=\"num\">truth's gap $0–8M</td></tr><tr><td>Customer matching, recall</td><td class=\"num\">1.00 at 0.86–0.91 precision</td><td class=\"num\">0.18–0.30 exact names</td></tr><tr><td>Change-of-control clauses</td><td class=\"num\">59 of 74, no false alarms</td><td class=\"num\">–</td></tr></table><p>The model cannot tell fast from staged better than a coin, because the truth barely can either: the choice is worth a few million dollars against a range of $180–200M. What it does show is that the plan as written is $77–110M too high whichever is chosen. The tracker's cost bands are too narrow on two of five databases (49% and 68%), because the fitted cost ramp comes out a few hundredths steep.</p><p><b>Honest limits.</b> Everything is synthetic; the matcher, rules and tags share an author with the generator; the ramp has the generator's shape; change-of-control exits are reported, not simulated into the value.</p><p><b>Checks.</b> 11 tests, including: the rules catch four wordings and miss the fifth, the cyber parser reads every finding, the fits recover the ramp and show the survivorship bias, the schedule respects dependencies and never lengthens with more teams, value falls with lateness, incidents and lower realisation, the tracker follows its reports, four-eyes approval, idempotent replay, and one firm cannot see another's deal.</p>",
+ "next": "<ul><li>Simulate change-of-control exits into the value, so the 37% of revenue at risk moves the chance of covering the premium.</li><li>Fit cost and revenue jointly, which should remove most of the bias in the cost ramp that narrows the tracker's bands.</li><li>A trained clause classifier scored on wording it has never seen, in place of rules written beside the generator.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/ma-integration-intelligence",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
