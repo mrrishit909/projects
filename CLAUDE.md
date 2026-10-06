@@ -41,7 +41,8 @@ A project's record sleeve on the home page, and the "Next project" link on the c
   record (`.platter`) and tonearm (`.arm`) are sized as percentages of it.
 * `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spine colours are the `colors` list in `home.js`.
 * `vendor/fonts` holds the Geist font used by `motion/` (self-hosted; licence alongside).
-* **One colour scheme for the whole site:** `theme.css` (paper, panel, line, faint, wood, muted, ink, deep, and the Courier `--mono`).
+* **One colour scheme for the whole site:** `theme.css` (paper, raised, panel, line, faint, wood, muted, ink, deep, a terracotta `--accent`
+  for small marks, and the Courier `--mono`). It is kept mid-contrast on purpose: no pure black, secondary text about 5:1.
   The home page, every case study (`site.css`) and the frozen trading-bot page (`style.css`) all take their colours from it, so
   change colours there, not in the page CSS.
 * Case-study pages use `site.css`. A project marked `"frozen": true` in its `project.json` is never rebuilt.

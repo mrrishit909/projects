@@ -21,10 +21,11 @@ a{color:inherit}
 .meta .tech{color:var(--muted)}
 .links{display:flex;flex-wrap:wrap;gap:24px}
 .links a{text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:2px}
-.links a:hover{border-color:var(--ink)}
+.links a:hover{border-color:var(--accent)}
 
 .cover{margin:8px 0 0}
-.cover img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line)}
+/* project screenshots and charts are often dark: a soft paper mat and a touch less contrast keep them from glaring */
+.cover img{display:block;width:100%;height:auto;border-radius:14px;border:10px solid var(--panel);filter:contrast(.92) brightness(1.04)}
 .note{margin:28px 0 0;padding-left:16px;border-left:1px solid var(--faint);color:var(--muted);max-width:70ch;font-size:15px}
 
 section.s{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.4fr);gap:24px 64px;padding:56px 0;border-top:1px solid var(--line)}
@@ -35,13 +36,13 @@ section.s p{margin:0 0 14px}
 section.s ul{margin:0 0 14px;padding-left:20px}
 section.s li{margin:4px 0}
 section.s li::marker{color:var(--faint)}
-.body img{display:block;max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);margin:0 0 18px}
+.body img{display:block;max-width:100%;height:auto;border-radius:12px;border:8px solid var(--panel);margin:0 0 18px;filter:contrast(.92) brightness(1.04)}
 
 ol.steps{list-style:none;margin:0;padding:0}
 ol.steps > li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:0 16px;padding:0 0 34px;margin:0}
-ol.steps .n{color:var(--faint);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;padding-top:4px}
+ol.steps .n{color:var(--accent);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;padding-top:4px}
 ol.steps h3{margin:0 0 6px;font-family:var(--mono);font-size:20px;font-weight:400;letter-spacing:-.02em;line-height:1.25}
-ol.steps p{color:var(--muted)}
+ol.steps p{color:var(--ink)}
 ol.steps p b,ol.steps p code{color:var(--ink)}
 
 code{font-family:var(--mono);font-size:.92em}
@@ -75,12 +76,12 @@ footer a{text-decoration:none}
 @keyframes vt-in{from{opacity:0}}
 
 /* ---- interactive layer (case.js); without the script none of these elements exist ---- */
-.progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--ink);transform-origin:0 50%;transform:scaleX(0);z-index:30;pointer-events:none}
-.toc{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);display:flex;gap:4px;padding:6px;border:1px solid var(--line);border-radius:999px;background:rgba(247,245,238,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:20;max-width:calc(100vw - 32px);overflow-x:auto;scrollbar-width:none}
+.progress{position:fixed;top:0;left:0;right:0;height:2px;background:var(--accent);transform-origin:0 50%;transform:scaleX(0);z-index:30;pointer-events:none}
+.toc{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);display:flex;gap:4px;padding:6px;border:1px solid var(--line);border-radius:999px;background:rgba(244,241,234,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:20;max-width:calc(100vw - 32px);overflow-x:auto;scrollbar-width:none}
 .toc.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .toc a{flex:none;text-decoration:none;color:var(--muted);padding:8px 14px;border-radius:999px;transition:background .2s,color .2s}
 .toc a:hover{color:var(--ink)}
-.toc a.on{background:var(--ink);color:var(--paper)}
+.toc a.on{background:var(--deep);color:var(--paper)}
 section.s{scroll-margin-top:24px}
 .rv{opacity:0;transform:translateY(18px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
 .rv.in{opacity:1;transform:none}
@@ -91,7 +92,7 @@ pre:hover .copy,.copy:focus-visible{opacity:1}
 .zoomable{cursor:zoom-in;transition:border-color .2s,transform .3s cubic-bezier(.2,.7,.2,1)}
 .zoomable:hover{border-color:var(--faint);transform:scale(1.005)}
 dialog.zoom{max-width:min(96vw,1600px);max-height:94vh;padding:0;border:0;background:transparent;cursor:zoom-out}
-dialog.zoom::backdrop{background:rgba(247,245,238,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+dialog.zoom::backdrop{background:rgba(244,241,234,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 dialog.zoom img{display:block;max-width:100%;max-height:88vh;margin:0 auto;border-radius:10px}
 dialog.zoom p{margin:10px 0 0;text-align:center;color:var(--muted)}
 th.sortable{cursor:pointer;user-select:none}
@@ -103,7 +104,7 @@ th[aria-sort=descending]::after{content:" \2193";opacity:1}
 .body tr:hover td{background:rgba(138,127,106,.08)}
 .next{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px 32px}
 .next .cap,.next .t{grid-column:1}
-.next video{grid-column:2;grid-row:1 / span 2;width:min(320px,30vw);aspect-ratio:1.72;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:var(--panel);transition:transform .4s cubic-bezier(.2,.7,.2,1)}
+.next video{grid-column:2;grid-row:1 / span 2;width:min(320px,30vw);aspect-ratio:1.72;object-fit:cover;border-radius:12px;border:6px solid var(--panel);background:var(--panel);filter:contrast(.92) brightness(1.04);transition:transform .4s cubic-bezier(.2,.7,.2,1)}
 .next:hover video{transform:scale(1.03)}
 @media (max-width:760px){.next{grid-template-columns:minmax(0,1fr)}.next video{grid-column:1;grid-row:auto;width:100%;margin-top:18px}}
 @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}.toc,.zoomable,.next video{transition:none}}
