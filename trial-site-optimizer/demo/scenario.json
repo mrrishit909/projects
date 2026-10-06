@@ -1,0 +1,259 @@
+{
+ "service": "trial-site-optimizer",
+ "run": "demo-1",
+ "tokens": {
+  "director": "net-study_director-demo",
+  "analyst": "net-feasibility_analyst-demo",
+  "viewer": "net-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "The network and its history",
+   "say": "An invented research network of 120 oncology sites, academic and community across six regions, with their investigators and five years of site history. Every site's EHR feed arrives as a hospital would send it (MRN, birth date, dated diagnoses, staging, biomarkers, labs, regimens by line, ECOG, comorbidities, a free-text note) and is tokenised at the door: a keyed hash, an age band, a distance band and events as days before the snapshot. Nothing else is stored. The enrolment and dropout models are trained on the history and backtested on its latest studies against plain baselines.",
+   "calls": [
+    {
+     "key": "load",
+     "method": "POST",
+     "path": "/v1/network:load",
+     "as": "director",
+     "body": {
+      "seed": 7
+     }
+    },
+    {
+     "key": "ov",
+     "method": "GET",
+     "path": "/v1/network/overview",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Parse a complex oncology protocol",
+   "say": "A phase 3 protocol's eligibility section, 22 numbered criteria, goes through a deterministic grammar: each criterion becomes typed rules (field, operator, value, unit, time window, drug classes) that are validated, or it goes to the review queue when the grammar cannot account for every word. Criteria no record can answer (consent, life expectancy, pregnancy) are left for the site. No language model is called.",
+   "calls": [
+    {
+     "key": "parse",
+     "method": "POST",
+     "path": "/v1/studies/parse",
+     "as": "analyst",
+     "body": {
+      "external_ref": "ONC-LUNG-301",
+      "name": "Phase 3 study in PD-L1-positive NSCLC after platinum",
+      "text": "ONC-LUNG-301: A Phase 3, Randomized, Open-Label Study in Non-Small Cell Lung Cancer\n\n5. STUDY POPULATION\n\n5.1 Inclusion criteria\nPatients must meet all of the following criteria to be eligible:\n1. Adults ≥ 18 years old.\n2. Documented diagnosis of locally advanced (stage IIIB/IIIC) or metastatic (stage IV) non-small-cell lung carcinoma.\n3. Prior treatment with a platinum-containing regimen.\n4. Fewer than three prior regimens, counting maintenance as part of the preceding line.\n5. PD-L1-positive tumor (TPS ≥ 1%) by a validated assay.\n6. ECOG PS 0-1 within 2 weeks of screening.\n7. Adequate bone marrow function within 28 days prior to screening: ANC >= 1.5 × 10^9/L, platelet count ≥ 100 × 10^9/L and Hb no less than 9 g/dL.\n8. Calculated creatinine clearance (Cockcroft-Gault) at least 50 mL/min in the 28 days before first dose.\n9. Adequate liver function in the 14 days before first dose: AST and ALT <= 2.5 × ULN, and total bilirubin no more than 1.5 × ULN.\n10. Measurable disease per RECIST 1.1.\n11. Able to understand and willing to sign a written informed consent document.\n\n5.2 Exclusion criteria\nPatients meeting any of the following criteria are not eligible:\n1. Tumors with a documented EGFR mutation or ALK fusion.\n2. Prior PD-1 or PD-L1 blockade within the last half year.\n3. Systemic anticancer therapy within 4 weeks of screening.\n4. Symptomatic or untreated brain metastases.\n5. Known interstitial lung disease.\n6. Active autoimmune disease that required systemic treatment within 2 years before screening.\n7. Known history of HIV infection.\n8. Known active HBV or HCV infection.\n9. Additional malignancy that required active treatment within the past 3 years.\n10. Pregnant or breastfeeding.\n11. Expected survival under 12 weeks in the opinion of the investigator.\n"
+     }
+    }
+   ]
+  },
+  {
+   "title": "A study director reviews the translation",
+   "say": "The study director reviews every criterion. A first edit types the ANC threshold as 1,500 in 10^9/L and is refused by the same validation the parser's output passes. Then the two queued criteria are written by hand, the rest are accepted, and the criteria set is approved and frozen: only now may it run on patients.",
+   "calls": [
+    {
+     "key": "badedit",
+     "method": "POST",
+     "path": "/v1/studies/{{parse.study_id}}/review",
+     "as": "director",
+     "expect_error": true,
+     "body": {
+      "decisions": [
+       {
+        "ref": "I7",
+        "action": "edit",
+        "rules": [
+         {
+          "field": "lab",
+          "name": "ANC",
+          "op": ">=",
+          "value": 1500,
+          "unit": "10^9/L",
+          "within_days": 28
+         }
+        ],
+        "note": "ANC 1,500"
+       }
+      ]
+     }
+    },
+    {
+     "key": "review",
+     "method": "POST",
+     "path": "/v1/studies/{{parse.study_id}}/review",
+     "as": "director",
+     "body": {
+      "decisions": [
+       {
+        "ref": "I4",
+        "action": "edit",
+        "rules": [
+         {
+          "field": "prior_lines",
+          "op": "<=",
+          "value": 2
+         }
+        ],
+        "note": "maintenance belongs to its line, so fewer than three regimens is at most two prior lines"
+       },
+       {
+        "ref": "E2",
+        "action": "edit",
+        "rules": [
+         {
+          "field": "therapy",
+          "classes": [
+           "anti-PD-1",
+           "anti-PD-L1"
+          ],
+          "within_days": 182
+         }
+        ],
+        "note": "half a year: 182 days, PD-1 or PD-L1 antibodies"
+       }
+      ],
+      "accept_remaining_parsed": true
+     }
+    }
+   ]
+  },
+  {
+   "title": "Eligible populations by site",
+   "say": "The temporal rules engine runs the approved criteria over every tokenised record as of the snapshot: a lab counts only inside its window, a regimen only if it ended inside the exclusion window. A patient whose record cannot answer a criterion today (no labs in the window, no ECOG in two weeks) is potentially eligible and counts by the chance that the open criteria pass.",
+   "calls": [
+    {
+     "key": "match",
+     "method": "POST",
+     "path": "/v1/match/evaluate",
+     "as": "analyst",
+     "body": {
+      "study_id": "{{parse.study_id}}"
+     }
+    },
+    {
+     "key": "funnel",
+     "method": "GET",
+     "path": "/v1/studies/{{parse.study_id}}/funnel",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Explain sample eligibility decisions",
+   "say": "Three decisions explained: an eligible patient, one excluded by a PD-1 antibody inside the six-month window, and one waiting for screening labs. Each explanation is re-derived from the stored timeline and the approved criteria and checked against the stored decision. Then the analytics export: counts by site, age band and status, small cells suppressed, scanned for identifiers before it leaves.",
+   "calls": [
+    {
+     "key": "m_el",
+     "method": "GET",
+     "path": "/v1/studies/{{parse.study_id}}/matches?status=eligible&limit=3",
+     "as": "analyst"
+    },
+    {
+     "key": "x_el",
+     "method": "GET",
+     "path": "/v1/matches/{{m_el.items.0.match_id}}/explanation",
+     "as": "analyst"
+    },
+    {
+     "key": "m_io",
+     "method": "GET",
+     "path": "/v1/studies/{{parse.study_id}}/matches?status=ineligible&failed=E2&only=true&limit=3",
+     "as": "analyst"
+    },
+    {
+     "key": "x_io",
+     "method": "GET",
+     "path": "/v1/matches/{{m_io.items.0.match_id}}/explanation",
+     "as": "analyst"
+    },
+    {
+     "key": "m_lab",
+     "method": "GET",
+     "path": "/v1/studies/{{parse.study_id}}/matches?status=potential&unknown=I7&limit=3",
+     "as": "analyst"
+    },
+    {
+     "key": "x_lab",
+     "method": "GET",
+     "path": "/v1/matches/{{m_lab.items.0.match_id}}/explanation",
+     "as": "analyst"
+    },
+    {
+     "key": "export",
+     "method": "GET",
+     "path": "/v1/studies/{{parse.study_id}}/export",
+     "as": "analyst"
+    }
+   ]
+  },
+  {
+   "title": "Score every site and optimise a 20-site portfolio",
+   "say": "Every site is scored for this protocol: its expected eligible pool, when it is likely to open (Weibull survival on its contracting history), enrolment in 12 months with an 80% interval (Poisson-gamma on its history), dropout risk and the lead investigator's record. A MILP picks 20 sites under a $2.4M budget, at most 6 per region, at least 3 academic, no investigator with an open GCP finding. The analyst cannot approve the plan; the study director does.",
+   "calls": [
+    {
+     "key": "score",
+     "method": "POST",
+     "path": "/v1/sites/score",
+     "as": "analyst",
+     "body": {
+      "study_id": "{{parse.study_id}}",
+      "horizon_months": 12
+     }
+    },
+    {
+     "key": "opt",
+     "method": "POST",
+     "path": "/v1/portfolios/optimize",
+     "as": "analyst",
+     "body": {
+      "study_id": "{{parse.study_id}}",
+      "n_sites": 20,
+      "budget_usd": 2400000,
+      "target_evaluable": 100,
+      "max_per_region": 6,
+      "min_academic": 3
+     }
+    },
+    {
+     "key": "self",
+     "method": "POST",
+     "path": "/v1/portfolios/{{opt.result.plan_id}}/approve",
+     "as": "analyst",
+     "expect_error": true,
+     "body": {
+      "decision": "approved"
+     }
+    },
+    {
+     "key": "approve",
+     "method": "POST",
+     "path": "/v1/portfolios/{{opt.result.plan_id}}/approve",
+     "as": "director",
+     "body": {
+      "decision": "approved",
+      "note": "budget and regional spread agreed with the sponsor"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Twelve months of enrolment",
+   "say": "The simulator runs the study for twelve months at the approved sites with its own truth (the patients' real state today, each site's real rate and contracting speed) and, as simulation truth only, at the sites a top-by-history plan would have chosen, with the same draws per site. What was predicted against what happened, and the audit trail.",
+   "calls": [
+    {
+     "key": "adv",
+     "method": "POST",
+     "path": "/v1/network:advance",
+     "as": "director",
+     "body": {
+      "study_id": "{{parse.study_id}}"
+     }
+    },
+    {
+     "key": "audit",
+     "method": "GET",
+     "path": "/v1/audit?limit=80",
+     "as": "director"
+    }
+   ]
+  }
+ ]
+}
