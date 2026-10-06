@@ -1,0 +1,262 @@
+{
+ "service": "restaurant-ops-intelligence",
+ "run": "demo-1",
+ "tokens": {
+  "manager": "resto-store_manager-demo",
+  "planner": "resto-planner-demo",
+  "viewer": "resto-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "The chain and its history",
+   "say": "An invented fast-casual chain, Verde Grill: 50 stores in five regions (downtown, suburban and campus formats), a 12-item menu built from 15 ingredients and 6 prepped components, three suppliers with their lead times and delivery days. Eight weeks of history ran the way the chain always ran: par prep from the last two same weekdays, par orders. The models are trained on the first six weeks and scored on the last two, each against a plain baseline.",
+   "calls": [
+    {
+     "key": "load",
+     "method": "POST",
+     "path": "/v1/chain:load",
+     "as": "manager",
+     "body": {
+      "seed": 7
+     }
+    },
+    {
+     "key": "ov0",
+     "method": "GET",
+     "path": "/v1/chain/overview",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Tomorrow's lunch rush, 50 stores",
+   "say": "Sunday night. The forecast is refreshed for every store, item and 15-minute slot for Monday and Tuesday, with 90% intervals, and timed against the blueprint's two-minute target. The chain's lunch curve, every store's lunch rush on the map, and one Uptown store item by item. A planned promotion (chicken tacos, 20% off in Midtown and Lakeside) is in the forecast through its estimated elasticity.",
+   "calls": [
+    {
+     "key": "fc1",
+     "method": "POST",
+     "path": "/v1/forecast:refresh",
+     "as": "planner",
+     "body": {
+      "days": 2
+     }
+    },
+    {
+     "key": "get1",
+     "method": "GET",
+     "path": "/v1/forecast?location=S11",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Prep plans, tonight's orders, lots at risk",
+   "say": "Prep plans for Monday at all 50 stores: each component to the 90th percentile of its window's demand, beside the store's usual par, with the labor minutes and the cooks each lunch slot needs. Tonight's orders: base-stock to the 95th percentile over each delivery's cover, net of what the spoilage hazard expects to survive. Every open lot's risk of being thrown away in the next two days.",
+   "calls": [
+    {
+     "key": "plan1",
+     "method": "POST",
+     "path": "/v1/prep/plan",
+     "as": "planner",
+     "body": {}
+    },
+    {
+     "key": "rec1",
+     "method": "POST",
+     "path": "/v1/orders/recommend",
+     "as": "planner"
+    },
+    {
+     "key": "risk",
+     "method": "GET",
+     "path": "/v1/waste/risk?limit=12",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "A late truck and a rainstorm",
+   "say": "The generator is told two things about Monday: the produce supplier's truck for Harbor and Uptown will be a day late, and a heavy rainstorm will sit over Uptown and Midtown from 11:00 to 15:00. The service receives only what a real chain would: the supplier's delay notice and the weather service's forecast. A catering pre-order arrives through the POS API; one ticket names an item not on the menu and one is a replay.",
+   "calls": [
+    {
+     "key": "inject",
+     "method": "POST",
+     "path": "/v1/chain:advance",
+     "as": "manager",
+     "body": {
+      "days": 0,
+      "inject": [
+       {
+        "kind": "supplier_delay",
+        "supplier": "produce",
+        "regions": [
+         "Harbor",
+         "Uptown"
+        ],
+        "days": 1
+       },
+       {
+        "kind": "rainstorm",
+        "regions": [
+         "Uptown",
+         "Midtown"
+        ],
+        "from_hour": 11,
+        "to_hour": 15,
+        "intensity": 0.9
+       }
+      ]
+     }
+    },
+    {
+     "key": "ov1",
+     "method": "GET",
+     "path": "/v1/chain/overview",
+     "as": "viewer"
+    },
+    {
+     "key": "pos",
+     "method": "POST",
+     "path": "/v1/sales/ingest",
+     "as": "planner",
+     "body": {
+      "tickets": [
+       {
+        "ticket_id": "S14-CATER-0928-01",
+        "location": "S14",
+        "at": "2026-09-28T11:45:00",
+        "channel": "delivery",
+        "lines": [
+         {
+          "item": "chicken_bowl",
+          "qty": 18
+         },
+         {
+          "item": "chips_guac",
+          "qty": 6
+         }
+        ]
+       },
+       {
+        "ticket_id": "S14-CATER-0928-02",
+        "location": "S14",
+        "at": "2026-09-28T12:00:00",
+        "channel": "delivery",
+        "lines": [
+         {
+          "item": "nachos_supreme",
+          "qty": 4
+         }
+        ]
+       },
+       {
+        "ticket_id": "S14-CATER-0928-01",
+        "location": "S14",
+        "at": "2026-09-28T11:45:00",
+        "channel": "delivery",
+        "lines": [
+         {
+          "item": "chicken_bowl",
+          "qty": 18
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "title": "Re-plan prep and inventory",
+   "say": "The forecast is refreshed with the storm in it: dine-in falls and delivery rises over Uptown and Midtown at lunch. Monday's prep is re-planned. Tonight's orders are re-run with the late truck in the pipeline: stores that would run out of produce before it arrives get a backup order from the cash-and-carry, at a premium. Changes beyond $250 a line need a store manager: the planner cannot approve their own, the store manager does.",
+   "calls": [
+    {
+     "key": "fc2",
+     "method": "POST",
+     "path": "/v1/forecast:refresh",
+     "as": "planner",
+     "body": {
+      "days": 2
+     }
+    },
+    {
+     "key": "get2",
+     "method": "GET",
+     "path": "/v1/forecast?location=S11",
+     "as": "viewer"
+    },
+    {
+     "key": "plan2",
+     "method": "POST",
+     "path": "/v1/prep/plan",
+     "as": "planner",
+     "body": {}
+    },
+    {
+     "key": "rec2",
+     "method": "POST",
+     "path": "/v1/orders/recommend",
+     "as": "planner"
+    },
+    {
+     "key": "self",
+     "method": "POST",
+     "path": "/v1/decisions/{{rec2.result.decision_id}}/approve",
+     "as": "planner",
+     "expect_error": true
+    },
+    {
+     "key": "approve",
+     "method": "POST",
+     "path": "/v1/decisions/{{rec2.result.decision_id}}/approve",
+     "as": "manager"
+    }
+   ]
+  },
+  {
+   "title": "Monday to Wednesday, and what the re-plan saved",
+   "say": "Three business days run on the approved plan: the storm, the late truck, the double delivery when it arrives. Then the same three days re-run in the generator from the same stock with the same customers, weather and spoilage: as run (it must reproduce), with the plan made before the notices, and the chain's usual practice. Waste and lost sales come from the generator, so they include the demand the POS never saw.",
+   "calls": [
+    {
+     "key": "adv",
+     "method": "POST",
+     "path": "/v1/chain:advance",
+     "as": "manager",
+     "body": {
+      "days": 3
+     }
+    },
+    {
+     "key": "cmp",
+     "method": "POST",
+     "path": "/v1/outcomes:compare",
+     "as": "planner"
+    }
+   ]
+  },
+  {
+   "title": "Margins, shrinkage, the audit trail",
+   "say": "Food cost bridged from recipe to actual over the last seven days, store by store, and what the taco promotion earned at its estimated elasticity. Stores whose counted usage runs ahead of their sales at recipe, beyond the chain's normal for each ingredient, beside a fixed variance threshold. Then the audit trail, whose hash chain verifies.",
+   "calls": [
+    {
+     "key": "margins",
+     "method": "GET",
+     "path": "/v1/margins/explain?days=7",
+     "as": "viewer"
+    },
+    {
+     "key": "shrink",
+     "method": "GET",
+     "path": "/v1/shrinkage",
+     "as": "viewer"
+    },
+    {
+     "key": "audit",
+     "method": "GET",
+     "path": "/v1/audit?limit=40",
+     "as": "manager"
+    }
+   ]
+  }
+ ]
+}
