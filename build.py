@@ -15,6 +15,17 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 PORTFOLIO = "https://mrrishit909.github.io/"
 REQUIRED = ["title", "tagline", "kind", "tech", "date", "repo", "problem", "built", "steps", "results", "next"]
+# Every project carries the same format: one project.json, one cover.jpg, the standard case-study page, its record on the shelf,
+# and the site-wide colours. These checks make the build refuse a project that would break that.
+FROZEN_OK = {"trading-bot"}          # published before the standard format; kept as-is. No new project may be frozen.
+OWN_STYLING = ("style=", "<style", "<script", "<link", "<font")   # text fields may not bring their own look
+
+
+def text_fields(p):
+    """Every HTML text fragment in a project.json (top-level strings, step titles and bodies)."""
+    yield from (v for v in p.values() if isinstance(v, str))
+    for st in p.get("steps", []):
+        yield from (v for k, v in st.items() if k != "code" and isinstance(v, str))
 
 
 # ---- motion tiles -------------------------------------------------------------------------------------------
@@ -91,8 +102,14 @@ def load():
         assert all(s.get("title") and s.get("body") for s in p["steps"]), f"{f}: every step needs title + body"
         p["slug"] = f.parent.name
         p["loops"], p["aspect"] = tile_media(f.parent, p)
-        if p.get("cover"):
-            assert (f.parent / p["cover"]).exists(), f"{f}: cover {p['cover']} not found"
+        assert p.get("cover") == "cover.jpg" and (f.parent / "cover.jpg").exists(), \
+            f"{f}: every project needs \"cover\": \"cover.jpg\" and the file next to project.json (it is the record sleeve)"
+        assert not p.get("frozen") or p["slug"] in FROZEN_OK, \
+            f"{f}: new projects can't be frozen; they use the standard case-study format"
+        bad = [t for t in OWN_STYLING for v in text_fields(p) if t in v.lower()]
+        assert not bad, f"{f}: text fields can't carry their own styling or scripts ({', '.join(sorted(set(bad)))}); theme.css sets the look"
+        if not p["loops"]:
+            print(f"warning: {p['slug']} has no motion tile yet (loop.mp4/loop.webm); every project should get one, see CLAUDE.md")
         projects.append(p)
     # newest first; "order" breaks ties / pins
     return sorted(projects, key=lambda p: (p["date"], -p.get("order", 0)), reverse=True)

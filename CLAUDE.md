@@ -11,13 +11,21 @@ moved; otherwise merge `main` in first and re-check. Say in the reply that it wa
 
 ## Adding a project
 
+**Rule: every project added from now on gets the same format and goes everywhere the others go.** That means a `project.json` in
+the standard fields, a `cover.jpg`, the standard case-study page, a record on the home-page shelf, a motion tile (`loop.mp4` +
+`loop.webm`, see below), and the site-wide colours from `theme.css`. No one-off layouts, no custom pages, no per-project CSS or
+colours, no `"frozen"` (only `trading-bot`, which predates the format, is allowed it). `build.py` enforces the checkable parts and
+refuses to build otherwise: missing `cover.jpg`, a new frozen project, or text fields carrying `style=`, `<style>`, `<script>`,
+`<link>` or `<font>`. It warns when a project has no motion tile yet; make one before publishing.
+
 This is the whole workflow, and it is the same for every project:
 
 1. Create `<slug>/project.json` and `<slug>/cover.jpg`. Copy the fields from any existing `project.json` (the required ones are listed
    as `REQUIRED` in `build.py`). Text fields are trusted HTML fragments.
 2. Run `python3 build.py`. It writes `<slug>/index.html` (the case study) and rebuilds the home page, where the project appears as a
    new record on the shelf. Order is newest `date` first (`order` breaks ties).
-3. Commit what the build changed, then publish as usual.
+3. Make its motion tile (next section), rebuild, and check the new record on the shelf and its case study in a browser.
+4. Commit what the build changed, then publish (merge into `main`, see Publishing).
 
 Do **not** hand-edit `index.html` or any `<slug>/index.html`: they are generated. Don't touch other projects' files when adding one.
 
@@ -26,7 +34,7 @@ Do **not** hand-edit `index.html` or any `<slug>/index.html`: they are generated
 A project's record sleeve on the home page, and the "Next project" link on the case study before it, play `<slug>/loop.webm`
 (+ `loop.mp4`). `build.py` finds them **by file name**, so nothing is declared in `project.json`.
 
-* No loop yet? Nothing breaks: the sleeve shows `cover.jpg` instead. A project is complete on the site without one.
+* Every project gets one (see the rule above). Until it exists nothing breaks: the sleeve shows `cover.jpg` and the build prints a warning.
 * To give a project its own tile, in the same style as the others:
   1. Copy a neighbouring file in `motion/scenes/` to `motion/scenes/<slug>.js` and redraw it for the new project.
      A scene is a pure function of the loop phase `u` (0..1); `aspect` is the card shape (1.6 to 1.85 keeps the row balanced);
