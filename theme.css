@@ -1,0 +1,15 @@
+/* The one colour scheme for every page on the site (home shelf, case studies, the frozen trading-bot page).
+   Warm paper and ink, taken from the record-shelf home page. Change a colour here and every page follows. */
+:root{
+  color-scheme:light;
+  --paper:#f7f5ee;   /* page background */
+  --raised:#fcfbf6;  /* cards that sit on the paper */
+  --panel:#e7e1d1;   /* cabinets, decks, code blocks */
+  --line:#dfd9cd;    /* hairlines and borders */
+  --faint:#c2bdae;   /* quiet marks: list markers, placeholder text, step numbers */
+  --wood:#c6bca4;    /* shelf edges */
+  --muted:#8a7f6a;   /* secondary text, labels */
+  --ink:#484742;     /* body text */
+  --deep:#1a1a1a;    /* primary buttons, strongest emphasis */
+  --mono:'Courier New',Courier,monospace;
+}

@@ -37,6 +37,11 @@ A project's record sleeve on the home page, and the "Next project" link on the c
   vinyl out, drops it on the turntable, and then opens the case study. Search filters by title and `kind`.
 * `index.template.html` is the markup and CSS; `home.js` is the behaviour (no libraries); `build.py` fills in the project list
   (`/*PROJECTS*/[]`), the count and a plain no-JS link list (`<!--LIST-->`), and writes `index.html`.
+* Shelf and turntable are two equal columns (max 500px each, centred); the deck is a square that fits the window height and the
+  record (`.platter`) and tonearm (`.arm`) are sized as percentages of it.
 * `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spine colours are the `colors` list in `home.js`.
 * `vendor/fonts` holds the Geist font used by `motion/` (self-hosted; licence alongside).
+* **One colour scheme for the whole site:** `theme.css` (paper, panel, line, faint, wood, muted, ink, deep, and the Courier `--mono`).
+  The home page, every case study (`site.css`) and the frozen trading-bot page (`style.css`) all take their colours from it, so
+  change colours there, not in the page CSS.
 * Case-study pages use `site.css`. A project marked `"frozen": true` in its `project.json` is never rebuilt.

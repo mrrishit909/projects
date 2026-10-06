@@ -114,6 +114,7 @@ def page(title, desc, body):
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono&display=swap">
+<link rel="stylesheet" href="../theme.css?v={asset_version("theme.css")}">
 <link rel="stylesheet" href="../site.css?v={asset_version("site.css")}">
 <script src="../case.js?v={asset_version("case.js")}" defer></script>
 </head>
@@ -171,13 +172,13 @@ def index_page(projects):
     heads = Counter(p["kind"].split("·")[0].strip() for p in projects)
     kinds = ", ".join(escape(k) for k, _ in heads.most_common(5))
     # home.js?v=<hash of its contents>: a changed script gets a new URL, so browsers never run a stale cached copy
-    version = hashlib.sha1((ROOT / "home.js").read_bytes()).hexdigest()[:10]
+    version = asset_version("home.js")
     tpl = (ROOT / "index.template.html").read_text()
     assert "<!--LIST-->" in tpl and "/*PROJECTS*/[]" in tpl
     # json.dumps output is safe inside <script> once "</" can't appear
     return (tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
                .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS}}", kinds)
-               .replace("{{V}}", version))
+               .replace("{{V}}", version).replace("{{THEME}}", asset_version("theme.css")))
 
 
 if __name__ == "__main__":
