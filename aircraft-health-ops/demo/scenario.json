@@ -1,0 +1,151 @@
+{
+ "service": "aircraft-health-ops",
+ "run": "demo-1",
+ "tokens": {
+  "manager": "air-maintenance_manager-demo",
+  "engineer": "air-engineer-demo",
+  "viewer": "air-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "A fleet of forty, six months in",
+   "say": "An invented fleet: 40 aircraft, 80 engines, about 28,000 flights with takeoff telemetry (EGT margin, vibration, fuel flow, oil pressure and two airframe systems), fault codes with the usual spurious ones, and the maintenance history. An anomaly model (PCA on healthy flights, standing in for the blueprint's autoencoder and saying so) and a health index and remaining-life estimate for every engine. The response names what the models never see: which engines really fail in the next 45 days.",
+   "calls": [
+    {
+     "key": "load",
+     "as": "manager",
+     "method": "POST",
+     "path": "/v1/fleet:load",
+     "body": {
+      "seed": 17
+     }
+    }
+   ]
+  },
+  {
+   "title": "Compressor degradation emerging across flights",
+   "say": "The aircraft at the top of the watch list. One engine's EGT margin trend has been falling for hundreds of cycles; the anomaly score became sustained long before the first EGT fault code, which only fires once the margin is below 20. The other engine is ordinary. The hidden truth, the real margin, is shown beside the trend. Then two feeds: a pilot's EGT fault report attached to the engine, and a telemetry post for the last flight in which two samples are refused as already stored and one as impossible.",
+   "calls": [
+    {
+     "key": "health",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/aircraft/{{load.result.watch_list.0.aircraft_id}}/health"
+    },
+    {
+     "key": "fault",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/faults",
+     "body": {
+      "tail_no": "RB-101",
+      "code": "EGT_HIGH",
+      "occurred_at": "2026-10-03T07:30:00+00:00",
+      "severity": "amber",
+      "position": 1
+     }
+    },
+    {
+     "key": "tele",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/flights/{{load.result.watch_list.0.last_flight_id}}/telemetry",
+     "body": {
+      "samples": [
+       {
+        "metric": "pack_outlet_temp",
+        "position": 1,
+        "value": 51.2
+       },
+       {
+        "metric": "egt_margin",
+        "position": 1,
+        "value": 9.1
+       },
+       {
+        "metric": "n2_vib",
+        "position": 2,
+        "value": 14.0
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "title": "Remaining useful life, with a band",
+   "say": "The degrading module: a line fitted to the smoothed margin over three windows and projected to the removal threshold, with a bootstrap band; the fleet's Weibull curve beside it as the baseline a desk without telemetry would have, with the note that two removals barely identify it. The prediction is stored as evidence with the fit behind it. The true remaining life is shown with whether the band holds.",
+   "calls": [
+    {
+     "key": "rul",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/components/{{load.result.watch_list.0.component_id}}/rul"
+    }
+   ]
+  },
+  {
+   "title": "A maintenance opportunity that avoids an AOG",
+   "say": "For every engine whose P10 remaining life falls inside 30 days: the hangar night that minimises expected AOG cost plus the life given up, under hangar slots (two at the hub, one in the north), where each aircraft sleeps that night, and modules in stock. The plan proposes a work order; the truth says whether the slot comes before the failure.",
+   "calls": [
+    {
+     "key": "plan",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/maintenance/plan",
+     "body": {
+      "horizon_days": 30,
+      "rul_p10_within_days": 30
+     }
+    }
+   ]
+  },
+  {
+   "title": "The mechanic's finding feeds back",
+   "say": "The removal is performed and the finding recorded: blade tip erosion confirmed. The module is swapped, the parts stock drops, and the Weibull for the chapter is refitted with the new event. Then the chapter's reliability view: removals, MTBUR, findings, the survival curve, and a note on how little a handful of removals can say.",
+   "calls": [
+    {
+     "key": "feedback",
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/actions/{{plan.items.0.action_id}}/feedback",
+     "body": {
+      "performed_at": "2026-10-10T02:00:00+00:00",
+      "finding": "HPC blade tip erosion and tip clearance loss confirmed; module to shop",
+      "confirmed_degradation": true
+     }
+    },
+    {
+     "key": "again",
+     "expect_error": true,
+     "as": "engineer",
+     "method": "POST",
+     "path": "/v1/actions/{{plan.items.0.action_id}}/feedback",
+     "body": {
+      "performed_at": "2026-10-10T02:00:00+00:00",
+      "finding": "duplicate entry",
+      "confirmed_degradation": false
+     }
+    },
+    {
+     "key": "rel",
+     "as": "viewer",
+     "method": "GET",
+     "path": "/v1/reliability/ata/72"
+    }
+   ]
+  },
+  {
+   "title": "The audit trail",
+   "say": "Who loaded the fleet, recorded the fault and the telemetry, proposed the plan and closed the work order, in a hash chain.",
+   "calls": [
+    {
+     "key": "audit",
+     "as": "manager",
+     "method": "GET",
+     "path": "/v1/audit?limit=12"
+    }
+   ]
+  }
+ ]
+}
