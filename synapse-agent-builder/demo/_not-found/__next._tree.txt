@@ -1,0 +1,4 @@
+:HL["/projects/synapse-agent-builder/demo/_next/static/css/7860f9d032fb51cb.css","style"]
+2:[["children",{"s":"__PAGE__","h":160}]]
+1:[["children",{"s":"_not-found","h":96,"c":"$Q2"}]]
+0:{"b":"FxqynN5sj9p7r9y0Uc1am","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
