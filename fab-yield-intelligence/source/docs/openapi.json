@@ -1,0 +1,1502 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "fab-yield-intelligence",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/v1/jobs/{job_id}": {
+            "get": {
+                "tags": [
+                    "platform"
+                ],
+                "summary": "Status, attempts and result of a long-running job",
+                "operationId": "job_status_v1_jobs__job_id__get",
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Job Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/jobs": {
+            "get": {
+                "tags": [
+                    "platform"
+                ],
+                "summary": "Jobs by status; status=dead is the dead-letter view",
+                "operationId": "job_list_v1_jobs_get",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "dead",
+                            "title": "Status"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/audit": {
+            "get": {
+                "tags": [
+                    "platform"
+                ],
+                "summary": "Latest audit events and whether the hash chain verifies",
+                "operationId": "audit_log_v1_audit_get",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 50,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/fab:load": {
+            "post": {
+                "tags": [
+                    "fab"
+                ],
+                "summary": "(+) Load the synthetic fab: eight weeks of lots with their sensors and test maps, engineers' pattern labels on the history, chamber baselines from the qualification week; train and register the models and report them against their baselines",
+                "operationId": "load_fab_v1_fab_load_post",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoadIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/fab:advance": {
+            "post": {
+                "tags": [
+                    "fab"
+                ],
+                "summary": "(+) Process more lots. The generator can be told about a fault (the demo's injection); the service sees sensors and test maps, never the telling",
+                "operationId": "advance_v1_fab_advance_post",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AdvanceIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/lots/ingest": {
+            "post": {
+                "tags": [
+                    "lots"
+                ],
+                "summary": "Lots from the equipment gateway: per-wafer route with sensor summaries and the die test map. Each lot is validated on its own; accepted lots are classified, yield-scored and checked for alerts like any other",
+                "operationId": "ingest_lots_v1_lots_ingest_post",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IngestIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/fab/overview": {
+            "get": {
+                "tags": [
+                    "fab"
+                ],
+                "summary": "(+) The command centre: yield and patterns by lot, open alerts, chambers on hold, quarantined lots, the models in production",
+                "operationId": "overview_v1_fab_overview_get",
+                "parameters": [
+                    {
+                        "name": "last",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 500,
+                            "minimum": 5,
+                            "default": 60,
+                            "title": "Last"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/lots/{lot_id}": {
+            "get": {
+                "tags": [
+                    "lots"
+                ],
+                "summary": "(+) One lot: status, route and every wafer's yield, pattern and confidence",
+                "operationId": "lot_detail_v1_lots__lot_id__get",
+                "parameters": [
+                    {
+                        "name": "lot_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Lot Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/wafers/{wafer_id}/map": {
+            "get": {
+                "tags": [
+                    "wafers"
+                ],
+                "summary": "A wafer's die map (x, y, test bin), the classifier's call with its confidence and model version, and the route that made it",
+                "operationId": "wafer_map_v1_wafers__wafer_id__map_get",
+                "parameters": [
+                    {
+                        "name": "wafer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Wafer Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tools/{tool_id}/health": {
+            "get": {
+                "tags": [
+                    "tools"
+                ],
+                "summary": "A tool's chambers: status, qualified baseline, the primary sensor's recent runs as deviations, the change-point probability and alarms, open alerts",
+                "operationId": "tool_health_v1_tools__tool_id__health_get",
+                "parameters": [
+                    {
+                        "name": "tool_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tool Id"
+                        }
+                    },
+                    {
+                        "name": "runs",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 2000,
+                            "minimum": 20,
+                            "default": 300,
+                            "title": "Runs"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/alerts": {
+            "get": {
+                "tags": [
+                    "alerts"
+                ],
+                "summary": "(+) Alerts, newest first",
+                "operationId": "alerts_v1_alerts_get",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "enum": [
+                                "open",
+                                "closed",
+                                "all"
+                            ],
+                            "type": "string",
+                            "default": "open",
+                            "title": "Status"
+                        }
+                    },
+                    {
+                        "name": "kind",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "enum": [
+                                "excursion",
+                                "drift",
+                                "all"
+                            ],
+                            "type": "string",
+                            "default": "all",
+                            "title": "Kind"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/analysis/root-cause": {
+            "post": {
+                "tags": [
+                    "analysis"
+                ],
+                "summary": "Rank every chamber for an excursion: commonality with the affected wafers within each step, change-points on the chamber's sensor, and how often the pattern came from that step in the history. Returns the evidence, a confidence, the lots exposed and the chamber's estimated drift",
+                "operationId": "root_cause_v1_analysis_root_cause_post",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RootCauseIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/cases/{case_id}/quarantine": {
+            "post": {
+                "tags": [
+                    "decisions"
+                ],
+                "summary": "(+) Propose a quarantine of the lots exposed to the top-ranked chamber (and a hold on the chamber). A proposal changes nothing until a yield manager who did not propose it approves",
+                "operationId": "propose_quarantine_v1_cases__case_id__quarantine_post",
+                "parameters": [
+                    {
+                        "name": "case_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Case Id"
+                        }
+                    },
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QuarantineIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/decisions/{decision_id}/approve": {
+            "post": {
+                "tags": [
+                    "decisions"
+                ],
+                "summary": "(+) A yield manager approves or rejects a proposed quarantine; the proposer cannot. On approval the lots are quarantined and the chamber is put on hold (new lots are routed around it)",
+                "operationId": "approve_v1_decisions__decision_id__approve_post",
+                "parameters": [
+                    {
+                        "name": "decision_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Decision Id"
+                        }
+                    },
+                    {
+                        "name": "decision",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "enum": [
+                                "approved",
+                                "rejected"
+                            ],
+                            "type": "string",
+                            "default": "approved",
+                            "title": "Decision"
+                        }
+                    },
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/decisions": {
+            "get": {
+                "tags": [
+                    "decisions"
+                ],
+                "summary": "(+) Proposals and decisions",
+                "operationId": "decisions_v1_decisions_get",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/scenarios/counterfactual": {
+            "post": {
+                "tags": [
+                    "scenarios"
+                ],
+                "summary": "Re-run the exposed lots with a recipe change or with the chamber routed around, wafer by wafer with the same randomness, and compare yield, patterns and good dies with what happened. Default alternatives: the recipe offset the case suggests, and routing around the chamber",
+                "operationId": "counterfactual_v1_scenarios_counterfactual_post",
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Idempotency-Key"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CounterfactualIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/models/yield/predict": {
+            "post": {
+                "tags": [
+                    "models"
+                ],
+                "summary": "Predict each wafer's yield in a lot from its process sensors, before test; returns the model version and the hash of each input, and logs every call",
+                "operationId": "predict_v1_models_yield_predict_post",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PredictIn"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AdvanceIn": {
+                "properties": {
+                    "lots": {
+                        "type": "integer",
+                        "maximum": 100.0,
+                        "minimum": 1.0,
+                        "title": "Lots"
+                    },
+                    "inject": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Inject"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "lots"
+                ],
+                "title": "AdvanceIn"
+            },
+            "Alternative": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 80,
+                        "minLength": 1,
+                        "title": "Name"
+                    },
+                    "adjust": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": {
+                                    "additionalProperties": {
+                                        "type": "number"
+                                    },
+                                    "type": "object"
+                                },
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Adjust",
+                        "description": "{chamber: {sensor: setpoint offset}}, a recipe change"
+                    },
+                    "route_around": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Route Around",
+                        "description": "a chamber taken offline; its wafers go to the tool's other chambers"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "Alternative"
+            },
+            "CounterfactualIn": {
+                "properties": {
+                    "case_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Case Id"
+                    },
+                    "alternatives": {
+                        "items": {
+                            "$ref": "#/components/schemas/Alternative"
+                        },
+                        "type": "array",
+                        "maxItems": 4,
+                        "title": "Alternatives"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "case_id"
+                ],
+                "title": "CounterfactualIn"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "IngestIn": {
+                "properties": {
+                    "lots": {
+                        "items": {
+                            "$ref": "#/components/schemas/LotIn"
+                        },
+                        "type": "array",
+                        "maxItems": 50,
+                        "minItems": 1,
+                        "title": "Lots"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "lots"
+                ],
+                "title": "IngestIn"
+            },
+            "Inject": {
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "etch_temp_drift",
+                            "cmp_pad_wear",
+                            "litho_focus_drift",
+                            "depo_flow_fault",
+                            "implant_dose_fault"
+                        ],
+                        "title": "Kind"
+                    },
+                    "chamber": {
+                        "type": "string",
+                        "title": "Chamber"
+                    },
+                    "after_lots": {
+                        "type": "integer",
+                        "maximum": 100.0,
+                        "minimum": 0.0,
+                        "title": "After Lots",
+                        "default": 0
+                    },
+                    "rate_per_lot": {
+                        "type": "number",
+                        "maximum": 50.0,
+                        "exclusiveMinimum": 0.0,
+                        "title": "Rate Per Lot"
+                    },
+                    "max": {
+                        "type": "number",
+                        "maximum": 100.0,
+                        "exclusiveMinimum": 0.0,
+                        "title": "Max"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "kind",
+                    "chamber",
+                    "rate_per_lot",
+                    "max"
+                ],
+                "title": "Inject"
+            },
+            "LoadIn": {
+                "properties": {
+                    "seed": {
+                        "type": "integer",
+                        "maximum": 1000000.0,
+                        "minimum": 1.0,
+                        "title": "Seed",
+                        "default": 7
+                    }
+                },
+                "type": "object",
+                "title": "LoadIn"
+            },
+            "LotIn": {
+                "properties": {
+                    "lot": {
+                        "type": "string",
+                        "maxLength": 40,
+                        "minLength": 3,
+                        "pattern": "^[A-Za-z0-9._-]+$",
+                        "title": "Lot"
+                    },
+                    "product": {
+                        "type": "string",
+                        "enum": [
+                            "P1",
+                            "P2"
+                        ],
+                        "title": "Product"
+                    },
+                    "wafers": {
+                        "items": {
+                            "$ref": "#/components/schemas/WaferIn"
+                        },
+                        "type": "array",
+                        "maxItems": 25,
+                        "minItems": 1,
+                        "title": "Wafers"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "lot",
+                    "product",
+                    "wafers"
+                ],
+                "title": "LotIn"
+            },
+            "PredictIn": {
+                "properties": {
+                    "lot_id": {
+                        "type": "string",
+                        "title": "Lot Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "lot_id"
+                ],
+                "title": "PredictIn"
+            },
+            "QuarantineIn": {
+                "properties": {
+                    "hold_chamber": {
+                        "type": "boolean",
+                        "title": "Hold Chamber",
+                        "default": true
+                    }
+                },
+                "type": "object",
+                "title": "QuarantineIn"
+            },
+            "RootCauseIn": {
+                "properties": {
+                    "alert_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Alert Id"
+                    },
+                    "lookback_lots": {
+                        "type": "integer",
+                        "maximum": 60.0,
+                        "minimum": 0.0,
+                        "title": "Lookback Lots",
+                        "default": 6
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "alert_id"
+                ],
+                "title": "RootCauseIn"
+            },
+            "StepIn": {
+                "properties": {
+                    "step": {
+                        "type": "string",
+                        "title": "Step"
+                    },
+                    "chamber": {
+                        "type": "string",
+                        "title": "Chamber"
+                    },
+                    "recipe": {
+                        "type": "string",
+                        "title": "Recipe"
+                    },
+                    "sensors": {
+                        "additionalProperties": {
+                            "type": "number"
+                        },
+                        "type": "object",
+                        "title": "Sensors"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "step",
+                    "chamber",
+                    "recipe",
+                    "sensors"
+                ],
+                "title": "StepIn"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    },
+                    "input": {
+                        "title": "Input"
+                    },
+                    "ctx": {
+                        "type": "object",
+                        "title": "Context"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "WaferIn": {
+                "properties": {
+                    "slot": {
+                        "type": "integer",
+                        "maximum": 25.0,
+                        "minimum": 1.0,
+                        "title": "Slot"
+                    },
+                    "steps": {
+                        "items": {
+                            "$ref": "#/components/schemas/StepIn"
+                        },
+                        "type": "array",
+                        "title": "Steps"
+                    },
+                    "die_bins": {
+                        "type": "string",
+                        "title": "Die Bins",
+                        "description": "one digit per die in the fixed die order (540 dies)"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "slot",
+                    "steps",
+                    "die_bins"
+                ],
+                "title": "WaferIn"
+            }
+        }
+    }
+}
