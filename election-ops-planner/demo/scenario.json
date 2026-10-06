@@ -1,0 +1,181 @@
+{
+ "service": "election-ops-planner",
+ "run": "demo-1",
+ "tokens": {
+  "director": "county-election_director-demo",
+  "coordinator": "county-coordinator-demo",
+  "public": "county-public-demo"
+ },
+ "steps": [
+  {
+   "title": "Twenty-five polling places at 10:30 on election day",
+   "say": "An invented county: 25 polling places serving 60 precincts and 127,000 registered voters, check-in devices, booths and tabulators allocated as last time, a pool of spares at the depot, 430 poll workers by skill, supplies, and three past elections' turnout and hourly timing. The morning peak has happened: each place has reported its hourly check-in counts and its line. The system counts people in a line; nothing in it knows or infers how anyone votes.",
+   "calls": [
+    {
+     "key": "load",
+     "as": "director",
+     "method": "POST",
+     "path": "/v1/election:load",
+     "body": {
+      "seed": 17
+     }
+    }
+   ]
+  },
+  {
+   "title": "Plan the rest of the day, keeping a reserve",
+   "say": "For every place: expected voters with a band from past turnout and timing, the morning, lunch and evening peaks, and the fewest check-in devices and booths with which simulation says the worst hour's 90th-percentile wait stays under 30 minutes. CP-SAT moves spares to close as many places' gaps as the pool allows, keeping three devices, four booths and six workers at the depot for failures. Workers are assigned by skill, nearest first, with a lead and an accessibility-trained worker where the place is accessible.",
+   "calls": [
+    {
+     "key": "plan",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/planning/resources",
+     "body": {
+      "apply": true,
+      "reserve_checkin": 3,
+      "reserve_booth": 4,
+      "reserve_workers": 6
+     }
+    }
+   ]
+  },
+  {
+   "title": "The day's peaks, simulated place by place",
+   "say": "The rest of the day at every place, twenty times: hours already reported keep their counts, later hours draw from the forecast, and check-in, booth and tabulator run as three stations minute by minute. The lunch and evening peaks show as the hours where the wait climbs.",
+   "calls": [
+    {
+     "key": "sim0",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/simulations/queues",
+     "body": {
+      "runs": 20
+     }
+    }
+   ]
+  },
+  {
+   "title": "Two check-in devices fail at Cedar Elementary #21",
+   "say": "A poll worker reports two check-in devices down at 10:30. They come out of service, the place's status turns to disrupted, and the simulation for that place shows the projected wait growing through the afternoon.",
+   "calls": [
+    {
+     "key": "incident",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/incidents",
+     "body": {
+      "place_id": "a1e2c7ac-05f4-555f-867a-51dccf234abe",
+      "incident_type": "device_failure",
+      "severity": 3,
+      "details": "two check-in tablets will not boot; line forming at the door",
+      "devices_affected": 2
+     }
+    },
+    {
+     "key": "sim1",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/simulations/queues",
+     "body": {
+      "place_ids": [
+       "a1e2c7ac-05f4-555f-867a-51dccf234abe"
+      ],
+      "runs": 20
+     }
+    },
+    {
+     "key": "status1",
+     "as": "coordinator",
+     "method": "GET",
+     "path": "/v1/polling-places/a1e2c7ac-05f4-555f-867a-51dccf234abe/status"
+    }
+   ]
+  },
+  {
+   "title": "Dispatch spares and staff, then simulate again",
+   "say": "Three spare check-in devices and two workers from the depot reserve, 35 minutes away. The incident is resolved, the place is open again, and the same simulation runs with the devices in service. A supply count from the place checks ballots against what the forecast's high case still needs.",
+   "calls": [
+    {
+     "key": "dispatch",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/dispatch",
+     "body": {
+      "place_id": "a1e2c7ac-05f4-555f-867a-51dccf234abe",
+      "equipment": {
+       "checkin": 3
+      },
+      "workers": 2,
+      "incident_id": "{{incident.incident_id}}",
+      "travel_min": 35
+     }
+    },
+    {
+     "key": "sim2",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/simulations/queues",
+     "body": {
+      "place_ids": [
+       "a1e2c7ac-05f4-555f-867a-51dccf234abe"
+      ],
+      "runs": 20
+     }
+    },
+    {
+     "key": "inv",
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/inventory/update",
+     "body": {
+      "place_id": "a1e2c7ac-05f4-555f-867a-51dccf234abe",
+      "counts": {
+       "ballots": 1900,
+       "provisional_envelopes": 40,
+       "secrecy_sleeves": 900
+      }
+     }
+    },
+    {
+     "key": "overdraw",
+     "expect_error": true,
+     "as": "coordinator",
+     "method": "POST",
+     "path": "/v1/dispatch",
+     "body": {
+      "place_id": "a1e2c7ac-05f4-555f-867a-51dccf234abe",
+      "equipment": {
+       "checkin": 9
+      }
+     }
+    }
+   ]
+  },
+  {
+   "title": "What the public sees",
+   "say": "The public view: each place's name, hours, accessibility, an operational status and a wait bucket. No counts, no precincts, no staffing, no incident details; the public token cannot read anything else.",
+   "calls": [
+    {
+     "key": "public",
+     "as": "public",
+     "method": "GET",
+     "path": "/v1/public/wait-times"
+    },
+    {
+     "key": "denied",
+     "expect_error": true,
+     "as": "public",
+     "method": "GET",
+     "path": "/v1/polling-places/a1e2c7ac-05f4-555f-867a-51dccf234abe/status"
+    },
+    {
+     "key": "audit",
+     "as": "director",
+     "method": "GET",
+     "path": "/v1/audit?limit=12"
+    }
+   ]
+  }
+ ]
+}
