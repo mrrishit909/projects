@@ -39,7 +39,7 @@ A project's record sleeve on the home page, and the "Next project" link on the c
   (`/*PROJECTS*/[]`), the count and a plain no-JS link list (`<!--LIST-->`), and writes `index.html`.
 * Shelf and turntable are two equal columns (max 500px each, centred); the deck is a square that fits the window height and the
   record (`.platter`) and tonearm (`.arm`) are sized as percentages of it.
-* `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spine colours are the `colors` list in `home.js`.
+* `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spines are shades of the theme's `--accent`, light to dark along each shelf (`shade` in `home.js`).
 * `vendor/fonts` holds the Geist font used by `motion/` (self-hosted; licence alongside).
 * **One colour scheme for the whole site:** `theme.css` ("Stone & sage": paper, raised, panel, line, faint, wood, muted, ink, deep, a sage `--accent`
   for small marks, and the Courier `--mono`). It is kept mid-contrast on purpose: no pure black, secondary text about 5:1.

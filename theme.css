@@ -1,17 +1,18 @@
 /* The one colour scheme for every page on the site (home shelf, case studies, the frozen trading-bot page).
    "Stone & sage": a pale, cool grey-green paper with soft charcoal text and sage accents, kept in the middle of the
-   contrast range so nothing glares (no pure black; secondary text about 5:1). Change a colour here and every page follows. */
+   contrast range so nothing glares: dim paper, body text about 7:1 rather than black-on-white's 21:1,
+   secondary text about 4.7:1. Change a colour here and every page follows. */
 :root{
   color-scheme:light;
-  --paper:#eceeea;   /* page background */
-  --raised:#f4f5f2;  /* cards that sit on the paper */
-  --panel:#dfe3dd;   /* cabinets, decks, code blocks */
-  --line:#d2d7d0;    /* hairlines and borders */
-  --faint:#a5aea6;   /* decorative marks only (never text you need to read) */
-  --wood:#b8c0b6;    /* shelf edges */
-  --muted:#646e68;   /* secondary text, labels */
-  --ink:#3c4440;     /* body text */
-  --deep:#3d4842;    /* primary buttons, strongest emphasis (deep slate-green rather than black) */
-  --accent:#6f8a76;  /* sage, used sparingly: progress bars, active marks, hovers */
+  --paper:#e6e9e4;   /* page background */
+  --raised:#eef0ec;  /* cards that sit on the paper */
+  --panel:#dadfd8;   /* cabinets, decks, code blocks */
+  --line:#cdd3cc;    /* hairlines and borders */
+  --faint:#a0aaa2;   /* decorative marks only (never text you need to read) */
+  --wood:#b3bcb1;    /* shelf edges */
+  --muted:#5f6963;   /* secondary text, labels */
+  --ink:#444c48;     /* body text */
+  --deep:#4a554f;    /* primary buttons, strongest emphasis (deep slate-green rather than black) */
+  --accent:#7d9683;  /* sage, used sparingly: progress bars, active marks, hovers */
   --mono:'Courier New',Courier,monospace;
 }

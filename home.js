@@ -2,7 +2,6 @@
    drops onto the turntable before the case study opens. The project list comes from build.py (#projects-data). */
 const PROJECTS = JSON.parse(document.getElementById("projects-data").textContent);
 const $ = id => document.getElementById(id);
-const colors = ["#d9cfb8", "#e7e0d0", "#c7c6b6", "#d5c3b2", "#e8dfc5", "#c1c8c2", "#d0c0a2", "#d6ccc2", "#c6ccb8", "#c2c9ce", "#d8c9ae", "#dfdacb"];
 const perPage = 24, perShelf = 8;
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const idle = [PROJECTS.length + " PROJECTS / RISHIT MATHUR", "PICK A RECORD FROM THE SHELF."];
@@ -10,7 +9,10 @@ let page = 0, filtered = PROJECTS, selected = null, lastButton = null, revealed 
 let flight = null, playing = false, elapsed = 0, lastTime = 0, raf = 0, sequenceToken = 0;
 
 const number = p => String(PROJECTS.indexOf(p) + 1).padStart(3, "0");
-const color = p => colors[PROJECTS.indexOf(p) % colors.length];
+/* Spines are shades of one colour (the theme's --accent mixed into the paper), light to dark along each shelf;
+   a record's sleeve and label use the shade of its spot on an unfiltered shelf. */
+const shade = k => `color-mix(in srgb, var(--accent) ${14 + (k % perShelf) * 6}%, var(--paper))`;
+const color = p => shade(PROJECTS.indexOf(p));
 const url = p => new URL(p.slug + "/", location.href).href;
 const asset = (p, f) => new URL(p.slug + "/" + f, location.href).href;
 
@@ -31,7 +33,7 @@ function render() {
     subset.slice(row * perShelf, (row + 1) * perShelf).forEach((p, i) => {
       const b = document.createElement("button");
       b.className = "spine";
-      b.style.setProperty("--color", color(p));
+      b.style.setProperty("--color", shade(i));
       b.style.setProperty("--height", (105 + (i % 4) * 3) + "px");
       b.setAttribute("aria-label", p.title + " — " + p.kind);
       b.title = p.title;
