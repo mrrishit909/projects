@@ -10,17 +10,17 @@ This is the whole workflow, and it is the same for every project:
 1. Create `<slug>/project.json` and `<slug>/cover.jpg`. Copy the fields from any existing `project.json` (the required ones are listed
    as `REQUIRED` in `build.py`). Text fields are trusted HTML fragments.
 2. Run `python3 build.py`. It writes `<slug>/index.html` (the case study) and rebuilds the home page, where the project appears as a
-   new card. Order is newest `date` first (`order` breaks ties).
+   new record on the shelf. Order is newest `date` first (`order` breaks ties).
 3. Commit what the build changed, then publish as usual.
 
 Do **not** hand-edit `index.html` or any `<slug>/index.html`: they are generated. Don't touch other projects' files when adding one.
 
-## The motion tile (every project card plays a short loop)
+## The motion tile (every project plays a short loop)
 
-The home page card for a project plays `<slug>/loop.mp4` (+ `loop.webm` as the fallback). `build.py` finds them **by file name**
-and reads the card's shape from the video, so nothing is declared in `project.json`.
+A project's record sleeve on the home page, and the "Next project" link on the case study before it, play `<slug>/loop.webm`
+(+ `loop.mp4`). `build.py` finds them **by file name**, so nothing is declared in `project.json`.
 
-* No loop yet? Nothing breaks: the card shows a slow pan over `cover.jpg` automatically. A project is complete on the site without one.
+* No loop yet? Nothing breaks: the sleeve shows `cover.jpg` instead. A project is complete on the site without one.
 * To give a project its own tile, in the same style as the others:
   1. Copy a neighbouring file in `motion/scenes/` to `motion/scenes/<slug>.js` and redraw it for the new project.
      A scene is a pure function of the loop phase `u` (0..1); `aspect` is the card shape (1.6 to 1.85 keeps the row balanced);
@@ -33,8 +33,10 @@ and reads the card's shape from the video, so nothing is declared in `project.js
 
 ## How the home page works (so it can be changed safely)
 
-* `index.template.html` is the markup and CSS; `home.js` is the WebGL carousel; `build.py` fills in the project list and writes `index.html`.
-* All text and cards are drawn by one three.js canvas; while you scroll the row of cards bends into a shallow curve (text stays still). The feel is a few
-  constants at the top of `home.js` (`BEND`, `SHRINK`, `FOLLOW`, `MOMENTUM`, ...).
-* `vendor/` holds three.js and the Geist font (self-hosted; licences alongside).
+* It is a record shelf: every project is a spine on the shelf (24 per page, 8 per shelf). Clicking one opens its sleeve; "Play" slides the
+  vinyl out, drops it on the turntable, and then opens the case study. Search filters by title and `kind`.
+* `index.template.html` is the markup and CSS; `home.js` is the behaviour (no libraries); `build.py` fills in the project list
+  (`/*PROJECTS*/[]`), the count and a plain no-JS link list (`<!--LIST-->`), and writes `index.html`.
+* `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spine colours are the `colors` list in `home.js`.
+* `vendor/fonts` holds the Geist font used by `motion/` (self-hosted; licence alongside).
 * Case-study pages use `site.css`. A project marked `"frozen": true` in its `project.json` is never rebuilt.

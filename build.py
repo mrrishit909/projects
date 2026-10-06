@@ -164,9 +164,8 @@ def project_page(p, nxt):
 
 
 def index_page(projects):
-    """The 3D carousel page (index.template.html). The list of real links is rendered here, so it works without JS."""
-    items = '<span class="sep" aria-hidden="true">·</span>'.join(
-        f'<a class="item" href="{p["slug"]}/" data-slug="{p["slug"]}">{escape(p["title"])}</a>' for p in projects)
+    """The record-shelf page (index.template.html + home.js). A plain list of real links is rendered here for no-JS visitors."""
+    items = "".join(f'<li><a href="{p["slug"]}/">{escape(p["title"])}</a></li>' for p in projects)
     data = [{k: p.get(k) for k in ("slug", "title", "kind", "date", "cover", "aspect", "loops")} for p in projects]
     # "Python, Statistics, LLM ...": the most common first word of each project's kind, so it follows new projects
     heads = Counter(p["kind"].split("·")[0].strip() for p in projects)
