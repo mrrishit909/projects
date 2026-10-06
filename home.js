@@ -267,5 +267,16 @@ document.addEventListener("keydown", e => {
   }
 });
 window.addEventListener("pageshow", e => { if (e.persisted) cancelPlayback(); });
+/* Desktop: the shelf and turntable keep one fixed layout and are zoomed together, as large as the window allows,
+   so they always grow and shrink uniformly. Phones get the stacked layout from the CSS instead. */
+function fit() {
+  const room = $("room");
+  room.style.zoom = "";
+  if (innerWidth <= 760) return;
+  const head = document.querySelector("header").offsetHeight;
+  room.style.zoom = Math.min((innerWidth - 64) / room.offsetWidth, (innerHeight - head - 40) / room.offsetHeight, 1.8);
+}
+addEventListener("resize", fit);
 document.addEventListener("visibilitychange", () => { if (document.hidden && playing) togglePause(); });
 render();
+fit();
