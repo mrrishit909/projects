@@ -1,0 +1,259 @@
+{
+ "service": "scope3-carbon-accounting",
+ "run": "demo-1",
+ "tokens": {
+  "lead": "meridale-lead-demo",
+  "analyst": "meridale-analyst-demo",
+  "viewer": "meridale-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "A multinational and its factor registry",
+   "say": "An invented industrial group, Meridale, with six subsidiaries on six ERPs in six currencies and 18 facilities. The factor registry holds two frozen versions of an illustrative catalogue: sector averages per dollar by category and region, grid electricity by country, fuels and freight by mode. The category classifier is trained on 6,000 invoice lines the carbon team labelled last year; the supplier matcher on confirmed vendor pairs from two earlier engagements. Each is scored against a plain baseline before it is used.",
+   "calls": [
+    {
+     "key": "load",
+     "method": "POST",
+     "path": "/v1/company:load",
+     "as": "lead",
+     "body": {
+      "seed": 7
+     }
+    },
+    {
+     "key": "ov0",
+     "method": "GET",
+     "path": "/v1/overview",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Import two million transactions",
+   "say": "The connector pulls the six vendor masters, two million AP invoice lines, 40,000 shipment records from the forwarders, a year of utility bills and the larger suppliers' sustainability disclosures. The normaliser converts six currencies at each month's rate and pounds, miles, therms and MWh to kg, km and kWh, drops double postings and refuses bad lines with the reason. Every line is mapped to a spend category; below 0.55 confidence the classifier hands it to keyword and account rules and a review task. Then three lines keyed in from paper invoices.",
+   "calls": [
+    {
+     "key": "imp",
+     "method": "POST",
+     "path": "/v1/activities/import",
+     "as": "analyst",
+     "body": {
+      "connector": {
+       "name": "erp-extract",
+       "transactions": 2000000
+      }
+     }
+    },
+    {
+     "key": "rows",
+     "method": "POST",
+     "path": "/v1/activities/import",
+     "as": "analyst",
+     "body": {
+      "rows": [
+       {
+        "subsidiary": "MDG-GB",
+        "line": 1,
+        "period": "2025-11-14",
+        "vendor_ref": "MDG-GB-V00045",
+        "invoice": "PAPER-0007",
+        "description": "Steel tube 60x3 cut to length",
+        "gl_code": "5100",
+        "amount": 18450.0,
+        "currency": "STG"
+       },
+       {
+        "subsidiary": "MDG-GB",
+        "line": 1,
+        "period": "2025-11-14",
+        "vendor_ref": "MDG-GB-V00024",
+        "invoice": "PAPER-0008",
+        "description": "Courier express, documents to Suzhou",
+        "gl_code": "5300",
+        "amount": 312.4,
+        "currency": "GBP"
+       },
+       {
+        "subsidiary": "MDG-GB",
+        "line": 1,
+        "period": "2025-11-14",
+        "vendor_ref": "MDG-GB-V00017",
+        "invoice": "PAPER-0009",
+        "description": "Steel plate offcuts",
+        "gl_code": "5100",
+        "amount": 2210.0,
+        "currency": "GPB"
+       }
+      ]
+     }
+    },
+    {
+     "key": "inbox",
+     "method": "GET",
+     "path": "/v1/review-tasks?kind=category&limit=6",
+     "as": "analyst"
+    }
+   ]
+  },
+  {
+   "title": "Resolve duplicate suppliers",
+   "say": "The same supplier sits in several vendor masters under different spellings, legal forms, abbreviations, typos and one ERP's 24-character limit, and some different companies have nearly the same name. Candidate pairs come from character n-gram neighbours and shared tax ids or domains; a logistic matcher scores each on fuzzy and embedding-style name similarity, tax id, domain and country; merges never join two different tax ids, and uncertain pairs go to review.",
+   "calls": [
+    {
+     "key": "res",
+     "method": "POST",
+     "path": "/v1/suppliers/resolve",
+     "as": "analyst",
+     "body": {
+      "scope": "all"
+     }
+    },
+    {
+     "key": "sup",
+     "method": "GET",
+     "path": "/v1/suppliers/{{res.result.examples.0.supplier_id}}",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Supplier disclosures change the factors, with a second person",
+   "say": "The document extractor reads each disclosure (revenue, scope 1, 2 and 3 upstream, with their units and scale words) and validates it: a disclosure without upstream emissions cannot give a cradle-to-gate intensity, and one whose intensity is implausible is held for a person. The accepted ones become supplier-specific factors in a new draft version, EF-2025.1-S1. Changing the factors is high-impact: the analyst cannot approve their own proposal; the lead approves, and the version is frozen for good.",
+   "calls": [
+    {
+     "key": "ext",
+     "method": "POST",
+     "path": "/v1/documents/extract",
+     "as": "analyst",
+     "body": {}
+    },
+    {
+     "key": "fv",
+     "method": "POST",
+     "path": "/v1/factor-versions",
+     "as": "analyst",
+     "body": {
+      "id": "EF-2025.1-S1",
+      "based_on": "EF-2025.1"
+     }
+    },
+    {
+     "key": "self",
+     "method": "POST",
+     "path": "/v1/decisions/{{fv.decision_id}}/approve",
+     "as": "analyst",
+     "expect_error": true
+    },
+    {
+     "key": "adopt",
+     "method": "POST",
+     "path": "/v1/decisions/{{fv.decision_id}}/approve",
+     "as": "lead"
+    }
+   ]
+  },
+  {
+   "title": "Calculate Scope 1, 2 and 3",
+   "say": "Every activity line is calculated with the frozen version: invoice spend times the sector factor for its category and the supplier's region (or the supplier's own factor), shipments by tonne-kilometre and mode, metered energy by grid or fuel factor; energy and freight invoices are left to the bills and shipments so nothing is counted twice. Each line keeps a lineage row. Monte Carlo draws one multiplier per factor and one per supplier around its sector mean. Then the whole inventory is recalculated from the stored data and compared hash for hash, and the bridge to the plain catalogue shown.",
+   "calls": [
+    {
+     "key": "calc",
+     "method": "POST",
+     "path": "/v1/calculations",
+     "as": "analyst",
+     "body": {}
+    },
+    {
+     "key": "inv",
+     "method": "GET",
+     "path": "/v1/inventory/scope3?calculation_id={{calc.result.calculation_id}}",
+     "as": "viewer"
+    },
+    {
+     "key": "rep",
+     "method": "POST",
+     "path": "/v1/calculations/{{calc.result.calculation_id}}:reproduce",
+     "as": "analyst",
+     "body": {
+      "compare_with": "EF-2025.1"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Trace one figure to its invoice and factor",
+   "say": "The largest single spend-based figure from a supplier that sits in more than one ERP, traced back: the invoice line as the ERP holds it, the import, the currency conversion, the category the classifier gave it with the logged model call, the vendor record and the other records it was resolved with, and the factor in its frozen version, with the arithmetic re-done. Then which suppliers to engage first: estimated emissions plus what flows through each supplier on the network the disclosures reveal.",
+   "calls": [
+    {
+     "key": "lin",
+     "method": "GET",
+     "path": "/v1/calculations/{{calc.result.calculation_id}}/lineage?activity_id={{inv.trace_example}}",
+     "as": "viewer"
+    },
+    {
+     "key": "eng",
+     "method": "GET",
+     "path": "/v1/suppliers/engagement?calculation_id={{calc.result.calculation_id}}&top=20",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Air to ocean, suppliers decarbonise, publish",
+   "say": "The scenario service recalculates from every stored line: all non-urgent intercontinental air freight moves to ocean, and the top 20 suppliers of the engagement ranking cut their carbon intensity by 30% (their customers' embodied share falls with them). Before and after use the same Monte Carlo draws, so the reduction has its own interval. Then the inventory is proposed for publication (policy checks: complete lineage, orphans under 1%, a reproduction that matched), the lead approves, and the report is exported with its hash.",
+   "calls": [
+    {
+     "key": "sc",
+     "method": "POST",
+     "path": "/v1/scenarios",
+     "as": "analyst",
+     "body": {
+      "name": "Non-urgent air to ocean; top 20 suppliers cut intensity 30%",
+      "calculation_id": "{{calc.result.calculation_id}}",
+      "freight_shift": {
+       "from_mode": "air",
+       "to_mode": "ocean",
+       "share": 1.0,
+       "exclude_urgent": true
+      },
+      "supplier_decarbonisation": {
+       "top_n": 20,
+       "reduction": 0.3
+      }
+     }
+    },
+    {
+     "key": "pub",
+     "method": "POST",
+     "path": "/v1/calculations/{{calc.result.calculation_id}}/publish",
+     "as": "analyst",
+     "body": {
+      "note": "FY2025 inventory for the annual report"
+     }
+    },
+    {
+     "key": "approve",
+     "method": "POST",
+     "path": "/v1/decisions/{{pub.decision_id}}/approve",
+     "as": "lead"
+    },
+    {
+     "key": "export",
+     "method": "POST",
+     "path": "/v1/reports/export",
+     "as": "analyst",
+     "body": {
+      "calculation_id": "{{calc.result.calculation_id}}",
+      "format": "json"
+     }
+    },
+    {
+     "key": "audit",
+     "method": "GET",
+     "path": "/v1/audit?limit=30",
+     "as": "lead"
+    }
+   ]
+  }
+ ]
+}
