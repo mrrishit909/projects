@@ -1,0 +1,54 @@
+{
+ "title": "How Bad Will the Waiting Room Get?",
+ "tagline": "An operations view over an invented emergency department: arrivals and admissions forecast from its own history, the department run forward many times from its live state, a 30-patient surge with a ward slowdown, and staffing and bed actions simulated (peak waiting 49.5 → 35.5) before a director, never the proposer, approves them.",
+ "kind": "Python · Discrete-event simulation · CP-SAT",
+ "order": 131,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Discrete-event simulation",
+  "scikit-learn gradient boosting",
+  "OR-Tools CP-SAT",
+  "FHIR Encounter adapter",
+  "Docker Compose",
+  "11 tests"
+ ],
+ "note": "Built from a written blueprint as one vertical slice. <b>The department is simulated</b>: patients, staff, beds and the sixteen weeks of history come from a discrete-event generator in the repository, and the demo's surge is injected by telling the generator what happens, which is what lets every forecast be checked against the truth. No real patient data; encounters carry a hashed token and an age band only; nothing here is clinical advice. No language model is used. Not built: HL7v2 or a real EHR, survival models, deep temporal models, a twin that differs from the generator, Kafka, Terraform, single sign-on.",
+ "problem": "<p>An emergency department knows it is full; what it needs to know is how full it will be at four o'clock, whether the wards will take its admitted patients, and whether calling in two nurses or opening six beds would change anything. The tools that answer this tend to either hide the uncertainty or act on their own. <em>Can software forecast arrivals and beds honestly, run the department forward with bands, show what each action does before it is taken, and keep a person between the model and the floor?</em></p><p>Blueprint 10 of fifteen in a third build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>A discrete-event department</b>: ED beds, two CT scanners, a nurse ratio that slows care, wards that discharge in the daytime.</li><li><b>Models from its history</b>: an arrival profile with a Poisson band, an admission classifier with a calibration table, a ward turnover, and a length-of-stay model reported as no better than the median.</li><li><b>A forward simulation</b> from the live state, thirty runs, with announced constraints and approved actions; KPIs with bands, side by side with actions.</li><li><b>A staffing optimiser</b> (CP-SAT over an on-call pool) that proposes, with rationale and simulated effect.</li><li><b>Approval</b> by a director who is not the proposer; nothing counts until then.</li></ul>",
+ "steps": [
+  {
+   "title": "A department that behaves like one",
+   "body": "<p>Arrivals follow an hour-of-day and weekday profile, about 140 a day, with a triage mix; each patient waits for an ED bed by triage then arrival, is treated for a time that depends on triage, imaging and how stretched the nurses are against a 1:4 ratio, and is admitted or discharged. The admitted board in their ED bed until a ward bed frees; wards fill with ED admits and elective cases and discharge mostly between 10:00 and 20:00. Sixteen weeks of this is the history; the demo starts on a Tuesday at 07:00 with eight patients in beds.</p>",
+   "code": "stretch = max(1.0, len(in_ed) / (NURSE_RATIO * n))\npush(tm + p[\"treat_min\"] * stretch, \"dispo\", i)"
+  },
+  {
+   "title": "Models that say when they are not better",
+   "body": "<p>Fitted on fourteen weeks, tested on two. The arrival profile beats the same hour last week (2.0 against 2.8 an hour) with 84% of hours inside its 80% band. The admission classifier reaches an AUC of 0.78 against 0.73 for triage level alone, with a calibration table on the page. The length-of-stay model has an error of 85 minutes against 85 for the median by triage level, and the page says it is no better rather than hiding the row.</p>",
+   "code": "los_report = {\"mae_min\": ..., \"mae_median_by_acuity\": ...}   # shown side by side"
+  },
+  {
+   "title": "The department run forward, with and without action",
+   "body": "<p>From the live state at 11:00, with every bed full and 23 waiting, the simulator runs twelve hours thirty times, told that the wards are slow for six more hours. Baseline against a package of actions: six surge beds, two nurses on two shifts and a discharge push. Peak waiting falls from 49.5 to 35.5 and the median door-to-bed wait from 137 to 81 minutes, and the waiting room is still far from clear at the end: the binding constraint is bed-hours, and six beds add about two patients an hour of throughput. Boarding stays low because the ED itself is the bottleneck.</p>",
+   "code": "base = engine.simulate(seed, state, hours, runs, slowdown=slow, actions=approved)\nwith_actions = engine.simulate(seed, state, hours, runs, slowdown=slow, actions=merged)"
+  },
+  {
+   "title": "A proposal, not an action",
+   "body": "<p>The staffing optimiser takes the P80 census per shift from the baseline runs (patients in beds plus half the waiting room), the nurses required at one to four, and lets CP-SAT pick the cheapest call-ins from the on-call pool, one shift each and at most four a shift; where the cap bites it reports how many nurses short the shift stays. Surge beds and a discharge push are added where the runs say they help, the whole package is simulated, and the result is a recommendation with a rationale and an expected effect. The department does not change.</p>",
+   "code": "mdl.Add(sum(vars_s) + short[s] >= extra)\nmdl.Minimize(cost + 100_000 * sum(short.values()))"
+  },
+  {
+   "title": "A person between the model and the floor",
+   "body": "<p>The charge nurse who proposed the package cannot approve it, and neither can a viewer; an operations director can, and only then do the call-ins become shifts, the surge beds appear on the board and later simulations include the actions. The FHIR adapter at the front door has the same temper: an Encounter without a timezone, with an impossible triage level or outside the arrival window is refused and the refusal is shown.</p>",
+   "code": "if rec[\"created_by\"] == ctx.actor_id:\n    raise Problem(409, \"self_approval\", \"the person who proposed a recommendation cannot approve it\")"
+  }
+ ],
+ "results": "<p><b>The demo.</b> The department run forward from 11:00 on the surge day, baseline against the package of actions:</p><img src=\"shots/actions.jpg\" alt=\"Two charts of waiting, boarding and CT queue over twelve hours with P10 to P90 bands: baseline peaks near 49.5 waiting; with 6 surge beds, 4 nurses and a discharge push it peaks near 35.5; below, a KPI table: door to bed median 137.2 minutes against 80.7, a change of −56.5.\"><p>The staffing recommendation, proposed with its rationale and the shortfall it could not fill:</p><img src=\"shots/staffing.jpg\" alt=\"Staffing card: status proposed, 10 call-ins at a cost of 5,920, 6 surge beds, discharge push ×1.5; a table by shift with P80 census 51.4, 59.9 and 58.5, rostered 9, 9 and 6, required 13, 15 and 15, called in 2, 4 and 4.\"><p><b>On three other simulated departments:</b></p><table><tr><th></th><th class=\"num\">System</th><th class=\"num\">Baseline</th></tr><tr><td>Arrivals per hour, error</td><td class=\"num\">1.8–1.9</td><td class=\"num\">2.6 same hour last week</td></tr><tr><td>Admission AUC</td><td class=\"num\">0.78–0.79</td><td class=\"num\">0.72–0.75 triage alone</td></tr><tr><td>ED stay, error (min)</td><td class=\"num\">66–92</td><td class=\"num\">65–93 median by triage</td></tr><tr><td>Peak waiting 12 h ahead, error</td><td class=\"num\">6–29</td><td class=\"num\">6–26 yesterday's peak</td></tr><tr><td>Surge peak waiting, with the package</td><td class=\"num\">27–33</td><td class=\"num\">42–45 without</td></tr></table><p>The arrival and admission models earn their place; the length-of-stay model does not. The forward simulation does not beat yesterday on a point estimate, because a morning says little about an afternoon, and its P90 held the truth 72% of the time; what it adds is a band and a reaction to the live state. In the surge, beds are what help and nurses alone do nothing.</p><p><b>Honest limits.</b> The twin is the generator, so these are the best results a twin could get. One department, no clinical content, no real feed.</p><p><b>Checks.</b> 11 tests, including: the simulator is deterministic and no patient is lost or stranded, a surge raises waiting and the actions lower it, the models beat their baselines where they do and the LOS model is within ten minutes of the median, the staffing solver picks the cheapest nurses one shift each, a FHIR Encounter without a timezone or with an impossible triage level is refused, a proposer cannot approve, a second approval is refused, and one hospital cannot see another's board.</p>",
+ "next": "<ul><li>A twin fitted to the data rather than borrowed from the generator, with the band widening to match.</li><li>Discharge-readiness survival by unit, which is where the wards' slowdown would start to matter.</li><li>A second site sharing the on-call pool, so the optimiser has a real trade-off to make.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/ed-patient-flow",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
