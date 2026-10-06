@@ -1,0 +1,59 @@
+{
+ "title": "Which Chamber Is Ringing the Edge?",
+ "tagline": "Yield intelligence for an invented fab: a chamber's temperature starts to drift, the change-point detector flags it four lots before the first bad wafer is tested, root cause ranks it first of 27 chambers with its evidence, a second person approves the quarantine, and a counterfactual re-run shows that routing around it recovers 5,238 dies where a recipe offset recovers 3,886.",
+ "kind": "Python · Change-point detection · Root-cause analysis",
+ "order": 132,
+ "demo_label": "Run the seven-step demo",
+ "tech": [
+  "Python",
+  "FastAPI",
+  "PostgreSQL 16 (row-level security)",
+  "Bayesian online change-point detection",
+  "scikit-learn gradient boosting",
+  "SciPy",
+  "Fab simulator with wafer maps",
+  "Docker Compose",
+  "12 tests"
+ ],
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/fab-yield-intelligence",
+ "cover": "cover.jpg",
+ "demo": "demo/",
+ "note": "Built from a written blueprint as one vertical slice. <b>The fab is simulated</b>: tools, chambers, lots, sensor summaries and 540-die test maps come from a generator in the repository, and the demo's fault is injected by telling the generator about it, which is what lets every alarm and ranking be checked against the truth. The counterfactual re-runs the same generator, so its numbers are as right as the simulator's physics. No real fab data. Not built: a CNN, inspection imagery, causal discovery, Kafka, Flink, ClickHouse, Terraform, single sign-on.",
+ "problem": "<p>A fab finds out a chamber has gone wrong when its wafers fail at test, days after the chamber started to drift, and by then dozens of lots have run through it. The data to catch it sooner exists (every chamber reports its sensors on every wafer), but across 27 chambers a simple control chart raises so many false alarms that nobody reads it, and when the bad wafers do show up, finding which of the chambers they shared is the culprit is a manual hunt. <em>Can software notice the drift before the wafers do, name the chamber with evidence a yield engineer would accept, hold the exposed lots only when a second person agrees, and say what acting sooner would have saved?</em></p><p>Blueprint 1 of twenty in a fourth build book, built as its demo scenario end to end.</p>",
+ "built": "<p>A Python service on PostgreSQL with a background worker and a web page, started by one <code>docker compose up</code>.</p><ul><li><b>A simulated fab</b>: 16 tools and 27 chambers across five steps; lots of 25 wafers; a sensor summary per wafer per step and a 540-die test map; faults whose defects follow the sensor (an etch chamber off temperature rings the edge, a worn CMP pad hits the centre).</li><li><b>Chamber baselines</b> from a clean qualification week, per chamber and per product.</li><li><b>A wafer-map classifier</b> that sends what it is unsure of, or has never seen, for review.</li><li><b>Yield before test</b> from the sensors, and <b>change-point detection</b> on every chamber after every lot.</li><li><b>Root cause</b> across all 27 chambers with the evidence for each; a <b>quarantine</b> a second person approves; and a <b>counterfactual</b> re-run of the exposed lots.</li></ul>",
+ "steps": [
+  {
+   "title": "A fab whose faults follow the physics",
+   "body": "<p>A lot is dispatched to one tool per step and its wafers spread across that tool's chambers; every chamber has its own calibration offset and every product its own setpoints. A fault moves a chamber's sensor, and the defects follow the sensor: running hot rings the edge of the wafer. Eight weeks is 448 lots, 11,200 wafers and six million die measurements, with fourteen excursions in the history, each fixed before the demo. Every random draw is keyed by lot and wafer, so a lot can be re-run under a different recipe with the same randomness.</p>",
+   "code": "sens[PRIMARY[s]] += sign * dev                       # the drift shows on the sensor ...\neff = abs(sens[PRIMARY[s]] - setpoint - offset)       # ... and the defects follow the sensor\namp = np.clip(gain * (eff - thresh), 0, cap)"
+  },
+  {
+   "title": "Whose baseline a chamber is judged against",
+   "body": "<p>The first version judged each chamber against its own history, and a chamber faulty for a third of its runs looked normal because it had dragged its median with it. The second judged against a median over both products, and every product change looked like a drift, because the two recipes run at 60 and 65 °C. Baselines now come from a qualification week, per chamber and per product. With them, the change-point detector's false alarms fell from about 1.3 to under 0.2 per thousand runs.</p>",
+   "code": "baselines = chamber_baselines((st[\"chamber\"], r[\"product\"], st[\"sensors\"])\n                              for r in recs if r[\"lot_index\"] < world.QUALIFICATION_LOTS for st in r[\"steps\"])"
+  },
+  {
+   "title": "A drift detector people can afford to read",
+   "body": "<p>After every lot, each chamber's primary sensor is run through Bayesian online change-point detection: an alarm when the probability of a fresh run passes one half and the shift is above two standard deviations. On three held-out fabs it caught all 42 detectable excursions, a median of one to two and a half lots after they began, with 0 to 0.12 false alarms per thousand runs. A Shewhart 3-sigma rule caught 39, up to a lot and a half sooner, with 3.3 to 3.8: across 27 chambers, more than thirty times as many alerts nobody should act on.</p>",
+   "code": "cp, mean = bocpd(z)                        # P(run length <= 5), posterior mean of the run\nhit = (cp > 0.5) & (np.abs(last5) > 2) | (np.abs(mean) > 2) & (np.abs(last5) > 2)"
+  },
+  {
+   "title": "Root cause within the step, not across the fab",
+   "body": "<p>Every chamber is scored by commonality with the affected wafers compared with the other chambers <em>of its own step</em>, the ones that could have run the same wafers; plus a change-point on its sensor, plus how often the pattern came from that step in the history. In the demo, 70 of the 96 wafers ETCH-03/B ran have edge rings against none on its two siblings that ran the same lots. On held-out fabs the chamber was in the top three for all 40 excursions ranked and first for 39.</p>",
+   "code": "through = np.array([w[\"route\"][step] == ch for w in wafers])\nlor = math.log((a + .5) * (d + .5) / ((b + .5) * (c + .5)))\np = fisher_exact([[a, b], [c, d]], alternative=\"greater\")[1]"
+  },
+  {
+   "title": "A quarantine needs a second person",
+   "body": "<p>The case proposes quarantining the lots exposed since the change-point and holding the chamber. A proposal changes nothing; the process engineer cannot approve it and a yield manager who did not propose it can, and only then are the lots held and new lots routed around the chamber. A lot from a partner fab through the gateway gets the same treatment as any other, and one naming a chamber that does not exist is refused with the reason.</p>",
+   "code": "if d[\"proposed_by\"] == ctx.actor_id:\n    raise Problem(403, \"proposer_cannot_approve\", \"a quarantine needs a second person\")"
+  },
+  {
+   "title": "What acting differently would have saved",
+   "body": "<p>The eleven exposed lots re-run wafer by wafer with the same randomness: as they ran (identical, which is the check), with a recipe offset that cancels the drift as measured today, and with the chamber routed around. The offset recovers the late lots and over-cools the early ones, which ran before the drift had grown; routing around recovers both.</p>",
+   "code": "lots = world.run(seed, lo, hi, told, adjust=adjust, route_around=route_around, only=set(idx))"
+  }
+ ],
+ "results": "<p><b>The demo.</b> ETCH-03/B's drift starts at lot 452; the change-point alert fires at lot 453; the first edge ring is tested at lot 457; the excursion alert follows at 464:</p><img src=\"shots/emerge.jpg\" alt=\"Yield by lot from lot 440 to 487 with markers at lot 453 (drift: ETCH-03/B) and lot 464 (edge-ring); yield on lots through ETCH-03 sags from about 96.5% to 91-92% while the yield predicted before test follows it; below, eight lots with eight edge-ring wafers each.\"><p>Root cause, with every chamber's evidence:</p><img src=\"shots/rootcause.jpg\" alt=\"Root cause: ETCH-03/B top with confidence 1.00, 70 of 952 wafers affected, estimated drift +3.71 degrees C, 11 lots exposed since lot 453; a ranking table where ETCH-03/B has 70 of 96 wafers affected, 0% elsewhere in its step, Fisher p 1e-84 and a change-point, and every other chamber 0 affected; a wafer map with failing dies around the edge.\"><p>The counterfactual on the eleven exposed lots:</p><img src=\"shots/counterfactual.jpg\" alt=\"Counterfactual: re-run as it happened identical; recipe offset temp_c -3.71 lifts mean yield from 93.0% to 95.7%, 3,886 good dies, $163,212, edge-ring wafers 70 to 24; route around ETCH-03/B 93.0% to 96.6%, 5,238 good dies, $219,996, edge-ring wafers 70 to 0; a chart of yield by lot where the offset is below the actual run on the first lots.\"><p><b>On three held-out fabs</b> (fourteen excursions each):</p><table><tr><th></th><th class=\"num\">System</th><th class=\"num\">Baseline</th></tr><tr><td>Wafer-map patterns, macro-F1</td><td class=\"num\">0.86–0.94</td><td class=\"num\">0.54–0.69 nearest centroid</td></tr><tr><td>Yield before test, error (points)</td><td class=\"num\">0.81–0.92</td><td class=\"num\">0.82–1.25 trailing mean</td></tr><tr><td>… on excursion wafers</td><td class=\"num\">2.3–2.5</td><td class=\"num\">9.8–11.5</td></tr><tr><td>Drift excursions caught</td><td class=\"num\">42 of 42</td><td class=\"num\">39 of 42 (3-sigma)</td></tr><tr><td>False drift alarms per 1,000 runs</td><td class=\"num\">0–0.12</td><td class=\"num\">3.3–3.8</td></tr><tr><td>Root cause in the top three</td><td class=\"num\">40 of 40</td><td class=\"num\">39 of 40 commonality alone</td></tr></table><p>Trained on one fab and applied to all eight weeks of another, the classifier recognised each pattern 70–100% of the time and flagged 0.6–0.8% of normal wafers.</p><p><b>Honest limits.</b> Root cause is mostly commonality once it is computed within the step; the change-point and the prior broke one tie in forty. The change-point detector is no faster than a 3-sigma rule, only quieter. The classifier's weak spot is a pattern its training weeks saw once, and the cure is labels. The counterfactual is the generator, so it is the best case. Ingestion ran at about 51,000 die measurements a second in one process, a third of the blueprint's target.</p><p><b>Checks.</b> 12 tests, including: each fault makes its pattern on its own chamber only, the counterfactual never creates a failure a wafer did not have, the map features survive a quarter turn, the change-point detector is silent on noise and finds a step within ten points, root cause prefers the chamber inside the step, a lot with an unknown or held chamber or a short die map is refused, a proposer cannot approve, and one fab cannot see another's wafers. The Docker stack was run end to end.</p>",
+ "next": "<ul><li>Real wafer maps and a CNN, where pattern variety is wide enough to need one, with inspection images alongside.</li><li>Multivariate drift (a fault that shows across pressure, power and flow at once), where an autoencoder would earn its place.</li><li>Baseline requalification after maintenance as a workflow, since a stale baseline is how this system would go quietly wrong.</li></ul>"
+}

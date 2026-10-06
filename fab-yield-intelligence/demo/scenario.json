@@ -1,0 +1,368 @@
+{
+ "service": "fab-yield-intelligence",
+ "run": "demo-1",
+ "tokens": {
+  "manager": "fab-yield_manager-demo",
+  "engineer": "fab-process_engineer-demo",
+  "viewer": "fab-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "The fab and its history",
+   "say": "An invented fab with 27 chambers across litho, etch, deposition, CMP and implant, after eight weeks of lots: 448 lots of 25 wafers, each wafer with a sensor summary per step and a 540-die test map, and the history's pattern labels from the engineers. Chamber baselines come from the clean qualification week, per product because each recipe runs its own setpoints. The models are trained on six weeks and scored on the last two, each against a plain baseline.",
+   "calls": [
+    {
+     "key": "load",
+     "method": "POST",
+     "path": "/v1/fab:load",
+     "as": "manager",
+     "body": {
+      "seed": 7
+     }
+    },
+    {
+     "key": "ov0",
+     "method": "GET",
+     "path": "/v1/fab/overview?last=24",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "A normal wafer, a normal tool",
+   "say": "One wafer's map as the classifier sees it, with its call, confidence and model version, and the health of etch tool ETCH-03: each chamber's temperature as deviations from its qualified baseline, and the change-point probability that the drift detector watches.",
+   "calls": [
+    {
+     "key": "lot0",
+     "method": "GET",
+     "path": "/v1/lots/{{ov0.lots.20.lot}}",
+     "as": "viewer"
+    },
+    {
+     "key": "map0",
+     "method": "GET",
+     "path": "/v1/wafers/{{lot0.wafers.0.id}}/map",
+     "as": "viewer"
+    },
+    {
+     "key": "tool0",
+     "method": "GET",
+     "path": "/v1/tools/ETCH-03/health?runs=240",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Inject a drift and run 40 lots",
+   "say": "The generator is told that chamber B of etch tool ETCH-03 starts running hot four lots from now, climbing about 0.22 \u00b0C a lot. Then 40 lots run through the fab. The service sees only what the equipment reports: sensor summaries and test maps. Every lot is scored as it lands and checked for drift and excursions.",
+   "calls": [
+    {
+     "key": "adv",
+     "method": "POST",
+     "path": "/v1/fab:advance",
+     "as": "manager",
+     "body": {
+      "lots": 40,
+      "inject": {
+       "kind": "etch_temp_drift",
+       "chamber": "ETCH-03/B",
+       "after_lots": 4,
+       "rate_per_lot": 0.22,
+       "max": 3.6
+      }
+     }
+    }
+   ]
+  },
+  {
+   "title": "Edge rings emerge",
+   "say": "Yield by lot drops on the lots that went through ETCH-03, and the classifier starts calling edge rings. The drift detector raised its alert on ETCH-03/B before the first edge ring was tested; the excursion alert followed once edge rings piled up. A partner lot arrives through the gateway: one accepted and scored, one refused for an unknown chamber.",
+   "calls": [
+    {
+     "key": "ov1",
+     "method": "GET",
+     "path": "/v1/fab/overview?last=48",
+     "as": "viewer"
+    },
+    {
+     "key": "alerts",
+     "method": "GET",
+     "path": "/v1/alerts?kind=excursion",
+     "as": "viewer"
+    },
+    {
+     "key": "ingest",
+     "method": "POST",
+     "path": "/v1/lots/ingest",
+     "as": "engineer",
+     "body": {
+      "lots": [
+       {
+        "lot": "EXT-PARTNER-0412",
+        "product": "P2",
+        "wafers": [
+         {
+          "slot": 1,
+          "steps": [
+           {
+            "step": "litho",
+            "chamber": "LITHO-04/A",
+            "recipe": "LITHO-P2-R3",
+            "sensors": {
+             "focus_nm": 3.7507,
+             "dose_mj": 29.9074
+            }
+           },
+           {
+            "step": "etch",
+            "chamber": "ETCH-01/A",
+            "recipe": "ETCH-P2-R3",
+            "sensors": {
+             "temp_c": 64.8634,
+             "pressure_mt": 38.3146,
+             "rf_w": 948.6597
+            }
+           },
+           {
+            "step": "depo",
+            "chamber": "DEPO-03/A",
+            "recipe": "DEPO-P2-R3",
+            "sensors": {
+             "flow_sccm": 120.3262,
+             "temp_c": 410.5086
+            }
+           },
+           {
+            "step": "cmp",
+            "chamber": "CMP-02/A",
+            "recipe": "CMP-P2-R3",
+            "sensors": {
+             "pressure_psi": 3.2289,
+             "speed_rpm": 90.2186
+            }
+           },
+           {
+            "step": "implant",
+            "chamber": "IMPLANT-02/A",
+            "recipe": "IMPLANT-P2-R3",
+            "sensors": {
+             "dose_pct": 100.2584,
+             "energy_kev": 34.9289
+            }
+           }
+          ],
+          "die_bins": "111111111111111111111111111111111111111111111111111111311111113111111111111111111111111111111111311111111111111111111111111111311111111111111111111111111111131111111111111111111111111111111111111111111111111111111111111111111331111111111111111111111111111111111131111111111111111111111111111111113111111111111111111111111111111111111111111111111111111111111311111111111111111111111111111111111111311111111131111111113111111111111111111111111311111111111111111111111111111111111111111111111111111111111111111111311111111311111111111111111311"
+         },
+         {
+          "slot": 2,
+          "steps": [
+           {
+            "step": "litho",
+            "chamber": "LITHO-04/A",
+            "recipe": "LITHO-P2-R3",
+            "sensors": {
+             "focus_nm": 0.2203,
+             "dose_mj": 30.4165
+            }
+           },
+           {
+            "step": "etch",
+            "chamber": "ETCH-01/B",
+            "recipe": "ETCH-P2-R3",
+            "sensors": {
+             "temp_c": 64.7958,
+             "pressure_mt": 37.6475,
+             "rf_w": 952.9699
+            }
+           },
+           {
+            "step": "depo",
+            "chamber": "DEPO-03/B",
+            "recipe": "DEPO-P2-R3",
+            "sensors": {
+             "flow_sccm": 120.9822,
+             "temp_c": 409.679
+            }
+           },
+           {
+            "step": "cmp",
+            "chamber": "CMP-02/A",
+            "recipe": "CMP-P2-R3",
+            "sensors": {
+             "pressure_psi": 3.2745,
+             "speed_rpm": 89.503
+            }
+           },
+           {
+            "step": "implant",
+            "chamber": "IMPLANT-02/A",
+            "recipe": "IMPLANT-P2-R3",
+            "sensors": {
+             "dose_pct": 100.4648,
+             "energy_kev": 34.9322
+            }
+           }
+          ],
+          "die_bins": "111111111111111111111111111111111111111111111111111111111311111111111113111111111111111111111111111111111113111111111111111111111111111111113111113111111111111111111111111111111111111111111113111111111111111131111111111111131111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111131113111111111111111111111111111111111111111111111111111111311111111111111131111111111111111111111111111111111111111111111111111111111111111113111111111111311111111111311111111111111111111111111"
+         }
+        ]
+       },
+       {
+        "lot": "EXT-PARTNER-0413",
+        "product": "P2",
+        "wafers": [
+         {
+          "slot": 1,
+          "steps": [
+           {
+            "step": "litho",
+            "chamber": "LITHO-04/A",
+            "recipe": "LITHO-P2-R3",
+            "sensors": {
+             "focus_nm": 3.7507,
+             "dose_mj": 29.9074
+            }
+           },
+           {
+            "step": "etch",
+            "chamber": "ETCH-09/A",
+            "recipe": "ETCH-P2-R3",
+            "sensors": {
+             "temp_c": 64.8634,
+             "pressure_mt": 38.3146,
+             "rf_w": 948.6597
+            }
+           },
+           {
+            "step": "depo",
+            "chamber": "DEPO-03/A",
+            "recipe": "DEPO-P2-R3",
+            "sensors": {
+             "flow_sccm": 120.3262,
+             "temp_c": 410.5086
+            }
+           },
+           {
+            "step": "cmp",
+            "chamber": "CMP-02/A",
+            "recipe": "CMP-P2-R3",
+            "sensors": {
+             "pressure_psi": 3.2289,
+             "speed_rpm": 90.2186
+            }
+           },
+           {
+            "step": "implant",
+            "chamber": "IMPLANT-02/A",
+            "recipe": "IMPLANT-P2-R3",
+            "sensors": {
+             "dose_pct": 100.2584,
+             "energy_kev": 34.9289
+            }
+           }
+          ],
+          "die_bins": "111111111111111111111111111111111111111111111111111111311111113111111111111111111111111111111111311111111111111111111111111111311111111111111111111111111111131111111111111111111111111111111111111111111111111111111111111111111331111111111111111111111111111111111131111111111111111111111111111111113111111111111111111111111111111111111111111111111111111111111311111111111111111111111111111111111111311111111131111111113111111111111111111111111311111111111111111111111111111111111111111111111111111111111111111111311111111311111111111111111311"
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "title": "Rank the offending chamber",
+   "say": "Root cause for the edge-ring excursion: every chamber in the fab is scored by commonality with the affected wafers within its own step (so ETCH-03/B is compared with ETCH-03/A and /C, which ran the same lots), whether its sensor had a change-point, and how often edge rings came from that step in the history. The case carries the evidence, a confidence, the lots exposed since the change-point and the chamber's estimated drift.",
+   "calls": [
+    {
+     "key": "rc",
+     "method": "POST",
+     "path": "/v1/analysis/root-cause",
+     "as": "engineer",
+     "body": {
+      "alert_id": "{{alerts.items.0.id}}"
+     }
+    },
+    {
+     "key": "tool1",
+     "method": "GET",
+     "path": "/v1/tools/ETCH-03/health?runs=240",
+     "as": "viewer"
+    },
+    {
+     "key": "map1",
+     "method": "GET",
+     "path": "/v1/wafers/{{rc.result.example_wafer}}/map",
+     "as": "viewer"
+    }
+   ]
+  },
+  {
+   "title": "Quarantine the exposed lots",
+   "say": "The process engineer proposes quarantining the lots exposed to ETCH-03/B and holding the chamber. A proposal changes nothing: the engineer cannot approve their own, and the yield manager does. The lots are quarantined and the chamber is put on hold, so new lots are routed around it.",
+   "calls": [
+    {
+     "key": "prop",
+     "method": "POST",
+     "path": "/v1/cases/{{rc.result.case_id}}/quarantine",
+     "as": "engineer",
+     "body": {
+      "hold_chamber": true
+     }
+    },
+    {
+     "key": "self",
+     "method": "POST",
+     "path": "/v1/decisions/{{prop.decision_id}}/approve",
+     "as": "engineer",
+     "expect_error": true
+    },
+    {
+     "key": "approve",
+     "method": "POST",
+     "path": "/v1/decisions/{{prop.decision_id}}/approve",
+     "as": "manager"
+    }
+   ]
+  },
+  {
+   "title": "What a recipe change would have done",
+   "say": "The exposed lots re-run wafer by wafer with the same randomness: once as they ran (it reproduces exactly), once with the recipe offset the case suggests, once with the chamber routed around. A fixed offset tuned to today's drift fixes the late lots and over-cools the early ones; routing around the chamber recovers both. The yield model's view of the next lots, and the audit trail.",
+   "calls": [
+    {
+     "key": "cf",
+     "method": "POST",
+     "path": "/v1/scenarios/counterfactual",
+     "as": "engineer",
+     "body": {
+      "case_id": "{{rc.result.case_id}}"
+     }
+    },
+    {
+     "key": "adv2",
+     "method": "POST",
+     "path": "/v1/fab:advance",
+     "as": "manager",
+     "body": {
+      "lots": 8
+     }
+    },
+    {
+     "key": "pred",
+     "method": "POST",
+     "path": "/v1/models/yield/predict",
+     "as": "engineer",
+     "body": {
+      "lot_id": "{{adv2.result.lots.7.lot}}"
+     }
+    },
+    {
+     "key": "audit",
+     "method": "GET",
+     "path": "/v1/audit?limit=40",
+     "as": "manager"
+    }
+   ]
+  }
+ ]
+}
