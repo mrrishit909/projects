@@ -18,7 +18,7 @@
   "13 tests"
  ],
  "date": "2026-10",
- "repo": "https://github.com/mrrishit909/projects/tree/main/voyage-fuel-optimizer/source",
+ "repo": "https://github.com/mrrishit909/voyage-fuel-optimizer",
  "cover": "cover.jpg",
  "demo": "demo/",
  "note": "Built from a written blueprint as one vertical slice. <b>The ocean and the fleet are simulated</b>: the weather, storms and currents, six ships with their own speed-power curves and fouling hulls, and every noon report and AIS position come from a generator in the repository. The demo's storm and port congestion are injected by telling the generator; the planners only see forecasts, port line-ups and the ships' reports. Savings are measured against a baseline the simulator re-sails, so they are as right as its physics. No real vessel, AIS or weather data. Not built: real weather grids, PostGIS, a learned speed-power model, Kafka, Kubernetes, Terraform, single sign-on.",
