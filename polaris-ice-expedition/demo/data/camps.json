@@ -1,0 +1,1 @@
+[{"id":"A","name":"Base Camp A","x":20,"y":20,"kind":"camp"},{"id":"B","name":"Camp B","x":66,"y":16,"kind":"camp"},{"id":"C","name":"Camp C","x":138,"y":40,"kind":"camp"},{"id":"F1","name":"Fuel cache F1","x":152,"y":72,"kind":"depot"},{"id":"D","name":"Station D","x":178,"y":98,"kind":"station"}]
