@@ -1,4 +1,4 @@
 :HL["/projects/polaris-ice-expedition/demo/_next/static/css/cb72df7fd4a17f36.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"_not-found","h":96,"c":"$Q2"}]]
-0:{"b":"K8tltZAjzweIOxM0IJjkD","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"BdA-F9EVupCsNfzLkasAS","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
