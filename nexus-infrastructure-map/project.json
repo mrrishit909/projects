@@ -1,0 +1,64 @@
+{
+ "title": "What Breaks When One Cable Is Cut?",
+ "tagline": "A motion-first infrastructure dependency map: a synthetic network of 31 submarine cables, landing stations, substations and data centres on a dark Earth. Cut the Red Sea cable and traffic reroutes into the West Africa cables' reserve; a substation failure in Bude then strands 145 Tbps. A Monte Carlo over 1,000 paired years ranks the fixes: $9M of generator fuel beats a $240M cable per dollar.",
+ "kind": "TypeScript · three.js · network flows",
+ "order": 163,
+ "demo_label": "Open the live map",
+ "tech": [
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React 19",
+  "three.js / React Three Fiber",
+  "Web Worker simulation engine",
+  "Min-cost and max-flow",
+  "Monte Carlo simulation",
+  "Fastify",
+  "PostgreSQL 16 (row-level security)",
+  "OpenAPI 3.1",
+  "OpenTelemetry",
+  "Docker Compose",
+  "Playwright",
+  "37 unit + API tests, 8 e2e journeys"
+ ],
+ "note": "Built from blueprint 07 of a written build book (Volume V, motion-first products) as one vertical slice. <b>The network is synthetic</b>: the places are real coastal cities so the map reads correctly, but every cable, station, substation, data centre, owner, capacity, route and dependency is invented; it is not a map of real infrastructure. Failure rates are of realistic order, not fitted to any operator's history. Not built: real cable data, the ten-service split, graph and spatial databases, Kafka, ClickHouse, Terraform and cloud deployment, single sign-on, enterprise asset import.",
+ "problem": "<p>Digital services run on a physical network: cables on the sea floor, the stations where they land, the substations that power those stations, the plants and pipelines behind them. Operators, insurers and governments need to know what one failure does to the rest. <em>When a cable is cut, where does the traffic go, what runs hot, and which cheap fix would stop the next failure from turning into an outage?</em></p><p>The build book's rule for this volume is that the public website is the product: motion has to show state and causality, and a visitor learns the system by using it. Blueprint 7 of ten, built as its demo scenario end to end.</p>",
+ "built": "<p>A Next.js site that runs entirely in the browser on synthetic fixtures, plus a Fastify API on PostgreSQL behind the same interface, started by one <code>docker compose up</code>.</p><ul><li><b>A synthetic network</b> over 31 real coastal cities: 31 cables, 16 land links, 44 substations, 31 plants, 6 pipelines, 41 data centres, 17 ports and 380 dependencies.</li><li><b>A cascade engine</b> over time, with redundancy groups, backup generators, repairs and the cause of every failure.</li><li><b>Traffic routing</b>: capacity-aware min-cost flow with an 80% engineering target, compared with plain shortest-path routing.</li><li><b>An escalation search</b> for the worst next facility failure.</li><li><b>Resilience analysis</b>: a 2,000-year Monte Carlo, criticality, minimum cuts between regions, and seven remedies ranked on paired years.</li><li><b>A motion layer</b> where moving dots carry traffic and critical links breathe slowly, with reduced motion, pause, deep links, list view, a failure lab and a tenant's private layer.</li></ul>",
+ "steps": [
+  {
+   "title": "A network with hidden single points of failure",
+   "body": "<p>Each city gets a landing station, a plant, one or two substations and possibly data centres and a port. Big metros have two substations that also feed each other; small landing towns have one substation feeding everything. Cables need power at both landings, data centres need their landing station's uplink, plants need their pipeline's fuel. Demand is 1,265 Tbps across 48 directed city pairs, and the baseline serves all of it with no link above 80%.</p>"
+  },
+  {
+   "title": "Failure over time, not a switch",
+   "body": "<p>An asset needs every one of its dependency groups, and a group holds while up members carry at least a quarter of its weight, so one of two feeds is enough. A station that loses grid power runs on generators (3% fail to start, decided by a seed) until its fuel runs out, then fails and takes what depends on it. Each moment is the fixed point of that rule, which also handles substations that feed each other. Same failures and seed give the same events, which the tests and the crash recovery both check.</p>",
+   "code": "const lack = missing(m, id, (x) => state.get(x) !== \"down\");\nconst backupOk = isPower && a.backupHours > 0 && !genFails(id) && t - since < a.backupHours;\nstate.set(id, backupOk ? \"backup\" : \"down\");"
+  },
+  {
+   "title": "Cut the Red Sea cable",
+   "body": "<p>NX-14 carries 210 Tbps each way between Suez and Jeddah. Without it, capacity-aware routing still serves everything by moving Europe–Asia traffic onto the West Africa route: NX-09 runs at 88% and NX-08 at 87%, inside their 20% reserve, and Frankfurt to Jeddah goes from 29 ms to 229 ms. Plain shortest-path routing would have pushed four links to 180–212% of capacity. After any single cable cut, a test checks that no link exceeds 100% and that traffic is conserved at every node.</p>"
+  },
+  {
+   "title": "Escalate to the worst next failure",
+   "body": "<p>The engine tries each of the 19 substations that are a landing station's only grid feed, on top of the cut, and picks the one that degrades the most traffic: Bude substation A, ahead of Lisbon and Lagos. Bude's station runs on generators for 12 hours, goes dark at hour 13 and takes two transatlantic cables and the London land link with it. 145 Tbps cannot be carried and six links are full. Over 48 hours degraded traffic rises from 11,534 to 14,531 Tbps-hours.</p>"
+  },
+  {
+   "title": "Which fix is worth the money",
+   "body": "<p>Seven remedies are run on this scenario and on 1,000 simulated years where the same random failures hit every variant, so differences come with tight intervals. The cheapest full fix for this scenario is a second feed at Bude ($5M), but it saves only 61 Tbps-hours in a normal year because that substation rarely fails. 72-hour generator fuel at every single-feed station ($9M) saves 2,494 a year, 277 per $M, first by value; connecting Marseille's station to its second substation ($3M) comes next at 224 per $M; a new Jeddah–Mumbai cable ($240M) saves the most in total, 24,700, at 103 per $M. The case for a fix depends on whether you plan for this scenario or for the year.</p>",
+   "code": "const diff = baseMc.perYear.map((x, y) => x - mc.perYear[y]);   // paired by year\nconst annualReduction = mean(diff), ci90 = annualReduction ± 1.645 * sd(diff) / sqrt(years);"
+  },
+  {
+   "title": "Motion that carries state",
+   "body": "<p>Dots travel along each link in the direction of its traffic, and there are more of them where there is more traffic. A dashed grey line is down, amber is running in its reserve, red is full, and the most critical links breathe slowly (0.1–0.6 Hz) so criticality is not shown by colour alone. A scenario is computed in a Web Worker before anything animates, so playback only moves the clock through precomputed states. With reduced motion nothing travels and every number stays.</p>"
+  },
+  {
+   "title": "Private layers and a crash that recovers",
+   "body": "<p>Through the API, a telecom tenant sees its own private Marseille–Lisbon route and edge site; an insurer tenant sees only the shared network, gets 404 if it tries to fail the private route, and the database refuses its writes into another tenant's layer. In the failure lab the simulation engine can be crashed mid-run: the page notices, restarts it and replays the scenario from its inputs to the same digest.</p>"
+  }
+ ],
+ "results": "<p><b>The demo.</b> After the cut, the West Africa route runs in its reserve while all traffic is still served:</p><img src=\"shots/reroute.jpg\" alt=\"Sandbox two hours after cutting NX-14 Red Sea North: the cut cable dashed, Europe-Asia traffic moving down the West Africa coast, NX-09 at 88% and NX-08 at 87% in amber; results panel: all traffic served, shortest-path routing would overload 4 links up to 212%, Frankfurt to Jeddah 29 ms to 229 ms.\"><p>Hour 14 after the escalation: Bude is dark, 145 Tbps unserved, six links full:</p><img src=\"shots/cascade.jpg\" alt=\"Hour 14: traffic served 89%, 145 Tbps unserved, 6 assets down, links full NX-02, NX-04, NX-05, NX-08, NX-10, TL-06; events log: Bude landing station on generators at hour 1, generators exhausted at hour 13, NX-01, NX-03 and TL-01 lost supply.\"><p>The resilience report:</p><img src=\"shots/report.jpg\" alt=\"Resilience report: this scenario degrades 14,531 Tbps-hours in 48 hours, a normal year 85,667 (90% interval 83,671 to 87,662). Top options by yearly benefit per $M: 72-hour generator fuel $9M, 2,494 less a year, 277 per $M; Marseille onto substation B $3M, 671; new Jeddah-Mumbai cable $240M, 24,700. Most critical: NX-16 Arabian Arc. Minimum cut Europe to East Asia 530 Tbps across 3 links.\"><table><tr><th></th><th class=\"num\">$M</th><th class=\"num\">Per year</th><th class=\"num\">Scenario</th></tr><tr><td>Generator fuel</td><td class=\"num\">9</td><td class=\"num\">2,494</td><td class=\"num\">2,997</td></tr><tr><td>Marseille feed</td><td class=\"num\">3</td><td class=\"num\">671</td><td class=\"num\">0</td></tr><tr><td>Jeddah–Mumbai</td><td class=\"num\">240</td><td class=\"num\">24,700</td><td class=\"num\">−124</td></tr><tr><td>Bude feed</td><td class=\"num\">5</td><td class=\"num\">61</td><td class=\"num\">2,997</td></tr></table><p>The opening chapter that reveals the cables:</p><img src=\"shots/layers.jpg\" alt=\"Intro chapter 'Then the light': a dark Earth with 31 submarine cables and 16 land links drawn between landing stations, traffic dots along them; 3,665 Tbps each way in total.\"><p><b>Checks.</b> After every single cable cut no link exceeds capacity and traffic is conserved at every node. Max-flow equals min cut; min-cost flow matches a hand-solved case. Same failures and seed replay identically. A million-edge synthetic graph builds and propagates in 2.4 s. The other tenant cannot see, fail or write the private layer. Coverage of the domain and motion code: 99% of statements.</p><p><b>Performance.</b> 60 FPS on a real GPU with every layer and traffic dot on; a 48-hour scenario takes 5 ms in the worker. The API on one process: 2,386 reads a second at p95 17.5 ms, and 202 full scenario runs a second at p95 79 ms.</p><p><a href=\"demo/recording.mp4\">Watch the 2 min 6 s captioned recording</a>.</p>",
+ "next": "<ul><li>Route all demands jointly (a multi-commodity LP) to see how far the sequential heuristic is from the optimum under stress.</li><li>Fit failure rates and repair times to a published fault history, so the yearly figures mean more than the settings behind them.</li><li>Let a tenant upload its own assets and dependencies, with validation, instead of a seeded private layer.</li><li>Model generator refuelling and repair crews as limited resources, which is where long outages are actually decided.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/nexus-infrastructure-map",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
