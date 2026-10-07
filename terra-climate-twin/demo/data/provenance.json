@@ -1,0 +1,102 @@
+{
+ "datasets": [
+  {
+   "name": "Natural Earth land polygons 1:110m and 1:50m",
+   "provider": "Natural Earth (naturalearthdata.com), via github.com/nvkelso/natural-earth-vector at ca96624a",
+   "license": "public domain",
+   "files": [
+    "data/sources/ne_110m_land.geojson",
+    "data/sources/ne_50m_land.geojson"
+   ],
+   "use": "land mask and coastlines only"
+  },
+  {
+   "name": "synthetic climate cubes (temperature, ocean, precipitation, drought, wildfire weather, sea level; 1950-2100; 3 scenarios x 10 members)",
+   "provider": "synthetic: packages/domain/src/climate.ts (computed on demand, not stored)",
+   "license": "MIT",
+   "transformationVersion": "climate-v1"
+  },
+  {
+   "name": "synthetic observed hazard record, fits, backtests, projections",
+   "provider": "synthetic: packages/domain/src/hazards.ts",
+   "license": "MIT",
+   "transformationVersion": "terra-v1",
+   "sha256": "084ed7abefac0991ed561682c0526a51d2a48db5f0d8e33760bc80b0ecad6f30"
+  },
+  {
+   "name": "city coordinates",
+   "provider": "public geography; every climate value attached to them is synthetic",
+   "license": "facts"
+  }
+ ],
+ "qualityChecks": {
+  "grid": "144x72",
+  "landFraction": 0.289,
+  "cities": 28,
+  "recordsPerCity": 75,
+  "everyCityOnACoast": true,
+  "noMissingDrivers": true,
+  "backtests": [
+   {
+    "hazard": "heat",
+    "maeModel": 12.607,
+    "maeClimatology": 17.601,
+    "skill": 0.284,
+    "coverage80": 0.723,
+    "n": 560,
+    "bias": -0.545
+   },
+   {
+    "hazard": "flood",
+    "maeModel": 1.932,
+    "maeClimatology": 2.586,
+    "skill": 0.253,
+    "coverage80": 0.87,
+    "n": 560,
+    "bias": 0.269
+   },
+   {
+    "hazard": "wildfire",
+    "maeModel": 0.644,
+    "maeClimatology": 0.625,
+    "skill": -0.03,
+    "coverage80": 0.727,
+    "n": 560,
+    "bias": 0.043
+   },
+   {
+    "hazard": "drought",
+    "maeModel": 0.912,
+    "maeClimatology": 1.104,
+    "skill": 0.174,
+    "coverage80": 0.929,
+    "n": 560,
+    "bias": 0.091
+   }
+  ],
+  "truthCoverage": {
+   "heat": {
+    "inside": 225,
+    "of": 336
+   },
+   "flood": {
+    "inside": 272,
+    "of": 336
+   },
+   "wildfire": {
+    "inside": 267,
+    "of": 336
+   },
+   "drought": {
+    "inside": 295,
+    "of": 336
+   }
+  }
+ },
+ "sha256": {
+  "land.json": "65c79ef873b0cedb63829d45346a1d292bdd7036608d88ec035d79904874c450",
+  "coast.json": "9ee90de12413d095ce2fabf82be87522b122e17ca115e21f35e2e35eb952afbb",
+  "cities.json": "084ed7abefac0991ed561682c0526a51d2a48db5f0d8e33760bc80b0ecad6f30"
+ },
+ "generatedInMs": 6582
+}
