@@ -1,0 +1,4 @@
+:HL["/projects/kintsugi-lifecycle-passport/demo/_next/static/css/67e887bd9915f5ec.css","style"]
+2:[["children",{"s":"__PAGE__","h":160}]]
+1:[["children",{"s":"_not-found","h":96,"c":"$Q2"}]]
+0:{"b":"jvPVOR0cxiq-KoLLLy5ZN","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

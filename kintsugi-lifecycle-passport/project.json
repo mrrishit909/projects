@@ -1,0 +1,51 @@
+{
+ "title": "What If a Repair Were the Most Valuable Part of the Product?",
+ "tagline": "A lifecycle passport for a synthetic ceramic kettle: a gold-seam repair of its chipped lid takes the resale estimate from $67 (grade C) to $91 (grade B) and its repairability index from 7 to 8.3. The kettle is 20 scripted Blender shards that shatter, reassemble with 27 gold seams, and become a make, use, repair, resell, recover wheel.",
+ "kind": "Blender · three.js · product lifecycle",
+ "order": 182,
+ "demo_label": "Repair the lid",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "GSAP",
+  "Node (http)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "31 unit/API tests, 23 e2e tests"
+ ],
+ "note": "Built from blueprint 06 of a written build book (Advanced Engineering Build Book, Volume VII) as one vertical slice. <b>The kettle, its owners, repair shops, prices, grades and material routes are all synthetic</b>, and the lifecycle rules, resale formula and recovery routes are invented for the demo. Not built: PostgreSQL (JSON plus localStorage), QR scanning (a select stands in), a repair marketplace and payments, authentication, real product data, touch testing beyond a phone layout, and a measurement on a physical GPU. The twelve agent roles are committed as Claude Code configuration, but this repository was produced by one session playing them in sequence, not by parallel subagents.",
+ "problem": "<p>A product passport is usually a table of facts. The question here is whether the object itself can carry its history: when a part breaks, the break should be geometry, and when it is repaired, the repair should stay visible where it happened. <em>Can the same event log drive a 3D kettle, a lifecycle wheel and an API without any of them disagreeing?</em></p><p>The book's rule for this volume is that Blender owns the shape and the browser owns the behaviour, so the shards, their origins and the seams between them have to be promised by a contract strong enough for springs and shaders to do the rest.</p>",
+ "built": "<p>One repository with the asset pipeline, the lifecycle rules and the passport.</p><ul><li><b>A scripted kettle</b>: seven components split into 20 shards that tile the intact surface exactly, with 27 seams, 14,844 triangles in 299 KB, validated by re-import.</li><li><b>A state machine</b> over an append-only event log, so an illegal history cannot be recorded, plus repair planning, health, resale value, material flows and a distance-ranked repair finder.</li><li><b>One view function</b> shared by the interface and the API.</li><li><b>Six views</b>: lifecycle wheel, passport, repairs, repair finder, resale and recovery.</li><li><b>An API</b> with idempotent repair, transfer, damage, listing and recycling events.</li></ul>",
+ "steps": [
+  {
+   "title": "Shards that tile the surface",
+   "body": "<p>Blender partitions the kettle's triangles among seed points (the nearest seed wins), so every triangle belongs to exactly one shard and the shards fit back together with no gap. The validator re-imports the GLB and checks that the shards add up to the intact component and that each origin sits at its shard's centroid, so a shard can spin about its own middle.</p>"
+  },
+  {
+   "title": "A history that cannot be illegal",
+   "body": "<p>The lifecycle is a small state machine: a product is listed only when in use, handed over only when listed, refurbished only when every open damage is repaired, and never recycled twice. Events must be in time order. A stored history is replayed on load and the first illegal event is reported.</p>",
+   "code": "listed: (s) => s === \"in_use\" ? null : \"only a product in use can be listed for resale\""
+  },
+  {
+   "title": "The break is the data",
+   "body": "<p>The hero kettle's lid has an open chip. Selecting it separates the lid's shards and shows the red crack; the plan is a gold-seam re-bond of 3.6 hours and $150. Recording the repair pulls the shards home, removes the crack and leaves a gold seam, and the passport's numbers move with it: grade C to B, resale estimate $67 to $91, repairability 7 to 8.3.</p>"
+  },
+  {
+   "title": "One view function",
+   "body": "<p>The wheel, the tables and the API's JSON are all produced by <code>passportView</code>, so they cannot disagree.</p>"
+  },
+  {
+   "title": "An intro that was invisible once",
+   "body": "<p>The intro runs about 18 seconds: a perfect kettle, a fall, a shatter, silence, reassembly with gold, a one-line statement, and gold seams that draw the lifecycle wheel. A bug in the previous blueprint, where an unmounted timeline left the interface at opacity 0, led to a check here that the finished HUD has computed opacity 1, and to running the real intro unattended to its end.</p>"
+  }
+ ],
+ "results": "<p><b>The intro</b>: the kettle shatters, reassembles with gold, and the seams become the wheel.</p><img src=\"shots/shatter.jpg\" alt=\"A white ceramic kettle in the middle of shattering above a dark plinth, shards flying apart.\"><img src=\"shots/reassemble.jpg\" alt=\"The shards of the kettle most of the way back together with thin gold lines along the breaks.\"><img src=\"shots/statement.jpg\" alt=\"The words NOTHING SHOULD BECOME WASTE BEFORE ITS TIME over the repaired kettle with gold seams.\"><p><b>The passport</b>:</p><img src=\"shots/lifecycle.jpg\" alt=\"The lifecycle view: a gold ring with five stages around the kettle, and a log of damage and repair events on the right.\"><img src=\"shots/passport.jpg\" alt=\"The passport view with provenance and a materials table.\"><img src=\"shots/repairs.jpg\" alt=\"The repairs view with the lid selected, health bars for seven components and a repair plan with a Record the repair button.\"><img src=\"shots/finder.jpg\" alt=\"The repair finder listing shops by distance.\"><img src=\"shots/resale.jpg\" alt=\"The resale view with grade, estimated value and a List for resale button.\"><img src=\"shots/recovery.jpg\" alt=\"The recovery view with material flows to routes and a recovered share.\"><p><b>The numbers.</b> The hero kettle KG-2021-00417 (grade C, $67, repairability 7) has an open lid chip. After the 3.6 h, $150 gold-seam repair it is grade B, $91, repairability 8.3, with no open damage and three repairs on record. At end of life, 86.6 percent of its 1,392 g is recovered: 875.5 g crushed to aggregate, 222.3 g melted for new steel, 59.6 g to energy recovery and 48 g composted, with 186.6 g to landfill.</p><p><b>Checks.</b> 31 unit and API tests, 23 Playwright tests that passed three times in a row after the last fix, a clean typecheck. They cover the demo script, persistence across reload, the repair finder's ordering, reduced motion, graphics failure, context loss, a phone width and six visual-regression states.</p><p><b>Performance, measured on an Apple M3 Pro with software WebGL, not a GPU.</b> 8 draw calls and 8,004 triangles in the lifecycle view, 517 KB transferred, a 299 KB model. Software rendering gave a 5.6 s largest contentful paint and a median 33.3 ms frame (p95 50 ms); there is no 60 fps claim here.</p>",
+ "next": "<ul><li>Run the performance script on a physical GPU and a phone, and move model decoding off the main thread.</li><li>Replace the select box with real QR scanning and the JSON files with a database.</li><li>Let a repairer, not only the owner, add events, with signed entries.</li><li>Derive material routes from a real bill of materials.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/kintsugi-lifecycle-passport",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
