@@ -1,0 +1,50 @@
+{
+ "datasets": [
+  {
+   "name": "synthetic world (vessels, voyages, AIS and port-authority feeds, activity series, official indicator)",
+   "provider": "packages/domain/src/world.ts",
+   "license": "MIT (generated)",
+   "seed": 20261006,
+   "start": "2024-10-01",
+   "days": 730,
+   "sha256": "0f41906bc7d1a9911ec39a3d53f69c7053b5be12bad631fda8d5af3854e0bd67"
+  },
+  {
+   "name": "port locations",
+   "provider": "public geography (approximate terminal coordinates); activity at them is invented",
+   "license": "facts"
+  }
+ ],
+ "qualityChecks": {
+  "rawRows": {
+   "portFeed": 179951,
+   "ais": 181719
+  },
+  "portAliasAccuracy": 0.9976549171718968,
+  "portFeedVessel": {
+   "correct": 0.9784608032186539,
+   "unresolved": 0.020327755889103145,
+   "wrong": 0.0012114408922428883
+  },
+  "aisVessel": {
+   "correct": 0.996103874663629,
+   "unresolved": 0.0011281153869435777
+  },
+  "mmsiBindings": 3541,
+  "vessels": 3451,
+  "reflagged": 96,
+  "calls": 92173,
+  "voyages": 45758,
+  "trueVoyages": 46357,
+  "unknownLane": 475,
+  "voyageRecall": 0.9856763811290635,
+  "voyagePrecision": 0.9985794833690284,
+  "cargoAbsPctErr": {
+   "median": 0.021238151823251908,
+   "p90": 0.05509345269882254
+  },
+  "voyagesSortedByDeparture": true,
+  "allLanesKnown": true
+ },
+ "generatedInMs": 24339
+}
