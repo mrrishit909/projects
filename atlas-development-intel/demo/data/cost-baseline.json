@@ -1,0 +1,120 @@
+{
+ "workflow": "analyze-v1",
+ "city": "city-v1",
+ "seed": 11,
+ "totalCostUsd": 0.650868,
+ "byAgent": [
+  {
+   "agent": "mobility-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 3264,
+   "outputTokens": 574,
+   "costUsd": 0.006134
+  },
+  {
+   "agent": "parcel-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 3476,
+   "outputTokens": 1345,
+   "costUsd": 0.010201
+  },
+  {
+   "agent": "zoning-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 1261,
+   "outputTokens": 701,
+   "costUsd": 0.014298
+  },
+  {
+   "agent": "market-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 5165,
+   "outputTokens": 1986,
+   "costUsd": 0.045285
+  },
+  {
+   "agent": "environment-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 5110,
+   "outputTokens": 779,
+   "costUsd": 0.027015
+  },
+  {
+   "agent": "zoning-agent",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 191,
+   "outputTokens": 249,
+   "costUsd": 0.02154
+  },
+  {
+   "agent": "design-scenario-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 136,
+   "outputTokens": 477,
+   "costUsd": 0.007563
+  },
+  {
+   "agent": "financial-agent",
+   "model": "sonnet",
+   "calls": 3,
+   "inputTokens": 494,
+   "outputTokens": 1508,
+   "costUsd": 0.024102
+  },
+  {
+   "agent": "investment-committee-agent",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 5812,
+   "outputTokens": 5434,
+   "costUsd": 0.49473
+  }
+ ],
+ "escalations": {
+  "haikuToSonnet": 0,
+  "sonnetToOpus": 1,
+  "rate": 0.1
+ },
+ "rawInputTokens": 18285,
+ "committeeInputTokens": 5812,
+ "findings": 30,
+ "programs": 3,
+ "rejected": 1,
+ "assumptions": 7,
+ "unsupported": 1,
+ "weak": 2,
+ "recommended": "mixed-use",
+ "ranking": [
+  {
+   "programId": "mixed-use",
+   "irr": 0.0949,
+   "adjustedIrr": 0.0765,
+   "yieldOnCost": 0.0646,
+   "adjustedYoc": 0.0607,
+   "rank": 1
+  },
+  {
+   "programId": "multifamily",
+   "irr": 0.0847,
+   "adjustedIrr": 0.0711,
+   "yieldOnCost": 0.0594,
+   "adjustedYoc": 0.0575,
+   "rank": 2
+  },
+  {
+   "programId": "mixed-use-bonus",
+   "irr": 0.088,
+   "adjustedIrr": 0.0696,
+   "yieldOnCost": 0.0623,
+   "adjustedYoc": 0.0586,
+   "rank": 3
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "generated": "2026-10-07T15:34:24.403Z",
+ "seed": 11,
+ "city": "city-v1",
+ "workflow": "analyze-v1",
+ "note": "Everything in city.json is synthetic: the city, parcels, owners, zoning text, comps, hazards, transit and prices are invented; the coordinates are in the Pacific Ocean on purpose. No model is called: agents are deterministic analyzers charged simulated tokens at the configured price table.",
+ "counts": {
+  "parcels": 1900,
+  "zoningRules": 53,
+  "comps": 593,
+  "hazards": 207,
+  "transit": 32,
+  "amenities": 72,
+  "roads": 36
+ }
+}

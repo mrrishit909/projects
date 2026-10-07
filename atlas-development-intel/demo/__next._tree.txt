@@ -1,0 +1,3 @@
+:HL["/projects/atlas-development-intel/demo/_next/static/css/d32fbbd33ef8b5b5.css","style"]
+1:[["children",{"s":"__PAGE__","h":160}]]
+0:{"b":"GktJtbbhwQ_qiB36_IF2-","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
