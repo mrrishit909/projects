@@ -1,0 +1,346 @@
+{
+ "datasets": [
+  {
+   "name": "curated historical entities, events, relationships, routes, stories",
+   "provider": "this repository (data/curated), each fact citing data/curated/sources.ts",
+   "licence": "MIT for the compilation; facts from the cited works",
+   "version": "chronos-v1",
+   "sha256": "4ad79337bfd017fc3c10ed8b8f83ff5584bf60e2fd60ba45d829d144bb1c782e"
+  },
+  {
+   "name": "illustrative boundaries",
+   "provider": "this repository (data/curated/polities.ts)",
+   "note": "rough hand-drawn outlines of the territory the cited entries describe; not a historical map",
+   "keyframes": 80
+  },
+  {
+   "name": "city population estimates",
+   "provider": "Wikipedia 'List of largest cities throughout history' (CC BY-SA 4.0), tabulating Morris (2010), Modelski (2003), Chandler (1987)",
+   "file": "data/raw/cities_records.json (parsed by data/ingest/parse_cities.py from the wikitext snapshot)",
+   "fetched": "2026-10-06",
+   "records": 264,
+   "unmatchedNames": {
+    "Basta": 1,
+    "Tell Brak": 1,
+    "Dobrovody": 1,
+    "Maydanets": 1,
+    "Talianki": 1,
+    "Xiadu": 1
+   }
+  },
+  {
+   "name": "empire area estimates",
+   "provider": "Wikipedia 'List of largest empires' (CC BY-SA 4.0), tabulating Taagepera and others",
+   "file": "data/raw/empires_area.json (data/ingest/parse_empires.py)",
+   "fetched": "2026-10-06",
+   "records": 42
+  },
+  {
+   "name": "land mask",
+   "provider": "Natural Earth 1:50m land polygons (public domain), rasterised at 0.25 degrees",
+   "sha256": "d397d50293c3343b33eca203a6b21958443df622ba475cf9d6ade77db3b585e7"
+  }
+ ],
+ "counts": {
+  "polities": 30,
+  "keyframes": 80,
+  "cities": 63,
+  "people": 14,
+  "technologies": 5,
+  "events": 90,
+  "relationships": 52,
+  "routes": 7,
+  "stories": 3,
+  "storyChapters": 13,
+  "popRecords": 264,
+  "popRecordsWithFigure": 201,
+  "areaEstimates": 42
+ },
+ "citationsTotal": 507,
+ "checks": {
+  "citationProblems": 0,
+  "temporalProblems": 0
+ },
+ "areaCheck": [
+  {
+   "name": "Mongol Empire",
+   "polity": "mongol-empire",
+   "year": 1270,
+   "publishedMkm2": [
+    24
+   ],
+   "oursMkm2": 13.43,
+   "ratio": 0.56
+  },
+  {
+   "name": "Qing dynasty",
+   "polity": "qing-dynasty",
+   "year": 1790,
+   "publishedMkm2": [
+    14.7
+   ],
+   "oursMkm2": 11.48,
+   "ratio": 0.78
+  },
+  {
+   "name": "Abbasid Caliphate",
+   "polity": "abbasid-caliphate",
+   "year": 750,
+   "publishedMkm2": [
+    11.1
+   ],
+   "oursMkm2": 8.56,
+   "ratio": 0.77
+  },
+  {
+   "name": "Eastern Han dynasty",
+   "polity": "han-dynasty",
+   "year": 100,
+   "publishedMkm2": [
+    6.5
+   ],
+   "oursMkm2": 4.11,
+   "ratio": 0.63
+  },
+  {
+   "name": "Ming dynasty",
+   "polity": "ming-dynasty",
+   "year": 1450,
+   "publishedMkm2": [
+    6.5
+   ],
+   "oursMkm2": 3.79,
+   "ratio": 0.58
+  },
+  {
+   "name": "Western Han dynasty",
+   "polity": "han-dynasty",
+   "year": -50,
+   "publishedMkm2": [
+    6
+   ],
+   "oursMkm2": 4.11,
+   "ratio": 0.69
+  },
+  {
+   "name": "Achaemenid Empire",
+   "polity": "achaemenid-empire",
+   "year": -500,
+   "publishedMkm2": [
+    5.5
+   ],
+   "oursMkm2": 5.17,
+   "ratio": 0.94
+  },
+  {
+   "name": "Tang dynasty",
+   "polity": "tang-dynasty",
+   "year": 715,
+   "publishedMkm2": [
+    5.4
+   ],
+   "oursMkm2": 4.04,
+   "ratio": 0.75
+  },
+  {
+   "name": "Macedonian Empire",
+   "polity": "macedonian-empire",
+   "year": -323,
+   "publishedMkm2": [
+    5.2
+   ],
+   "oursMkm2": 5.42,
+   "ratio": 1.04
+  },
+  {
+   "name": "Ottoman Empire",
+   "polity": "ottoman-empire",
+   "year": 1683,
+   "publishedMkm2": [
+    5.2
+   ],
+   "oursMkm2": 3.39,
+   "ratio": 0.65
+  },
+  {
+   "name": "Roman Empire",
+   "polity": "roman-empire",
+   "year": 117,
+   "publishedMkm2": [
+    5
+   ],
+   "oursMkm2": 4.9,
+   "ratio": 0.98
+  },
+  {
+   "name": "Mughal Empire",
+   "polity": "mughal-empire",
+   "year": 1690,
+   "publishedMkm2": [
+    4
+   ],
+   "oursMkm2": 2.48,
+   "ratio": 0.62
+  },
+  {
+   "name": "Seleucid Empire",
+   "polity": "seleucid-empire",
+   "year": -301,
+   "publishedMkm2": [
+    3.9
+   ],
+   "oursMkm2": 4.64,
+   "ratio": 1.19
+  },
+  {
+   "name": "Maurya Empire",
+   "polity": "maurya-empire",
+   "year": -261,
+   "publishedMkm2": [
+    3.4,
+    5
+   ],
+   "oursMkm2": 2.52,
+   "ratio": 0.6
+  },
+  {
+   "name": "Northern Song dynasty",
+   "polity": "song-dynasty",
+   "year": 980,
+   "publishedMkm2": [
+    3.1
+   ],
+   "oursMkm2": 2.58,
+   "ratio": 0.83
+  },
+  {
+   "name": "Byzantine Empire",
+   "polity": "byzantine-empire",
+   "year": 555,
+   "publishedMkm2": [
+    2.7,
+    2.8
+   ],
+   "oursMkm2": 2.44,
+   "ratio": 0.89
+  },
+  {
+   "name": "Qin dynasty",
+   "polity": "qin-dynasty",
+   "year": -220,
+   "publishedMkm2": [
+    2.3
+   ],
+   "oursMkm2": 2.47,
+   "ratio": 1.07
+  },
+  {
+   "name": "Southern Song dynasty",
+   "polity": "song-dynasty",
+   "year": 1127,
+   "publishedMkm2": [
+    2.1
+   ],
+   "oursMkm2": 1.71,
+   "ratio": 0.82
+  },
+  {
+   "name": "Inca Empire",
+   "polity": "inca-empire",
+   "year": 1527,
+   "publishedMkm2": [
+    2
+   ],
+   "oursMkm2": 1.46,
+   "ratio": 0.73
+  },
+  {
+   "name": "Western Roman Empire",
+   "polity": "western-roman-empire",
+   "year": 395,
+   "publishedMkm2": [
+    2
+   ],
+   "oursMkm2": 2.61,
+   "ratio": 1.3
+  },
+  {
+   "name": "Mali Empire",
+   "polity": "mali-empire",
+   "year": 1380,
+   "publishedMkm2": [
+    1.1
+   ],
+   "oursMkm2": 1,
+   "ratio": 0.91
+  },
+  {
+   "name": "New Kingdom of Egypt",
+   "polity": "egypt-new-kingdom",
+   "year": -1450,
+   "publishedMkm2": [
+    1
+   ],
+   "oursMkm2": 0.44,
+   "ratio": 0.44
+  },
+  {
+   "name": "Ptolemaic Kingdom",
+   "polity": "ptolemaic-kingdom",
+   "year": -301,
+   "publishedMkm2": [
+    1
+   ],
+   "oursMkm2": 0.64,
+   "ratio": 0.64
+  },
+  {
+   "name": "Akkadian Empire",
+   "polity": "akkadian-empire",
+   "year": -2250,
+   "publishedMkm2": [
+    0.8
+   ],
+   "oursMkm2": 0.33,
+   "ratio": 0.42
+  },
+  {
+   "name": "Old Kingdom of Egypt",
+   "polity": "egypt-old-kingdom",
+   "year": -2400,
+   "publishedMkm2": [
+    0.4
+   ],
+   "oursMkm2": 0.1,
+   "ratio": 0.25
+  },
+  {
+   "name": "Ancient Carthage",
+   "polity": "carthage",
+   "year": -220,
+   "publishedMkm2": [
+    0.3
+   ],
+   "oursMkm2": 0.31,
+   "ratio": 1.05
+  },
+  {
+   "name": "Aztec Empire",
+   "polity": "aztec-empire",
+   "year": 1520,
+   "publishedMkm2": [
+    0.22
+   ],
+   "oursMkm2": 0.26,
+   "ratio": 1.17
+  }
+ ],
+ "areaSummary": {
+  "compared": 27,
+  "medianRatio": 0.77,
+  "within25pct": 14,
+  "within50pct": 24,
+  "meanAbsLogError": 0.35
+ },
+ "generatedInMs": 678
+}
