@@ -1,0 +1,56 @@
+{
+ "title": "What Does a Descent Look Like When the Asset Is Built in Blender?",
+ "tagline": "A deep-ocean exploration demo in which a scripted Blender submersible (2,266 triangles, 100 KB) is validated by re-importing it into a fresh scene, driven live in the browser, and introduced by a 22-second descent whose headlights become the mask that opens Mission Control. 6 dives, 60 observations, one hidden structure, all synthetic.",
+ "kind": "Blender · three.js · motion design",
+ "order": 177,
+ "demo_label": "Open the live descent",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "GLSL terrain shader",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "24 unit/API tests, 18 e2e tests"
+ ],
+ "note": "Built from blueprint 01 of a written build book (Advanced Engineering Build Book, Volume VII) as one vertical slice. <b>Everything is synthetic</b>: the expeditions, vessels, vehicles, telemetry, species and the hidden structure come from a seeded generator, and the seabed is a noise function. Not built: PostGIS/TimescaleDB (the demo reads JSON), MapLibre/deck.gl, FastAPI (a Node API serves the same contract), auth, a demo video, and a measurement on a physical GPU. The twelve agent roles are committed as Claude Code configuration, but this repository was produced by one session playing them in sequence, not by parallel subagents.",
+ "problem": "<p>A Blender model is easy to show and hard to ship. The book's rule for this volume is that <em>Blender owns the editable asset and the browser owns everything that moves</em>. So the question is practical: what has to be true of a .blend file for a web page to drive it, and how do you know it stayed true after export?</p><p>The test case is an ocean-exploration product: a mission control for dive replays, sonar, species records and an ROV fleet, introduced by a descent that must hand off to the real application without a cut.</p>",
+ "built": "<p>One repository with the whole pipeline, not just the site.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a modular submersible (Hull, two thrusters, manipulator arm, camera rig, two spotlights, sonar array, sample container) and a seabed kit, exports GLBs and renders a poster still.</li><li><b>A validator</b>: <code>model/validate.py</code> re-imports the GLBs into an empty scene and fails on a missing node, an orphan, a non-unit pivot scale or a size budget breach.</li><li><b>A browser runtime</b> that animates the named pivots, lights the seabed from the vehicle's lamps in a custom terrain shader, reveals sonar coverage incrementally and fades observations in as the vehicle approaches.</li><li><b>An intro</b> on the wall clock with a skip control from the first frame, ending in a light mask that is the only place Mission Control exists until it covers the screen.</li><li><b>Fallbacks</b>: a poster still for no WebGL or a lost context, static keyframes for reduced motion, and a table or list for every canvas fact.</li></ul>",
+ "steps": [
+  {
+   "title": "Graybox first, then a contract",
+   "body": "<p>The vehicle is eleven named parts with unit-scale pivots because the browser will rotate those nodes: thruster props, the arm, the sonar array. Blender's Y-forward / Z-up becomes -Z forward / Y-up in glTF, so the nose points to -Z in three.js; the runtime depends on that, and the asset contract says so.</p>"
+  },
+  {
+   "title": "A validator that is allowed to fail",
+   "body": "<p><code>validate.py</code> loads the exported GLB into a factory-empty Blender and checks it against the contract. It caught nothing on the first pass, which is not evidence it works, so the checks are written as hard failures with a nonzero exit code: a required name missing, an object without a parent, a pivot scaled off 1, more than 6,000 triangles or 250 KB for the vehicle (4,000 and 150 KB for the kit). The vehicle is 2,266 triangles and 100 KB; the kit 1,536 and 52 KB.</p>"
+  },
+  {
+   "title": "One function for what the water looks like",
+   "body": "<p><code>envAt(depth)</code> turns a depth into fog density, surface light, particle speed and a water tint: light falls off with an e-folding of 60 m and is gone by 1,000 m. The scene background, fog, sun and the UI's \"surface light\" readout all read it, so the page and the world agree. Pressure at 4,100 m is 413 bar from the hydrostatic formula, which is what the readout shows.</p>",
+   "code": "export function envAt(depthM: number): Env {\n  const d = Math.max(0, depthM);\n  const light = d >= 1000 ? 0 : Math.exp(-d / 60);\n  const fog = 0.002 + clamp(d / 4500) * 0.018;\n  ..."
+  },
+  {
+   "title": "Sonar as a coverage map",
+   "body": "<p>The seabed is dark until swept. Each telemetry sample reveals cells within 420 m inside a 120° swath ahead of the heading, plus a 60 m near field, and a 120 × 120 data texture feeds the terrain shader. One dive covers 15 to 19 percent of the 6 km site; all six together cover 32.7 percent. The sonar panel shows the same count as text.</p>"
+  },
+  {
+   "title": "The hand-off",
+   "body": "<p>The descent is a GSAP timeline on the wall clock (lag smoothing off, so a slow GPU drops frames instead of stretching the story). At 19.8 s the headlights have widened and a CSS variable starts to grow: the HUD's <code>clip-path</code> circle and the glow at its rim use the same number, so Mission Control exists only inside the light. Skip fast-forwards to that moment rather than cutting to the end.</p>"
+  },
+  {
+   "title": "Failing on purpose",
+   "body": "<p>The tests turn WebGL off, dispatch a lost-context event, set reduced motion and shrink the window to a phone. In all four the dive list, replay readout, sonar counts, observation table and fleet details still work, because they were built as DOM first and the canvas second.</p>"
+  }
+ ],
+ "results": "<p><b>The descent</b>, at the moment the headlights widen on the structure:</p><img src=\"shots/intro.jpg\" alt=\"Intro frame: depth meter reads 4,200 m with checkpoints 50, 200, 1,000 and 4,000 m lit; the Blender submersible sits on the seabed with its lamp lighting a ring of blue pillars around a central block; caption reads A structure that should not be here.\"><p><b>Mission Control and the replay</b>:</p><img src=\"shots/control.jpg\" alt=\"Mission Control: expeditions and dives listed on the left, dive 6 selected, a seabed map with dive tracks and the vehicle behind.\"><img src=\"shots/replay.jpg\" alt=\"Dive replay for dive 6 with depth profile, time scrubber and telemetry readout.\"><img src=\"shots/sonar.jpg\" alt=\"Sonar explorer showing seabed contours revealed in cyan around the vehicle's path with counts of revealed cells.\"><img src=\"shots/species.jpg\" alt=\"Observations table for dive 6 sorted by depth with the hidden structure record selected.\"><img src=\"shots/fleet.jpg\" alt=\"ROV fleet list with the rotating submersible model and the selected vehicle's health and battery.\"><p><b>Checks.</b> 24 unit and API tests (99% statement coverage of the domain package), 18 Playwright tests in three consecutive green runs, and a clean typecheck. The tests include a visual regression on five product states, the reduced-motion walk, graphics failure, context loss and a phone-width layout.</p><p><b>Performance, measured on an Apple M3 Pro with software WebGL (SwiftShader), not a GPU.</b> 47 draw calls and 44,738 triangles in the replay view; 565 KB of gzipped JavaScript; 100 KB and 52 KB of GLB. Software rendering took 4.7 s to the largest contentful paint and a median 33.3 ms per frame. Those two are bounds from a CPU rasteriser; I did not measure a real GPU, so there is no 60 fps claim here.</p><p><b>Found while testing.</b> The first few WebGL frames hold the main thread long enough that a keyboard <code>focus()</code> call can fail. The tests retry; the first mitigation to try for real users is deferring the instanced rocks until after first paint.</p>",
+ "next": "<ul><li>Run the performance script on a physical GPU and a mid-range phone, then add a quality ladder (resolution and rock count) driven by measured frame time.</li><li>Replace the seabed noise with a real bathymetry adapter and the JSON files with the PostGIS schema from the book.</li><li>Touch-test the fleet drag and the wheel-to-descend gesture on a phone; both are only exercised with a mouse.</li><li>Model the vehicle with proper UVs and a texture pass; the current materials are flat colours.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/abyssal-deep-ocean",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
