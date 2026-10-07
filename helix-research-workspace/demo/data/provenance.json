@@ -1,0 +1,15 @@
+{
+ "generated": "2026-10-07T15:34:07.159Z",
+ "seed": 7,
+ "scenario": "corpus-v1",
+ "workflow": "research-v1",
+ "note": "Everything in scenario.json is synthetic: the disease, gene, variant, proteins, pathways, compounds, trials, papers, authors and the registry cohort are invented and named so that none matches a real one; the cohort has age bands and no identifiers. No model is called: agents are deterministic analyzers charged simulated tokens at the configured price table.",
+ "counts": {
+  "entities": 95,
+  "evidence": 519,
+  "papers": 423,
+  "trials": 40,
+  "cohortRecords": 3000,
+  "plantedDuplicates": 30
+ }
+}

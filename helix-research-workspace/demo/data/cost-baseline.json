@@ -1,0 +1,86 @@
+{
+ "workflow": "research-v1",
+ "scenario": "corpus-v1",
+ "seed": 7,
+ "totalCostUsd": 0.644699,
+ "byAgent": [
+  {
+   "agent": "literature-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 14278,
+   "outputTokens": 2795,
+   "costUsd": 0.028253
+  },
+  {
+   "agent": "cohort-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 408,
+   "outputTokens": 534,
+   "costUsd": 0.009234
+  },
+  {
+   "agent": "genomics-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 3385,
+   "outputTokens": 910,
+   "costUsd": 0.023805
+  },
+  {
+   "agent": "trial-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 897,
+   "outputTokens": 423,
+   "costUsd": 0.003012
+  },
+  {
+   "agent": "drug-evidence-agent",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 4030,
+   "outputTokens": 1139,
+   "costUsd": 0.029175
+  },
+  {
+   "agent": "cohort-agent",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 65,
+   "outputTokens": 174,
+   "costUsd": 0.014025
+  },
+  {
+   "agent": "evidence-critic",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 5549,
+   "outputTokens": 1861,
+   "costUsd": 0.22281
+  },
+  {
+   "agent": "research-synthesizer",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 7339,
+   "outputTokens": 2724,
+   "costUsd": 0.314385
+  }
+ ],
+ "escalations": {
+  "haikuToSonnet": 0,
+  "sonnetToOpus": 1,
+  "rate": 0.143
+ },
+ "rawCorpusTokens": 206585,
+ "synthesisInputTokens": 7339,
+ "findings": 45,
+ "claims": 7,
+ "challenged": 3,
+ "contradicted": 2,
+ "papers": 58,
+ "duplicatesRemoved": 26,
+ "cohortRecords": 2400
+}
