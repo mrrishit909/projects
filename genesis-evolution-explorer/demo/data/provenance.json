@@ -1,0 +1,35 @@
+{
+ "datasets": [
+  {
+   "name": "tree of life backbone, Big Five extinctions, time scale",
+   "provider": "curated in packages/domain/src/data.ts from the published sources listed with each fact",
+   "license": "facts from the cited literature; compilation MIT",
+   "version": "curated-v1",
+   "sha256": "1a3a8146fa2f079d185a8384c04c4f9f2426e3a198ec6d2399ce98b36bdd0b38"
+  },
+  {
+   "name": "fossil occurrences",
+   "provider": "SYNTHETIC: packages/domain/src/fossils.ts",
+   "license": "MIT (generated)",
+   "version": "synthetic-v1",
+   "seed": 5,
+   "sha256": "06de89db8c34835dcddb02802e49042c6b1f75f3765490a468914afeec29c5b6"
+  },
+  {
+   "name": "paleogeography",
+   "provider": "SIMPLIFIED: seven ellipse blocks between four keyframes (packages/domain/src/paleo.ts)",
+   "license": "MIT",
+   "note": "illustrative, not a plate reconstruction"
+  }
+ ],
+ "qualityChecks": {
+  "taxa": 56,
+  "sources": 48,
+  "extinctions": 5,
+  "treeErrors": 0,
+  "tourErrors": 0,
+  "fossils": 684,
+  "lostAtKpg": 11,
+  "everyFactSourced": true
+ }
+}

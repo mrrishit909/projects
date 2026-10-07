@@ -1,0 +1,3 @@
+:HL["/projects/genesis-evolution-explorer/demo/_next/static/css/482b011ada56f536.css","style"]
+1:[["children",{"s":"__PAGE__","h":160}]]
+0:{"b":"lsSkhGGz9NmdB9-SDpe5t","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
