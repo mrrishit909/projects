@@ -1,0 +1,90 @@
+{
+ "workflow": "investigate-v1",
+ "scenario": "scenario-v1",
+ "seed": 7,
+ "totalCostUsd": 0.587234,
+ "byAgent": [
+  {
+   "agent": "triage-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 165203,
+   "outputTokens": 540,
+   "costUsd": 0.167903
+  },
+  {
+   "agent": "identity-investigator",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 4441,
+   "outputTokens": 621,
+   "costUsd": 0.022638
+  },
+  {
+   "agent": "endpoint-investigator",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 13013,
+   "outputTokens": 373,
+   "costUsd": 0.044634
+  },
+  {
+   "agent": "cloud-investigator",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 1856,
+   "outputTokens": 362,
+   "costUsd": 0.010998
+  },
+  {
+   "agent": "network-investigator",
+   "model": "sonnet",
+   "calls": 1,
+   "inputTokens": 3767,
+   "outputTokens": 389,
+   "costUsd": 0.017136
+  },
+  {
+   "agent": "network-investigator",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 894,
+   "outputTokens": 156,
+   "costUsd": 0.02511
+  },
+  {
+   "agent": "threat-intel-agent",
+   "model": "haiku",
+   "calls": 1,
+   "inputTokens": 1510,
+   "outputTokens": 1873,
+   "costUsd": 0.010875
+  },
+  {
+   "agent": "incident-synthesizer",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 2829,
+   "outputTokens": 2846,
+   "costUsd": 0.255885
+  },
+  {
+   "agent": "red-team-reviewer",
+   "model": "opus",
+   "calls": 1,
+   "inputTokens": 1202,
+   "outputTokens": 187,
+   "costUsd": 0.032055
+  }
+ ],
+ "escalations": {
+  "haikuToSonnet": 0,
+  "sonnetToOpus": 1,
+  "rate": 0.125
+ },
+ "rawEventTokens": 148392,
+ "synthesisInputTokens": 2829,
+ "findings": 13,
+ "claims": 9,
+ "challenged": 1
+}

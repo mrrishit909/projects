@@ -1,0 +1,12 @@
+{
+ "generated": "2026-10-07T10:33:15.487Z",
+ "seed": 7,
+ "scenario": "scenario-v1",
+ "workflow": "investigate-v1",
+ "note": "Everything in scenario.json is synthetic: the organization, people, hosts, cloud resources, domains and addresses are invented; attacker addresses use documentation ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24). No model is called: agents are deterministic analyzers charged simulated tokens at the configured price table.",
+ "counts": {
+  "entities": 430,
+  "events": 1996,
+  "plantedChain": 18
+ }
+}
