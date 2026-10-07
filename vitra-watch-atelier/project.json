@@ -1,0 +1,56 @@
+{
+ "title": "What Does Each Complication Cost the Movement, Not Just the Price?",
+ "tagline": "A watch configurator built around one scripted Blender asset: 27 named parts, a movement that assembles around a ruby jewel, an exploded view along real axes, and rules that charge a complication in parts, thickness and power reserve as well as dollars (all three: 112 parts become 185, 8.4 mm becomes 10.2 mm, 70 h becomes 65 h). Fictional brand, invented prices.",
+ "kind": "Blender · three.js · product configurator",
+ "order": 178,
+ "demo_label": "Open the atelier",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "GSAP",
+  "PBR + room environment",
+  "Node (http)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "22 unit/API tests, 20 e2e tests"
+ ],
+ "note": "Built from blueprint 02 of a written build book (Advanced Engineering Build Book, Volume VII) as one vertical slice. <b>Everything about the product is invented</b>: the brand, the watch, the prices, the part counts and how each module affects thickness and power reserve are demo rules, not horology or commercial data. Not built: PostgreSQL (configurations are kept in the browser's localStorage in the static demo), Stripe, e-mailed quotes, textures on the model, tablet and large-desktop checks, touch testing, and a measurement on a physical GPU. The twelve agent roles are committed as Claude Code configuration, but this repository was produced by one session playing them in sequence, not by parallel subagents.",
+ "problem": "<p>Configurators usually treat options as line items: pick a colour, add a feature, watch the price move. A mechanical watch is different, because a complication is more wheels in a space that was already full, and it draws a little power from the same mainspring. <em>Can the configurator show what a choice does to the movement, with the same seriousness as what it does to the bill?</em></p><p>The build book also sets a stricter rule for this volume: Blender owns the editable asset and the browser owns everything that moves. So the second question is how a single scripted model can carry an assembly intro, an exploded view, material swaps and an engraving without a second copy of the watch anywhere.</p>",
+ "built": "<p>One repository with the pipeline, the rules and the site.</p><ul><li><b>A part contract</b>: <code>model/parts.json</code> names 27 parts with a label, a group, an exploded axis and a distance. The Blender script, the validator and the web app all read it.</li><li><b>A scripted watch</b> (<code>build.py</code>): an original 40 mm automatic with a movement, 12 instanced indices, 10 instanced screws, three strap variants and three complication modules; 7,992 triangles, 187 KB.</li><li><b>A rules module</b> shared by the browser and the API: validation with reasons, pricing by line, movement statistics, an order-independent reference number.</li><li><b>An intro</b> on the wall clock whose last frame is the navigation: the six hour markings move out from the dial to become the ring, and a clockwise sweep reveals the panel.</li><li><b>A layout function</b> that puts the camera and the DOM ring on the same centre at any window size.</li></ul>",
+ "steps": [
+  {
+   "title": "A contract before a model",
+   "body": "<p>The part list is a JSON file before it is geometry. <code>validate.py</code> re-imports the exported GLB into an empty Blender scene and fails if any of the 27 parts or six extra nodes is missing, if anything is unparented, if a hand's origin is off its rotation axis, or if the file is over 60,000 triangles or 900 KB. It reports the model as 7,992 triangles and 187 KB, with the 22 index and screw objects sharing two meshes.</p>"
+  },
+  {
+   "title": "Assembly in windows, not a loop",
+   "body": "<p>The first version looped parts in order with overlap, and the dial arrived while the movement was still invisible beneath it. The final version gives each part an explicit window of the intro: plate 0 to 0.08, barrel 0.06 to 0.16, and so on to the case and crystal last. A unit test asserts the dial starts after the bridges and the case after the hands, and that every window ends by 1.</p>",
+   "code": "[\"MainPlate\", 0, 0.08], [\"Barrel\", 0.06, 0.16], ... [\"Dial\", 0.64, 0.74], [\"HourHand\", 0.72, 0.78], ... [\"Crystal\", 0.92, 0.98]"
+  },
+  {
+   "title": "Rules that explain themselves",
+   "body": "<p><code>validate()</code> returns reasons, not a boolean: a moon phase needs the date module, so choosing it adds the date and removing the date removes the moon; a ceramic case is not offered with the bracelet; engraving is two lines of at most 18 capitals, digits and . , &amp; ' - /. The API re-validates and re-prices, so a hand-edited request cannot get a price the screen would not show.</p>"
+  },
+  {
+   "title": "What a complication does to the movement",
+   "body": "<p>Date adds 21 parts, 0.4 mm and no reserve; moon phase adds 34 parts, 0.9 mm and costs 2 h; power reserve adds 18 parts, 0.5 mm and costs 3 h. All three on the 112-part, 8.4 mm, 70 h base give 185 parts, 10.2 mm and 65 h, and the complications panel shows plain against now in a table. These effects are demo rules, labelled as such.</p>"
+  },
+  {
+   "title": "One layout for the 3D dial and the DOM ring",
+   "body": "<p><code>layout(W, H)</code> returns the watch's screen centre, the dial's pixel radius, the ring radius and the camera distance that projects the dial to that radius. The camera uses it with a view offset to move the watch off-centre; the DOM ring uses it for CSS positions. A test checks that the distance really projects the dial to the requested radius, so the two stay concentric.</p>"
+  },
+  {
+   "title": "The engraving",
+   "body": "<p>The model has no UVs, so a texture on the caseback was not an option. The runtime adds a plane child to the Caseback node (so it travels with the part in the exploded view) and paints the text on a canvas. The first version was upside down on the flipped watch; the fix was to stop compensating for a flip that the group rotation already performs.</p>"
+  }
+ ],
+ "results": "<p><b>The hand-off</b>: the seconds hand has reached twelve, the markings have become the ring, and a clockwise sweep is revealing the panel.</p><img src=\"shots/handoff.jpg\" alt=\"The watch at the end of the intro with six circular hour stations around it (12 Atelier, 2 Movement, 4 Material Lab, 6 Complications, 8 Engraving, 10 Commission), a gold needle from the centre to 12, and the product panel partly revealed at the right by a clockwise sweep.\"><p><b>The exploded view</b>:</p><img src=\"shots/movement.jpg\" alt=\"The watch fully exploded: bezel and crystal above, then hands, dial, the case with the movement visible inside, the crown to the side, strap below; the panel lists labelled parts with notes.\"><p><b>Materials, complications, engraving, commission</b>:</p><img src=\"shots/material.jpg\" alt=\"Material lab with the rose-gold-look alloy case, ruby lacquer dial and rubber strap selected.\"><img src=\"shots/complications.jpg\" alt=\"Complications panel with date, moon phase and power reserve selected and a plain-versus-now table: parts 112 to 185, thickness 8.4 to 10.2 mm, reserve 70 to 65 h.\"><img src=\"shots/engraving.jpg\" alt=\"The watch turned to its caseback with FOR ANNA and 2026 engraved, and a matching SVG preview in the panel.\"><img src=\"shots/commission.jpg\" alt=\"Commission panel with the itemised bill, a reference number and a text summary.\"><p><b>Checks.</b> 22 unit and API tests (97% statement coverage of the domain package), 20 Playwright tests that passed three runs in a row, and a clean typecheck. They cover the demo script end to end, refused combinations, engraving limits, a deep link that restores a configuration, reduced motion, graphics failure, context loss, a phone width, keyboard navigation and six visual-regression states.</p><p><b>Performance, measured on an Apple M3 Pro with software WebGL, not a GPU.</b> 68 draw calls and 8,884 triangles with the watch fully exploded, 565 KB of gzipped JavaScript and a 187 KB model. Software rendering gave a 6.3 s largest contentful paint and a median 50 ms frame; those are CPU-rasteriser bounds and I did not measure a real GPU, so there is no 60 fps claim.</p><p><b>Found while testing.</b> The navigation buttons ignored clicks over the canvas because <code>all: unset</code> had reset <code>pointer-events</code> to inherit from a non-interactive parent; Playwright's intercept report named the canvas as the culprit.</p>",
+ "next": "<ul><li>Run the performance script on a physical GPU and a phone, and bake the room environment to a small compressed texture if the first frame is slow.</li><li>Merge parts that share a material to cut the 68 draw calls, keeping per-part highlight through a shader attribute.</li><li>Give the model UVs and a texture pass (brushed bezels, a real sunburst), then compare against a reference render.</li><li>Replace localStorage with the book's PostgreSQL schema behind the existing API, with the idempotent commission route as the write path.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/vitra-watch-atelier",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
