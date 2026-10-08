@@ -1,0 +1,48 @@
+{
+ "title": "What Does It Look Like to Bring a Star Online?",
+ "tagline": "An interactive fusion reactor operations and plasma education platform: a single continuous reactor-state value drives the HUD, the 16 instanced field coils and a GLSL plasma shader through eight stages from vacuum to steady output, with a mid-sequence instability event the reactor has to recover from.",
+ "kind": "Blender · three.js · motion design",
+ "order": 188,
+ "demo_label": "Open the live reactor",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "GLSL plasma shader",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "14 unit/API tests, 18 e2e tests"
+ ],
+ "note": "Built from blueprint 02 of a written build book (Advanced Engineering Build Book, Volume VIII) as one vertical slice, using the five-tool-design-pipeline skill the same way as blueprint 01: an Awesome Design file for type/spacing scale only (palette from the blueprint), the Taste/Impeccable checklist applied by hand, Playwright for QA, Three.js as the product itself. <b>Everything is synthetic</b>: the 8-stage reactor curve, the 16 field coils and the operator log come from a deterministic function, not a real plasma physics model. Not built: WebGPU compute (WebGL2 ships instead, documented), a Python numerical service (the curve lives in a tested TypeScript package), auth, a physical-GPU measurement.",
+ "problem": "<p>The book's rule for this blueprint is that the scroll interaction has to make the user feel like they are bringing a star online, with sections as state transitions in one reactor rather than separate pages. That rules out a simple multi-page dashboard: the vacuum, ignition and output views have to be the same object changing, not different screens.</p>",
+ "built": "<p>One repository with the whole pipeline.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a toroidal field coil and a console prop, exports GLBs, renders a poster.</li><li><b>A domain model</b>: one function, <code>metricsAt(t)</code>, defines confinement, core temperature, output and instability across all 8 stages with an intentional mid-sequence instability dip, consumed identically by the HUD and the plasma shader.</li><li><b>A browser runtime</b> with a single shared navigation value (<code>state.t</code>, 0 to 8): the stage rail jumps to integer boundaries, a continuous scrub moves freely, and the camera orbits the torus at an angle derived from the same number.</li><li><b>An intro</b> that dives the camera into the torus and hands off through a light mask at the same screen point, no cut.</li><li><b>Fallbacks</b>: poster for no WebGL, static keyframes for reduced motion, full DOM tables for every canvas fact.</li></ul>",
+ "steps": [
+  {
+   "title": "One number drives the whole product",
+   "body": "<p><code>state.t</code> is the only navigation state. The rail, the continuous scrub, and the post-intro orbital camera angle (<code>t/8 * 2pi</code>) all read it, so there is no separate concept of 'which page am I on' versus 'what is the reactor doing'.</p>"
+  },
+  {
+   "title": "An instability event, not just a ramp",
+   "body": "<p>The metrics curve is 8 hand-placed stage values with per-stage interpolation deltas, not a monotonic ramp: confinement and output both dip at the instability stage and recover during stabilization, so playing the sequence forward tells a real story instead of a straight line going up.</p>",
+   "code": "const confinement = [0,0.1,0.55,0.85,0.92,0.7,0.88,0.95][stage] +\n  [0,0.45,0.3,0.07,0.02,-0.18,0.1,0.02][stage] * p;"
+  },
+  {
+   "title": "Sixteen coils, four draw calls",
+   "body": "<p>The field coils are one instanced mesh; current per coil comes from a phase-offset sine so the animation reads as a rotating field rather than all 16 pulsing in lockstep, at no extra draw-call cost. The full scene (chamber, plasma, coils, particles) renders in 4 draw calls.</p>"
+  },
+  {
+   "title": "A test-writing lesson",
+   "body": "<p>A Playwright test that sets a range input's <code>.value</code> and dispatches a synthetic <code>input</code> event changes the DOM but does not reach React's event system, so any assertion on <em>derived</em> state needs a real click/keyboard interaction instead. Documented in <code>docs/qa-report.md</code> for the next blueprint.</p>"
+  }
+ ],
+ "results": "<p><b>The toroidal chamber forming in the intro</b>:</p><img src=\"shots/intro.jpg\" alt=\"A glowing blue-cyan torus forming in darkness around a small white ring, caption reads The toroidal chamber comes into view.\"><p><b>Heating and instability</b>:</p><img src=\"shots/heating.jpg\" alt=\"AURELIA console at the heating stage: confinement 92%, core temp 150 MK, output 20 MW, field coil table, glowing torus visible behind the panel.\"><img src=\"shots/instability.jpg\" alt=\"AURELIA console at the instability stage showing confinement dipped and instability elevated.\"><p><b>Checks.</b> 14 unit and API tests, 18 Playwright tests (interaction, performance, 8-stage visual regression), clean typecheck.</p><p><b>Performance, SwiftShader (no GPU claim).</b> 4 draw calls, 12,672 triangles; 566 KB gzipped JS; 31 KB and 4 KB of GLB. 3.9 s LCP, median 16.7 ms per frame (a 60 fps bound on a CPU rasteriser).</p>",
+ "next": "<ul><li>Measure on a physical GPU and a mid-range phone.</li><li>Replace the synthetic metrics curve with a real plasma-physics adapter (the book's WebGPU-compute stack).</li><li>Build the console prop into the runtime as an operator-deck view instead of leaving it asset-only.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/aurelia",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
