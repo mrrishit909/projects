@@ -1,0 +1,44 @@
+{
+ "title": "What Happens When the Camera Loop Only Fires Twice?",
+ "tagline": "A motorsport telemetry and vehicle-dynamics experience: one real (simplified) circular-motion formula drives the lap's speed, lateral g and longitudinal g, the chase camera's position, and its field of view, from a single track-progress value, and three real rendering bugs (scale, a missing Suspense boundary, a camera lerp that a throttled headless test loop could never finish) were found by actually looking at the screenshots.",
+ "kind": "Blender · three.js · motion design",
+ "order": 196,
+ "demo_label": "Open the live lap",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "Catmull-Rom track curve",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "14 unit/API tests, 19 e2e tests"
+ ],
+ "note": "Built from blueprint 10 of a written build book (Advanced Engineering Build Book, Volume VIII) as one vertical slice, using the five-tool-design-pipeline skill: an Awesome Design file for type/spacing scale, the Taste/Impeccable checklist, Playwright including a pixel-sample check that the car actually moves, Three.js as the product. <b>Everything is synthetic</b>: the lap log and the track layout come from a seeded generator and a hand-authored waypoint list, not a real car's telemetry. Not built: drivable controls, a multi-car field, a real telemetry feed, auth.",
+ "problem": "<p>The book's brief asks for a one-lap experience where speed and g-forces read as real vehicle dynamics, not arbitrary numbers, and where the opening cinematic (ignition, launch, a braking-zone time-slow, the circuit line becoming the telemetry UI) hands off cleanly into a scroll-driven HUD. That means the car, the camera and the readout all have to agree about where the car is on the track at every instant, not just the readout.</p>",
+ "built": "<p>One repository with the whole pipeline.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a low-poly race car and a standalone tire, exports GLBs, renders a poster.</li><li><b>A domain model</b>: real circular-motion formulas (<code>v = sqrt(mu * g * r)</code> for max cornering speed, <code>v^2 / (r * g)</code> for lateral g) evaluated against a hand-authored eight-section track (radius and entry/exit speed per section), pure and unit-tested.</li><li><b>A browser runtime</b> where the car follows a closed Catmull-Rom curve built from the same track waypoints, a chase camera reads the identical curve and the identical <code>speedKphAt</code> function for its field of view, and the HUD reads the same three functions for its readout, so nothing can show a different lap than the numbers describe.</li><li><b>An intro</b> that climbs the RPM, launches through a tunnel, slows time in a braking zone, rises the camera, and hands off through a light mask.</li><li><b>Fallbacks</b>: poster for no WebGL, static keyframes for reduced motion.</li></ul>",
+ "steps": [
+  {
+   "title": "A scale bug: a flat multiplier instead of the scene's own unit",
+   "body": "<p>The scene converts meters to scene units with <code>U = 1/40</code>, applied to the track waypoints. The loaded car GLB, built in real Blender meters, was first scaled by a leftover flat <code>0.5</code> instead of <code>U</code>, so the car rendered about 20x too large: a dark, nearly motionless wall filling the frame regardless of which lap section was selected.</p>",
+   "code": "// wrong: a flat guess\n<group ref={ref} scale={0.5}><primitive object={scene} /></group>\n// right: match the scene's own unit convention\n<group ref={ref} scale={U}><primitive object={scene} /></group>"
+  },
+  {
+   "title": "A missing Suspense boundary hid the car with no error",
+   "body": "<p><code>useLoader(GLTFLoader, ...)</code> suspends via React Suspense. With no <code>&lt;Suspense&gt;</code> around the car, its meshes still mounted into the Three.js scene graph (draw-call counts looked correct, 10 geometries as expected), but the per-frame position update never ran before the boundary resolved: the car sat frozen at the track's origin point no matter which section the HUD showed. No console error, no failed test, just a car that silently never moved. Wrapping it in <code>&lt;Suspense fallback={null}&gt;</code> fixed it.</p>"
+  },
+  {
+   "title": "A camera lerp that could never finish in the test environment",
+   "body": "<p>The chase camera originally eased toward its target with an exponential lerp driven by <code>useFrame</code>'s <code>dt</code>. Instrumenting the render loop showed the headless Playwright/SwiftShader session producing as few as two actual animation frames across several real seconds, so a lerp tuned for continuous 60 fps motion never converged within any wait the test suite could afford. A real browser session renders continuously and would never hit this, but the fix removes the dependency entirely: the camera now snaps straight to its computed position and look-at target every frame, simpler code with one less thing that can desync from reality.</p>"
+  }
+ ],
+ "results": "<p><b>Apex, the tightest corner on the lap</b>:</p><img src=\"shots/apex.jpg\" alt=\"VANTAGE telemetry HUD at the apex section showing 100 kph, 2.07 lateral g, a 38 meter corner radius, and the race car visible on the banked track curve.\"><p><b>Checks.</b> 14 unit and API tests, 19 Playwright tests including a car-actually-moves pixel-sample check, clean typecheck.</p><p><b>Performance, SwiftShader (no GPU claim).</b> 10 draw calls for the whole scene (the track tube, the car's nine meshes), 2,822 triangles, 564 KB gzipped JS. Median 16.7 ms per frame.</p>",
+ "next": "<ul><li>Measure on a physical GPU and a mid-range phone.</li><li>Add a bounding-box sanity check and a canvas-pixels-change-over-real-time smoke test, so a scale bug or a frozen camera like these fail automatically instead of needing a manual screenshot comparison.</li><li>A second car and a simple overtake, for the book's implied multi-car race strategy angle.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/vantage",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
