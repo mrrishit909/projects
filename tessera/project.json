@@ -1,0 +1,44 @@
+{
+ "title": "What Does One Painting Look Like Under Seven Kinds Of Light?",
+ "tagline": "A digital art conservation, restoration and provenance laboratory: a single procedural painting rendered entirely by one branching shader across seven imaging modalities, with a comparison lens splitting current damage from a digital reconstruction, and navigation labels living in the conservation frame rather than a top bar.",
+ "kind": "Blender · three.js · motion design",
+ "order": 195,
+ "demo_label": "Open the live laboratory",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "Seven-modality GLSL shader",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "10 unit/API tests, 19 e2e tests"
+ ],
+ "note": "Built from blueprint 09 of a written build book (Advanced Engineering Build Book, Volume VIII) as one vertical slice, using the five-tool-design-pipeline skill: an Awesome Design file for type/spacing scale (serif italic, no top bar, the third no-panel treatment in the volume), the Taste/Impeccable checklist, Playwright including modality and comparison-lens pixel-sample checks, Three.js as the product. <b>Everything is synthetic</b>: the painting is a procedural generative composition (there is no scanned artwork in this project), and the 5 damage regions and conservation log come from a seeded generator. Not built: a real scanned-painting pipeline, image pyramids/tiles, PostgreSQL, true pointer-drag for the lens, auth.",
+ "problem": "<p>The book's rule for this blueprint is that each chapter changes imaging modality (normal, raking light, UV, infrared, X-ray, microscopic, reconstruction), a draggable lens compares current and restored states, and navigation lives in the conservation frame rather than a conventional top bar. That rules out both a static painting image and the shared panel layout every earlier blueprint in the volume uses.</p>",
+ "built": "<p>One repository with the whole pipeline.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a gilded frame and an examination easel, exports GLBs, renders a poster.</li><li><b>A domain model</b>: a deterministic craquelure density field, a damage-region score, and a toy century-range estimate, all pure and unit-tested.</li><li><b>A browser runtime</b> where the painting is one plane whose fragment shader branches on an integer modality uniform into seven genuinely different renders, plus a comparison-lens uniform that splits the frame between the current (damaged) and restored states independent of modality.</li><li><b>An intro</b> that resolves a painting from candlelight down to its canvas fibers, switches through UV and infrared, reconstructs a missing region, and hands off through a light mask.</li><li><b>Fallbacks</b>: poster for no WebGL, static keyframes for reduced motion.</li></ul>",
+ "steps": [
+  {
+   "title": "Seven modalities, one shader",
+   "body": "<p>There is no scanned painting anywhere in this project. <code>normal</code>, <code>raking-light</code>, <code>uv</code>, <code>infrared</code>, <code>xray</code>, <code>microscopic</code> and <code>reconstruction</code> are seven branches of one GLSL function over the same UV coordinates, so switching modality never swaps an asset, only a uniform.</p>"
+  },
+  {
+   "title": "A test bug found by its own false negative",
+   "body": "<p>The first version of the 'modality actually changes the render' test sampled the exact viewport center, which happened to sit precisely on the comparison lens's default 50% split, the one place the shader always shows the mode-independent 'restored' state. Two genuinely different modalities produced identical pixels at that one coordinate, and the test correctly failed, pointing straight at the real mechanism. Fixed by opening the lens fully for that specific check.</p>",
+   "code": "// Sample left of the comparison lens so the pixel is on the mode-dependent\n// 'current' side, not the mode-independent 'restored' side.\nawait page.goto(\"/?skip=1&t=0&lens=1\");"
+  },
+  {
+   "title": "No top bar, by the book's own rule",
+   "body": "<p>Every other blueprint in this volume uses a shared top header and (except LUCENT and EIDOLON's partial version) a bordered panel. This one has neither: the brand mark, pause toggle, modality rail, readout, comparison lens, damage list and log all live directly against the conservation frame's edges.</p>"
+  }
+ ],
+ "results": "<p><b>UV mode with the comparison lens open</b>:</p><img src=\"shots/normal.jpg\" alt=\"TESSERA normal mode: a gilded frame around a warm-toned generative still life, modality rail down the left edge, readout and comparison lens down the right, no top bar.\"><img src=\"shots/uv.jpg\" alt=\"TESSERA UV mode: fluorescent teal retouch patches visible on the left half of a split comparison lens, warm restored state on the right, damage region list with confidence percentages below.\"><p><b>Checks.</b> 10 unit and API tests, 19 Playwright tests including the modality and lens pixel-sample checks, clean typecheck.</p><p><b>Performance, SwiftShader (no GPU claim).</b> 9 draw calls, 136 triangles (the painting is a single flat plane), 565 KB gzipped JS. Median 16.7 ms per frame.</p>",
+ "next": "<ul><li>Measure on a physical GPU and a mid-range phone.</li><li>Replace the procedural composition with a real high-resolution scan and an image-pyramid tiling pipeline.</li><li>Upgrade the comparison lens from a slider to true pointer-drag with a visible handle, per the book's original brief.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/tessera",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
