@@ -1,0 +1,44 @@
+{
+ "title": "What Does Zooming From Wafer to Atom Actually Look Like?",
+ "tagline": "A semiconductor chip architecture, thermal and yield intelligence platform: one continuous zoom value carries the camera from a 64-die wafer down through interconnects, logic blocks and standard cells to the atomic lattice, with thermal, power and yield overlays recomputed live.",
+ "kind": "Blender · three.js · motion design",
+ "order": 189,
+ "demo_label": "Open the live wafer",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "Instanced-mesh color overlays",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "11 unit/API tests, 19 e2e tests"
+ ],
+ "note": "Built from blueprint 03 of a written build book (Advanced Engineering Build Book, Volume VIII) as one vertical slice, using the five-tool-design-pipeline skill: an Awesome Design file for type/spacing scale only, the Taste/Impeccable checklist applied by hand, Playwright for QA (including a real rendered-pixel-color assertion, see below), Three.js as the product. <b>Everything is synthetic</b>: the die defect map, cell thermal/current values and fab log come from a deterministic function, not a real wafer. Not built: WebGPU compute, a Python numerical service, auth, a physical-GPU measurement.",
+ "problem": "<p>The book's rule for this blueprint is that scroll controls scale, not page position: forward zooms from the wafer to the atomic lattice, reverse zooms back out, and three overlay modes (thermal, power, yield) have to recompute live rather than being baked images.</p>",
+ "built": "<p>One repository with the whole pipeline.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a die block and an atomic lattice unit cell.</li><li><b>A domain model</b>: deterministic wafer defect density (radial bias, like a real wafer's edge effects), per-cell thermal and current fields, pure and unit-tested.</li><li><b>A browser runtime</b> where a single zoom value (<code>state.t</code>, 0 to 6) drives both the camera's dolly distance and every layer's fade-in/fade-out opacity, so crossing a scale boundary cross-fades instead of popping.</li><li><b>An intro</b> that scans the wafer, dives through every scale station, and hands off through a light mask at the same screen point.</li><li><b>Fallbacks</b>: poster for no WebGL, static keyframes for reduced motion.</li></ul>",
+ "steps": [
+  {
+   "title": "A real bug, found by looking at the render instead of the readout",
+   "body": "<p><code>THREE.InstancedMesh.instanceColor</code> is <code>null</code> until <code>setColorAt</code> is called once. The original per-frame color-update loop bailed out whenever <code>instanceColor</code> was still null, which meant it could never reach the call that would create it: a chicken-and-egg deadlock. Every die and cell rendered in flat default white, tinted only by scene lighting, for every mode including Yield. The automated tests didn't catch it (the visual-regression suite runs the poster fallback, not WebGL; the interactive tests only checked a DOM readout). Fixed by calling <code>setColorAt</code> once in the matrix-setup effect, which runs unconditionally.</p>",
+   "code": "data.dies.forEach((die, i) => {\n  d.position.set(...); im.setMatrixAt(i, d.matrix);\n  im.setColorAt(i, white); // creates instanceColor up front\n});"
+  },
+  {
+   "title": "The same bug, found retroactively in two earlier blueprints",
+   "body": "<p>RIFT's building-risk coloring and AURELIA's field-coil current coloring had the identical pattern. Both were fixed and redeployed the same session; see their git history. A new e2e test here samples actual rendered pixel colors (not a DOM readout) specifically so this class of bug fails a test next time.</p>"
+  },
+  {
+   "title": "One zoom value, seven scale stations",
+   "body": "<p><code>layerOpacity(t, idx) = max(0, 1 - abs(t - idx) * 1.1)</code> is the entire cross-fade system: every layer (wafer, die, interconnects, cells, lattice) computes its own opacity from the same scalar, so there is no separate 'which layer is active' state to keep in sync with the camera.</p>"
+  }
+ ],
+ "results": "<p><b>The wafer forming in the intro</b>:</p><img src=\"shots/intro.jpg\" alt=\"A faint grid of 64 dies in darkness, one die highlighted, caption reads One die is selected.\"><p><b>Yield mode, after the fix</b>:</p><img src=\"shots/wafer.jpg\" alt=\"CASCADE wafer yield panel: 93.8% yield, 60 of 64 good dies, the die grid colored teal for good and pink for defective dies.\"><img src=\"shots/thermal.jpg\" alt=\"CASCADE standard cells panel in thermal mode: a grid of cells colored from yellow-green at the hot center to cyan at the cooler edges.\"><p><b>Checks.</b> 11 unit and API tests, 19 Playwright tests including a rendered-pixel-color assertion, clean typecheck.</p><p><b>Performance, SwiftShader (no GPU claim).</b> 12-14 draw calls, under 200 triangles at the cells station; 566 KB gzipped JS. Median 16.7 ms per frame.</p>",
+ "next": "<ul><li>Measure on a physical GPU and a mid-range phone.</li><li>Add the remaining Power mode's interconnect animation (currently a static tint, not a flowing pulse).</li><li>Apply the same rendered-pixel-color e2e check pattern to RIFT and AURELIA's existing suites.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/cascade",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
