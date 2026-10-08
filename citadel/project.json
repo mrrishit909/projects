@@ -1,0 +1,44 @@
+{
+ "title": "What Happens to 1,000 People When One Exit Closes?",
+ "tagline": "A stadium crowd-flow and evacuation intelligence platform: one 320-glyph instanced crowd reads as a flow-field gradient from a distance and individual people up close, and closing a single gate visibly redistributes its flow across the other seven in real time.",
+ "kind": "Blender · three.js · motion design",
+ "order": 192,
+ "demo_label": "Open the live concourse",
+ "tech": [
+  "Blender 4.5 (Python, headless)",
+  "glTF / GLB",
+  "TypeScript",
+  "Next.js 16 (static export)",
+  "React Three Fiber / three.js",
+  "Instanced-mesh density field",
+  "GSAP",
+  "Node (http + ws)",
+  "OpenAPI 3.1",
+  "Playwright",
+  "10 unit/API tests, 19 e2e tests"
+ ],
+ "note": "Built from blueprint 06 of a written build book (Advanced Engineering Build Book, Volume VIII) as one vertical slice, using the five-tool-design-pipeline skill: an Awesome Design file for type/spacing scale (the palette's own lime/red carries the real signage semantics), the Taste/Impeccable checklist, Playwright including a crowd-pixel-sample check, Three.js as the product. <b>Everything is synthetic</b>: the 8 gates, their flow and the operations log come from a deterministic generator; the crowd is a closed-form density field, not an agent-based simulation. Not built: a real navmesh/pathfinding solver, deck.gl/PostGIS, auth.",
+ "problem": "<p>The book's rule for this blueprint is that the crowd has to read as a flow field at macro scale and as individuals up close, from the <em>same</em> representation, and an exit closure has to visibly reroute flow, not just flag a status.</p>",
+ "built": "<p>One repository with the whole pipeline.</p><ul><li><b>A scripted asset</b>: <code>model/build.py</code> builds a gate/turnstile prop and a human glyph, exports GLBs, renders a poster.</li><li><b>A domain model</b>: a radial density field (gaussian bumps around each gate, weighted by live flow), and a reroute function that splits a closed gate's full flow evenly across the rest, all pure and unit-tested.</li><li><b>A browser runtime</b> where 320 glyph instances share one draw call; each instance's scale and color come from the same <code>densityAt</code> function the gate table reads, so from a distance it reads as a gradient and up close as individual people appearing and thinning.</li><li><b>An intro</b> that grows the crowd from one person to a packed concourse, rises to the operational view, closes a gate, and hands off through a light mask.</li><li><b>Fallbacks</b>: poster for no WebGL, static keyframes for reduced motion.</li></ul>",
+ "steps": [
+  {
+   "title": "One field, two scales",
+   "body": "<p>There is no LOD swap between a 'macro flow-field view' and a 'local individuals view.' The same 320 instances just scale from near-zero to full size based on local density, which is what makes a distant view read as a gradient and a close view read as people, without two separate rendering paths to keep in sync.</p>"
+  },
+  {
+   "title": "A closure that actually redistributes, not just flags",
+   "body": "<p>When gate-1 closes, its full capacity is split evenly across the seven open gates in the same density function the 3D crowd reads, so the visual compression near the closed gate and the gate table's flow numbers come from one calculation, not two that could drift apart.</p>",
+   "code": "const redistributed = closedGate ? (closedGate.capacityPerMin * level) / open.length : 0;\nreturn gate.capacityPerMin * level + redistributed;"
+  },
+  {
+   "title": "Applying the volume's running lessons",
+   "body": "<p>This blueprint's instanced crowd mesh called <code>setColorAt</code> in its matrix-setup effect from the first write (the fix from blueprint 03's <code>instanceColor</code> deadlock), and its keyboard test waits for the HUD before focusing (the fix from blueprint 05's hydration-timing flake). Both passed on the first run.</p>"
+  }
+ ],
+ "results": "<p><b>Emergency stage, Gate A closed</b>:</p><img src=\"shots/emergency.jpg\" alt=\"CITADEL emergency stage: gate table showing Gate A closed in red, the other seven open, a crowd of glyphs scattered around a dark concourse ring with one gate highlighted red.\"><p><b>Peak ingress</b>:</p><img src=\"shots/peak.jpg\" alt=\"CITADEL peak ingress stage with a denser crowd scattered around the concourse ring near all eight lime-lit gates.\"><p><b>Checks.</b> 10 unit and API tests, 19 Playwright tests including the crowd pixel-sample check, clean typecheck.</p><p><b>Performance, SwiftShader (no GPU claim).</b> 34 draw calls, 12,416 triangles; 565 KB gzipped JS. Median 16.7 ms per frame.</p>",
+ "next": "<ul><li>Measure on a physical GPU and a mid-range phone.</li><li>Replace the closed-form density field with a real agent-based or navmesh-routed simulation.</li><li>Instance the gate props too (currently 8 separate primitives) once a per-instance material-swap technique is in place.</li></ul>",
+ "date": "2026-10",
+ "repo": "https://github.com/mrrishit909/citadel",
+ "cover": "cover.jpg",
+ "demo": "demo/"
+}
