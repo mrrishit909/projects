@@ -13,6 +13,7 @@
   --muted:#5f6963;   /* secondary text, labels */
   --ink:#444c48;     /* body text */
   --deep:#4a554f;    /* primary buttons, strongest emphasis (deep slate-green rather than black) */
-  --accent:#7d9683;  /* sage, used sparingly: progress bars, active marks, hovers */
+  --accent:#7d9683;  /* sage, used sparingly: progress bars, active marks, hovers (2.6:1: never for text) */
+  --accent-ink:#53695a; /* the sage dark enough for text (4.85:1 on paper): step numbers */
   --mono:'Courier New',Courier,monospace;
 }

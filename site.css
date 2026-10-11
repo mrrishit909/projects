@@ -40,7 +40,7 @@ section.s li::marker{color:var(--faint)}
 
 ol.steps{list-style:none;margin:0;padding:0}
 ol.steps > li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:0 16px;padding:0 0 34px;margin:0}
-ol.steps .n{color:var(--accent);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;padding-top:4px}
+ol.steps .n{color:var(--accent-ink);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;padding-top:4px}
 ol.steps h3{margin:0 0 6px;font-family:var(--mono);font-size:20px;font-weight:400;letter-spacing:-.02em;line-height:1.25}
 ol.steps p{color:var(--ink)}
 ol.steps p b,ol.steps p code{color:var(--ink)}
@@ -56,8 +56,10 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .next .cap{color:var(--muted)}
 .next .t{display:block;margin-top:10px;font-family:var(--mono);font-size:clamp(30px,4.5vw,56px);line-height:1.05;font-weight:400;letter-spacing:-.04em;transition:transform .35s cubic-bezier(.2,.7,.2,1)}
 .next:hover .t{transform:translateX(12px)}
-footer{display:flex;justify-content:space-between;gap:16px;padding:0 40px 32px;color:var(--faint)}
-footer a{text-decoration:none}
+/* --muted (4.65:1), not --faint: this is text people read. 24px line box = WCAG 2.5.8 target size for the link. */
+footer{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:0 40px 32px;color:var(--muted)}
+footer a{display:inline-block;line-height:24px;text-decoration:none}
+footer a:hover{color:var(--ink)}
 
 @media (max-width:760px){
   .bar{padding:20px}.wrap{padding:0 20px}footer{padding:0 20px 22px}

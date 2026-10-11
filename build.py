@@ -7,6 +7,7 @@ Stdlib only, so GitHub never needs to run anything: we commit the built HTML.
 """
 import hashlib
 import json
+import re
 import struct
 from collections import Counter
 from html import escape
@@ -115,6 +116,32 @@ def load():
     return sorted(projects, key=lambda p: (p["date"], -p.get("order", 0)), reverse=True)
 
 
+# ---- text contrast ------------------------------------------------------------------------------------------
+# Readable text must clear WCAG AA (4.5:1) on the paper. theme.css keeps --faint, --wood and --accent for decorative marks;
+# a case-study footer shipped in --faint at 1.95:1, so the build refuses page CSS that sets a text `color:` to any token
+# under 4.5:1 against --paper. (--paper itself is allowed: it is the text colour on --deep buttons. ::marker is decoration.)
+def contrast(a, b):
+    def lum(h):
+        c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted((lum(a), lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def low_contrast_text():
+    tokens = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})\b", (ROOT / "theme.css").read_text()))
+    bad = []
+    for name in ("site.css", "index.template.html"):
+        for sel, decls in re.findall(r"([^{}]+)\{([^{}]*)\}", (ROOT / name).read_text()):
+            if "::marker" in sel:
+                continue
+            for tok in re.findall(r"(?<![-\w])color:\s*var\(--([\w-]+)\)", decls):
+                if tok != "paper" and tok in tokens and contrast(tokens[tok], tokens["paper"]) < 4.5:
+                    bad.append(f"{name}: {sel.strip()[-60:]} uses --{tok} ({contrast(tokens[tok], tokens['paper']):.2f}:1)")
+    return bad
+
+
 def asset_version(name):
     """?v=<hash of the file>: a changed stylesheet or script gets a new URL, so browsers never use a stale cached copy."""
     return hashlib.sha1((ROOT / name).read_bytes()).hexdigest()[:10]
@@ -199,6 +226,8 @@ def index_page(projects):
 
 
 if __name__ == "__main__":
+    bad = low_contrast_text()
+    assert not bad, "text under 4.5:1 on the paper (use --muted or darker; see theme.css):\n  " + "\n  ".join(bad)
     projects = load()
     for i, p in enumerate(projects):
         if p.get("frozen"):   # page kept exactly as published; its old style.css stays too
