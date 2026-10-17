@@ -1,0 +1,50 @@
+{
+  "title": "Keystone: every lead to the right rep",
+  "tagline": "Every lead to the right rep, and every record visible to exactly the right people.",
+  "kind": "CRM · Routing and visibility",
+  "tech": [
+    "Next.js 16",
+    "React 19",
+    "TypeScript",
+    "PostgreSQL 16",
+    "Prisma 7",
+    "NextAuth v4",
+    "Playwright",
+    "axe-core",
+    "Vitest",
+    "Docker Compose"
+  ],
+  "date": "2026-10",
+  "order": 216,
+  "repo": "https://github.com/mrrishit909/crm-showcases",
+  "demo": "https://mrrishit909.github.io/crm-showcases/krayin/",
+  "demo_label": "View the showcase site",
+  "note": "The CRM itself is private and not hosted: the public repo and the showcase site contain only the showcase source. Every screenshot is a real capture of the running app with synthetic data; the in-page tour is a labeled illustration of the app's own rules, not a live backend. Original implementation inspired by Krayin; no affiliation.",
+  "cover": "cover.jpg",
+  "problem": "<p>A sales manager needs incoming leads routed automatically and fairly, and access limited by team, ownership and action, with every decision explainable.</p><p><em>Defining workflow:</em> Configure two teams and a territory rule, submit leads concurrently and see them routed and balanced, then check that an agent sees only their own records, a manager sees the team scope, and a direct unauthorized API call fails.</p>",
+  "built": "<p>One of eleven independent CRM MVPs in a single monorepo, each with its own database, migrations, tests and review packet. This one is inspired by Krayin and is called Keystone.</p><ul><li>Prioritized routing rules (territory, company size, source), a deterministic fallback, and round robin among eligible active reps, locked per team under concurrency</li><li>A permission matrix of resource actions with own, team and workspace scope plus separate sensitive capabilities, enforced by one policy evaluator</li><li>Lead qualification and conversion to an organization, contact and opportunity; opportunity pipeline with history</li><li>Append-only assignment and permission audit; no privilege escalation; the last owner cannot be removed (database trigger)</li></ul>",
+  "steps": [
+    {
+      "title": "Specify before building",
+      "body": "<p>An acceptance document names the persona, the bounded scope, what is deferred, and ties every required feature to evidence (a test, an end-to-end journey or a recorded check).</p>"
+    },
+    {
+      "title": "Model the database so the rules hold even if the code is wrong",
+      "body": "<p>A Prisma schema plus a hand-written migration of CHECK constraints, composite foreign keys that pin every record to its workspace, and triggers. The tests try to break these from raw SQL.</p>"
+    },
+    {
+      "title": "Build the distinguishing workflow through every layer",
+      "body": "<p>Prioritized routing rules (territory, company size, source), a deterministic fallback, and round robin among eligible active reps, locked per team under concurrency</p>"
+    },
+    {
+      "title": "Prove it in a fresh clone",
+      "body": "<p>20 gate checks pass and 0 fail in a fresh clone of commit 9522ef029e: 2 unit, 31 integration against a real PostgreSQL, 15 browser tests on the production build, container start, a live black-box check, restart persistence, backup and restore, and a production-dependency audit.</p>"
+    },
+    {
+      "title": "Review it as an independent reader would",
+      "body": "<p>A review packet lists what is implemented, what is measured, what was fixed on the way, and every known limit and release blocker, so nothing here is claimed beyond its evidence.</p>"
+    }
+  ],
+  "results": "<p><b>20 gate checks pass and 0 fail in a fresh clone of commit 9522ef029e: 2 unit, 31 integration against a real PostgreSQL, 15 browser tests on the production build, container start, a live black-box check, restart persistence, backup and restore, and a production-dependency audit.</b></p><p>Screenshots on the showcase site are real captures at 1440, 768 and 390 pixels wide, taken from the production build with synthetic data.</p>",
+  "next": "<ul><li>One default pipeline per workspace; routing by territory code, source and company size only</li><li>Round robin is unweighted; no scoring, capacity or working-hour rules; no email or lead-capture webhooks</li><li>Permissions apply to records, not individual fields; exports capped at 10,000 rows</li><li>Not production-ready: no TLS, proxy or monitoring provisioned</li></ul>"
+}
