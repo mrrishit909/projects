@@ -3,48 +3,130 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rishit’s Records · Project Portfolio</title>
-<meta name="description" content="Browse Rishit Mathur's {{COUNT}} projects on vinyl ({{KINDS}}). Select a record, drop the needle, and explore the work.">
+<title>Rishit Mathur · Data, Analytics & Intelligent Systems</title>
+<meta name="description" content="Rishit Mathur turns complex data into clear insights and useful software: Power BI, SQL, Python, data pipelines, forecasting and AI-enabled tools. Eight featured builds and the complete catalogue of {{COUNT}} projects.">
+<meta name="theme-color" content="#C3C9D2">
 <link rel="stylesheet" href="theme.css?v={{THEME}}">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23181917'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23e9ac59'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23181917'/%3E%3C/svg%3E">
-<link rel="preload" as="image" href="assets/vinyl.webp">
-<link rel="preload" as="image" href="assets/needle.webp">
-<style>
-:root{--vinyl:url("assets/vinyl.webp");--needle:url("assets/needle.webp")}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px var(--mono);overflow-x:hidden}button,input,a{-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{font:inherit;color:inherit;cursor:pointer;border:0}a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--muted);outline-offset:5px}header{position:relative;z-index:11;display:flex;justify-content:space-between;align-items:center;padding:26px 28px;font-size:10px;letter-spacing:.22em;text-transform:uppercase}.brand{font-size:10px;color:var(--muted);line-height:1.7}.brand span{margin:0 10px;color:var(--ink)}nav{display:flex;gap:24px;font-size:10px}nav a{color:var(--muted)}.room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,80px);align-items:center;max-width:1240px;margin:0 auto;padding:0 28px 40px;min-height:calc(100svh - 70px);position:relative}.collection{padding:0;position:relative;z-index:2;width:100%;max-width:500px;justify-self:end}.eyebrow{display:none}h1{font:400 clamp(22px,2.1vw,32px)/1.25 'Courier New',monospace;letter-spacing:.16em;text-transform:uppercase;text-align:center;margin:0 0 7px}.intro{font:14px/1.6 'Courier New',monospace;letter-spacing:.16em;color:var(--muted);text-align:center;margin:0 0 28px}.collection-head{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px}.count{color:var(--muted);font-size:10px}.search{background:transparent;border:1px solid color-mix(in srgb,var(--faint) 50%,transparent);border-radius:30px;color:var(--ink);padding:11px 19px;width:100%;font:13px 'Courier New',monospace;letter-spacing:.03em;margin-bottom:20px;box-shadow:inset 0 0 3px #8a7f6a08}.search::placeholder{color:var(--muted)}.cabinet{padding:9px 10px 0;background:var(--panel);border-radius:8px;box-shadow:0 7px 20px #62584719,inset 0 0 0 1px color-mix(in srgb,var(--line) 50%,transparent)}.shelf{position:relative;display:flex;align-items:flex-end;gap:4px;height:126px;padding:10px 8px 0;background:linear-gradient(color-mix(in srgb,var(--wood) 23%,transparent),var(--panel));border-bottom:9px solid var(--wood);box-shadow:0 8px 9px -7px #5a4f3859}.shelf:after{content:'';position:absolute;bottom:-9px;left:0;right:0;height:2px;background:color-mix(in srgb,var(--paper) 63%,transparent)}.spine{position:relative;min-width:0;flex:1;height:var(--height,111px);padding:6px 3px;display:flex;align-items:center;gap:8px;writing-mode:vertical-rl;text-align:left;overflow:hidden;background:var(--color);color:#3a423e;border-radius:2px 2px 0 0;box-shadow:inset -4px 0 #4d422610,inset 1px 0 #ffffff50,1px 0 2px #50422640;transition:transform .3s,filter .3s}.spine .num{font-size:9px}.spine .name{font:500 11px 'Courier New',monospace;white-space:nowrap;max-height:90px;text-overflow:ellipsis;overflow:hidden}.spine:hover,.spine:focus-visible{transform:translateY(-12px) rotate(-3deg);filter:brightness(1.05);z-index:1}.shelf-label{position:absolute;bottom:-8px;right:6px;font-size:7px;letter-spacing:.16em;color:var(--muted);z-index:2}.pagination{display:flex;justify-content:space-between;align-items:center;margin:16px 0 0;color:var(--muted);font-size:10px;letter-spacing:.16em;text-transform:uppercase}.pagination button{border:0;background:none;padding:7px 0;font-size:10px;letter-spacing:.16em;text-transform:uppercase}.pagination button:disabled{opacity:.3;cursor:default}.no-results{font:14px/1.6 'Courier New';padding:35px 12px;margin:0;text-align:center;color:var(--muted)}.instruction{font-size:11px;line-height:1.7;text-align:center;color:var(--muted);margin:20px 0 0}.player-zone{position:relative;width:100%;max-width:min(500px,calc(100svh - 190px));justify-self:start}.player-caption{display:none}.deck{position:relative;width:100%;aspect-ratio:1;border-radius:18px;background:var(--panel);box-shadow:0 0 30px #71634719,inset 0 0 35px color-mix(in srgb,var(--paper) 23%,transparent);isolation:isolate}.deck:after{content:'';position:absolute;inset:0;border-radius:18px;background-image:radial-gradient(#796d4d50 .7px,transparent .9px),radial-gradient(#ac9d7b50 .7px,transparent .9px);background-size:117px 139px,193px 107px;background-position:38px 60px,90px 8px;opacity:.22;pointer-events:none;z-index:-1}.platter{position:absolute;width:80%;aspect-ratio:1;left:6%;top:50%;transform:translateY(-50%);border-radius:50%;background:transparent;box-shadow:none}.station-disc{position:absolute;inset:0;background:var(--vinyl) center/contain no-repeat;border-radius:50%;display:grid;place-items:center;animation:spin 1.8s linear infinite;animation-play-state:paused}.station-disc.hidden{visibility:hidden}.deck.active .station-disc{animation-play-state:running}.station-label{display:flex!important}.deck.loaded .station-label{display:flex!important}.arm{position:absolute;top:1%;left:70%;width:27%;aspect-ratio:2500/5500;background:var(--needle) center/contain no-repeat;transform-origin:50% 25%;transform:rotate(-14deg);z-index:8;transition:transform 1.1s cubic-bezier(.45,0,.2,1);filter:drop-shadow(4px 6px 3px #0003)}.deck.active .arm{transform:rotate(14deg)}.rest-label,.speed,.deck-brand{display:none}.now{margin-top:14px;text-align:right;color:var(--muted);font-size:10px;letter-spacing:.12em}.now-icon{display:none}.now small{display:block;font-size:9px;margin-bottom:5px}.now strong{font-size:11px;font-weight:400;max-width:100%;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.room-footer{display:none}.station-controls{display:flex;justify-content:center;gap:25px;margin-top:24px}.station-control{display:flex;flex-direction:column;align-items:center;gap:10px;background:transparent;font:9px 'Courier New';letter-spacing:.16em;text-transform:uppercase;padding:0;color:var(--muted)}.station-control .circle{display:grid;place-items:center;background:linear-gradient(140deg,var(--panel),var(--wood));width:38px;height:38px;border-radius:50%;box-shadow:0 4px 8px #76694c22,0 0 7px #ffffff70;font:16px Arial,sans-serif;letter-spacing:0;color:var(--ink)}.station-control:hover .circle{background:var(--faint)}.instruction{font-size:10px;letter-spacing:.03em}
-dialog{border:0;background:transparent;color:var(--ink);padding:0;width:min(850px,94vw);max-width:none;overflow:visible}dialog::backdrop{background:color-mix(in srgb,var(--paper) 63%,transparent);backdrop-filter:blur(14px)}.modal{padding:22px 28px 25px;background:color-mix(in srgb,var(--paper) 95%,transparent);border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 100px #453b2a30}.modal-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.18em;color:var(--muted)}.close{background:transparent;font-size:27px;line-height:1;padding:0 8px;color:var(--muted)}.album-stage{position:relative;width:min(61%,380px);aspect-ratio:1;margin:24px auto 30px;transition:transform .85s cubic-bezier(.22,.68,.2,1)}.album-stage.revealed{transform:translateX(-20%)}.jacket{position:absolute;width:100%;height:100%;z-index:3;border:0;padding:0;text-align:left;background:var(--color);color:#3a423e;border-radius:2px;box-shadow:2px 8px 22px #544b3833;overflow:hidden;transition:opacity .5s,transform .8s}.jacket:after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,#fff4,transparent 40%,#403b2e0a);pointer-events:none;border:1px solid #ffffff60}.jacket-title{position:absolute;top:8%;left:8%;right:8%;font:400 clamp(20px,2.3vw,29px)/1.1 'Courier New';letter-spacing:-.045em;z-index:2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.jacket-kind{position:absolute;top:36%;left:8%;right:8%;font:10px/1.3 'Courier New';z-index:2}.jacket img,.jacket video{position:absolute;bottom:9%;left:8%;width:84%;height:43%;object-fit:cover;filter:saturate(.35) sepia(.2);box-shadow:0 2px 6px #665c3f20}.jacket-meta{position:absolute;bottom:3%;left:8%;right:8%;display:flex;justify-content:space-between;font-size:9px;letter-spacing:.08em}.record{position:absolute;width:96%;aspect-ratio:1;left:2%;top:2%;border-radius:50%;background:var(--vinyl) center/contain no-repeat;box-shadow:3px 6px 13px #453b2a25;transition:transform .85s cubic-bezier(.22,.68,.2,1);z-index:2;display:grid;place-items:center}.label{width:21%;height:21%;border-radius:50%;background:var(--panel);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8%;position:relative;box-sizing:content-box;aspect-ratio:1;max-width:21%;max-height:21%}.record .label,.disc-spin .label,.station-disc .label{box-sizing:border-box;padding:2%;width:22%;height:22%;max-width:none;max-height:none}.label strong{font:400 clamp(8px,.8vw,11px)/1.2 'Courier New';max-width:100%;max-height:53%;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4}.label small{font:7px 'Courier New';margin-bottom:8px;letter-spacing:.1em}.label:after{content:'';position:absolute;width:5px;height:5px;background:var(--faint);border-radius:50%;bottom:14%}.revealed .record{transform:translateX(64%)}.modal-info h2{font:400 21px/1.35 'Courier New';margin:0 0 7px}.modal-info p{font:12px/1.6 'Courier New';letter-spacing:.04em;color:var(--muted);margin:0}.controls{display:flex;align-items:center;gap:12px;margin-top:22px}.primary{background:var(--deep);color:var(--paper);padding:14px 25px;border-radius:30px;font:bold 11px 'Courier New';letter-spacing:.15em;text-transform:uppercase}.secondary{background:transparent;border:1px solid var(--muted);padding:13px 23px;border-radius:30px;font:bold 11px 'Courier New';letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.direct{margin-left:auto;font:10px 'Courier New';letter-spacing:.07em;border-bottom:1px solid var(--accent);padding-bottom:4px;color:var(--muted)}.hint{font:10px/1.5 'Courier New';color:var(--muted);margin:17px 0 0;letter-spacing:.02em}.flight-record{position:fixed;z-index:5;pointer-events:none;transition:top 1s cubic-bezier(.45,0,.2,1),left 1s cubic-bezier(.45,0,.2,1),width 1s cubic-bezier(.45,0,.2,1),height 1s cubic-bezier(.45,0,.2,1);display:grid;place-items:center}.disc-spin{width:100%;height:100%;border-radius:50%;background:var(--vinyl) center/contain no-repeat;display:grid;place-items:center;animation:spin 1.8s linear infinite;animation-play-state:paused}.flight-record.spinning .disc-spin{animation-play-state:running}.play-strip{position:fixed;z-index:110;bottom:25px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:18px;background:color-mix(in srgb,var(--paper) 96%,transparent);padding:16px 23px;border:1px solid var(--line);border-radius:40px;box-shadow:0 8px 40px #54472d24;max-width:94vw}.play-strip.show{display:flex}.play-strip p{margin:0;font:11px 'Courier New';min-width:165px;color:var(--muted)}.progress{display:block;height:2px;background:color-mix(in srgb,var(--faint) 44%,transparent);margin-top:8px;overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}.room.launching{opacity:0;transform:scale(1.05);filter:blur(12px);transition:all .8s}body:has(dialog[open]){overflow:hidden}.station-disc,.record,.disc-spin{filter:contrast(.78) brightness(1.22)}@keyframes spin{to{transform:rotate(360deg)}}@media(max-height:790px) and (min-width:761px){.album-stage{width:38vh;margin:18px auto}.modal-info h2{font-size:18px}}
-@media(max-width:1000px) and (min-width:761px){header{padding:24px 20px}nav{gap:15px}}
-@media(max-width:760px){header{padding:20px 6%;gap:18px}.brand{font-size:9px;letter-spacing:.13em}nav{font-size:9px;gap:15px}.room{display:flex;flex-direction:column;min-height:0;padding:0;gap:0}.collection{padding:20px 8% 30px;max-width:none}h1{font-size:27px}.intro{margin-bottom:25px}.shelf{height:126px}.spine{height:var(--height)}.player-zone{width:auto;max-width:none;margin:0 8% 40px;align-self:stretch}.deck{border-radius:12px}.now{text-align:center}.modal{padding:20px 18px}.album-stage{width:68%;margin:25px auto}.jacket-title{font-size:20px}.jacket-kind{font-size:9px;top:37%}.jacket-meta{font-size:7px}.record .label{width:27%;height:27%}.label strong{font-size:7px}.label small{font-size:6px;margin-bottom:4px}.modal-info h2{font-size:18px}.modal-info p{font-size:11px}.controls{flex-wrap:wrap;gap:10px}.controls .primary,.controls .secondary{padding:12px 17px;font-size:10px}.direct{margin-left:0;padding:8px 0}.hint{font-size:9px}.play-strip{bottom:15px;padding:12px 14px;gap:10px;border-radius:14px}.play-strip p{min-width:110px;font-size:10px}.play-strip button{font-size:10px;padding:12px 13px}.station-disc .label strong{font-size:11px}.station-disc .label small{font-size:8px}.station-controls{gap:30px}}
-@media(min-width:761px){body{height:100svh;overflow:hidden;display:flex;flex-direction:column}.room{flex:none;grid-template-columns:500px 500px;gap:72px;justify-content:center;width:1072px;max-width:none;min-height:0;margin:auto;padding:0}.collection,.player-zone{max-width:500px}.cabinet{min-height:387px}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.station-disc,.flight-record.spinning .disc-spin{animation:none}.room.launching{transform:none;filter:none}}
-.jacket video{display:none}.noscript{list-style:none;margin:0;padding:0;font-size:12px;line-height:1.9}.noscript a{border-bottom:1px solid var(--faint)}
-</style>
+<link rel="stylesheet" href="portfolio.css?v={{PORTFOLIO_CSS}}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23C3C9D2'/%3E%3Crect x='7' y='7' width='8' height='8' rx='2' fill='%23262B33'/%3E%3Crect x='17' y='7' width='8' height='8' rx='2' fill='%23262B33'/%3E%3Crect x='7' y='17' width='8' height='8' rx='2' fill='%23262B33'/%3E%3Crect x='17' y='17' width='8' height='8' rx='2' fill='%23A81612'/%3E%3C/svg%3E">
+<link rel="preload" as="font" type="font/woff2" href="vendor/fonts/GeistMono-Regular.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="vendor/fonts/Geist-Medium.woff2" crossorigin>
+<script>document.documentElement.classList.add("js")</script>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
-<body>
-<header><a class="brand" href="https://mrrishit909.github.io/">CREATED BY <span>RISHIT MATHUR</span></a><nav><a href="https://mrrishit909.github.io/">About me</a><a href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></nav></header>
-<main class="room" id="room">
-<section class="collection">
-  <h1>Rishit’s Records</h1>
-  <p class="intro">My projects, on wax</p>
-  <div class="collection-head"><span>The collection</span><span class="count" id="count">{{COUNT}} RECORDS</span></div>
-  <input class="search" id="search" type="search" aria-label="Find a project" placeholder="Search for a project or technology…">
-  <div class="cabinet" id="cabinet"><noscript><ul class="noscript no-results"><!--LIST--></ul></noscript></div>
-  <div class="pagination"><button id="prev" aria-label="Previous shelf page">Previous</button><span id="page-label"></span><button id="next" aria-label="Next shelf page">Next</button></div>
+<body class="portfolio">
+<a class="skip" href="#main">Skip to content</a>
+<canvas class="scene" id="scene" aria-hidden="true"></canvas>
+<div class="scene-fallback" id="scene-fallback" aria-hidden="true"></div>
+<div class="hud" id="hud" aria-hidden="true"><svg class="hud-lines" id="hud-lines"></svg><div class="hud-tag" id="hud-a"></div><div class="hud-tag" id="hud-b"></div><div class="hud-tag" id="hud-c"></div></div>
+
+<header class="nav" id="nav">
+  <a class="wordmark" href="#top"><span class="wordmark-mark" aria-hidden="true"></span>Rishit Mathur</a>
+  <nav class="nav-links cap" aria-label="Site"><a href="#work">Work</a><a href="#projects">Projects</a><a href="#about">About</a><a href="#experience">Experience</a><a href="https://mrrishit909.github.io/resume.pdf">Résumé</a><a href="#contact">Contact</a></nav>
+  <button class="motion-toggle cap" id="motion-toggle" type="button" aria-pressed="false" hidden>Motion: On</button>
+</header>
+
+<main id="main">
+<section class="hero chapter" id="top" data-chapter="0" aria-labelledby="hero-name">
+  <div class="hero-copy plate">
+    <p class="cap eyebrow">// Data analyst · Tampa, FL</p>
+    <h1 id="hero-name">Rishit Mathur</h1>
+    <p class="hero-role">Data, Analytics &amp; Intelligent Systems</p>
+    <p class="lede">I turn complex data into clear insights and useful software: dashboards people act on, pipelines that can be tested, and tools that show their sources.</p>
+    <p class="hero-actions"><a class="btn btn-primary" href="#work">View selected work</a><a class="btn btn-ghost" href="https://mrrishit909.github.io/resume.pdf">Résumé (PDF)</a></p>
+  </div>
+  <aside class="manifesto cap"><p class="manifesto-head">////// Focus</p><p>Analysis and business intelligence, data pipelines, forecasting, and AI-enabled tools. B.S. Business Analytics &amp; IS, USF 2026. M.S. candidate. Power BI Data Analyst Associate.</p></aside>
+  <p class="scroll-hint cap" aria-hidden="true">Scroll down to explore<br>// {{COUNT}} projects, one environment</p>
 </section>
-<section class="player-zone" aria-label="Record player">
-  <div class="deck" id="deck"><div class="platter" id="platter"><div class="station-disc" id="station-disc"><div class="label station-label" id="station-label"></div></div></div><div class="rest-label" id="rest-label">SELECT A RECORD<br><br>33⅓ RPM</div><div class="arm" aria-hidden="true"></div></div>
-  <div class="now"><div><small id="now-small">{{COUNT}} PROJECTS / RISHIT MATHUR</small><strong id="now-title">PICK A RECORD FROM THE SHELF.</strong></div></div>
-  <div class="station-controls"><button class="station-control" id="station-prev" aria-label="Select previous record"><span class="circle">Ⅰ◂</span>PREV</button><button class="station-control" id="station-play" aria-label="Open selected record"><span class="circle">▶</span>PLAY</button><button class="station-control" id="station-next" aria-label="Select next record"><span class="circle">▸Ⅰ</span>NEXT</button><button class="station-control" id="station-shuffle" aria-label="Select a random record"><span class="circle">⤨</span>SHUFFLE</button></div>
-  <p class="instruction">Choose a sleeve. Slide out the vinyl. Press play.</p>
+
+<section class="approach" id="approach" aria-labelledby="approach-title">
+  <h2 id="approach-title" class="visually-hidden">How I work with data</h2>
+  <div class="step chapter" data-chapter="1"><div class="plate copy"><p class="cap step-no">01 // Raw</p><h3>Start with the question, then the data as it really arrives.</h3><p>Requirements before models: what decision is waiting, who makes it, which fields exist and which are missing. Then the raw layer, loaded as-is and documented.</p><p class="step-links"><a href="er-wait-requirements/">ER wait-time requirements</a><a href="business-finder/">Business Finder ETL</a></p></div></div>
+  <div class="step chapter" data-chapter="2"><div class="plate copy"><p class="cap step-no">02 // Modelled</p><h3>Write the cleaning once, as tested SQL.</h3><p>Staging, intermediate and mart layers with data tests, so every report starts from the same trusted tables. Window functions, backtests, and an independent recount that has to agree.</p><p class="step-links"><a href="retail-dbt/">Retail pipeline in dbt, 31 tests</a><a href="chicago-bike-share/">6.1M Chicago bike trips in SQL</a></p></div></div>
+  <div class="step chapter" data-chapter="3"><div class="plate copy"><p class="cap step-no">03 // Served</p><h3>A number is only useful once someone can act on it.</h3><p>Star schemas and DAX measures with a benchmark, forecasts with honest ranges, services that watch for silent failures, and assistants that cite their sources.</p><p class="step-links"><a href="florida-flight-delays/">Florida flight delays in Power BI</a><a href="sec-10k-rag/">Ask the 10-K</a></p></div></div>
+</section>
+
+<section class="work" id="work" aria-labelledby="work-title">
+  <div class="section-intro plate"><p class="cap">////// Selected work</p><h2 id="work-title">Eight builds, each with a written case study, the code, and where it applies a live report.</h2><p class="section-lede">All solo projects. Numbers come from the case studies.</p></div>
+  {{FEATURED}}
+</section>
+
+<section class="projects chapter" id="projects" data-chapter="12" aria-labelledby="projects-title">
+  <div class="plate catalog">
+    <div class="catalog-head"><p class="cap">////// All projects</p><h2 id="projects-title">{{COUNT}} projects, every one with a case study.</h2><p class="section-lede">Search by title, technology or kind. Most common kinds: {{KINDS}}.</p></div>
+    <form class="toolbar" id="toolbar" role="search" onsubmit="return false">
+      <div class="field"><label class="cap" for="search">Search</label><input class="control" id="search" type="search" placeholder="Title, technology or kind…" autocomplete="off"><button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button></div>
+      <div class="field"><label class="visually-hidden" for="kind">Filter by kind</label><select class="control" id="kind"><option value="">All kinds</option>{{KINDS_OPTIONS}}</select></div>
+      <p class="count cap" id="count"><b id="count-n">{{COUNT}}</b> of {{COUNT}} projects</p>
+      <p class="visually-hidden" id="announce" aria-live="polite"></p>
+    </form>
+    <ol class="tiles" id="tiles">{{CATALOG}}</ol>
+    <p class="empty" id="empty" hidden>No projects match. <button type="button" id="reset">Show everything</button></p>
+    <p class="more"><button class="btn btn-ghost" id="more" type="button" hidden>Show more projects</button><span class="cap" id="shown"></span></p>
+  </div>
+</section>
+
+<section class="about chapter" id="about" data-chapter="13" aria-labelledby="about-title">
+  <div class="plate copy wide">
+    <p class="cap">////// About</p><h2 id="about-title">Analyst first, builder second.</h2>
+    <div class="about-grid">
+      <div class="about-copy"><p>I am a data analyst in Tampa with hands-on SQL and Python experience. I completed a B.S. in Business Analytics and Information Systems at the University of South Florida's Muma College of Business in May 2026 (Dean's List, Fall 2024) and am now an M.S. candidate in Business and Enterprise Integration there, expected May 2028.</p><p>Across research, athletics operations and a business-analyst role I have gathered reporting requirements, redesigned data structures, cleaned and merged 100K+ records, and built Power BI dashboards that cut report turnaround by 22%. The projects on this page extend that work into pipelines, forecasting, optimisation and AI-enabled tools.</p></div>
+      <dl class="about-facts">
+        <div><dt class="cap">Education</dt><dd>M.S. Business and Enterprise Integration, USF, expected May 2028</dd><dd>B.S. Business Analytics and Information Systems, USF, May 2026</dd></div>
+        <div><dt class="cap">Certification</dt><dd>Microsoft Power BI Data Analyst Associate</dd><dd>Pursuing PMI-CAPM and AWS Cloud Practitioner (CLF-C02)</dd></div>
+        <div><dt class="cap">Looking for</dt><dd>Entry-level data and business analyst roles, US-wide and remote</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="experience chapter" id="experience" data-chapter="14" aria-labelledby="experience-title">
+  <div class="plate copy wide">
+    <p class="cap">////// Experience</p><h2 id="experience-title">Where the work has been done.</h2>
+    <ol class="timeline">
+      <li><p class="cap tl-when">Sep 2025 – present</p><h3>Research Assistant · USF REACH Lab</h3><p>Managed end-to-end data workflows and built interactive dashboards that turn experimental findings into clear, actionable views for the team.</p></li>
+      <li><p class="cap tl-when">May 2025 – present</p><h3>Student Assistant, Ticketing Operations · USF Athletics</h3><p>Queried and analysed ticket sales, attendance and entry data to surface trends for event planning and resource allocation; maintained accurate transaction and customer records.</p></li>
+      <li><p class="cap tl-when">May 2025 – Aug 2025</p><h3>Business Analyst · TraceRT</h3><p>Gathered stakeholder reporting requirements, mapped data sources and ran a gap analysis on existing reporting; redesigned the underlying data structures and built Power BI dashboards that reduced report turnaround time by 22%.</p></li>
+      <li><p class="cap tl-when">Jan 2025 – Apr 2025</p><h3>Sales Forecasting &amp; Business Performance Analytics · course project</h3><p>Built an end-to-end analytics solution over historical sales, customer behaviour and operations across regions; cleaned, merged and transformed 100K+ records in Python and R.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="capabilities chapter" id="capabilities" data-chapter="15" aria-labelledby="cap-title">
+  <div class="plate copy wide">
+    <p class="cap">////// Capabilities</p><h2 id="cap-title">Four things I can do for a team, each with proof.</h2>
+    <ul class="cap-grid">
+      <li><h3>Analysis and business intelligence</h3><p>SQL, Python, pandas, Excel, Power BI with DAX and star schemas, Tableau. Reports with a benchmark and a recount behind every number.</p><p class="cap-proof"><a href="florida-flight-delays/">Florida flight delays</a><a href="chicago-bike-share/">How Chicago rides</a><a href="excel-model/">Costco model in Excel</a></p></li>
+      <li><h3>Data pipelines and databases</h3><p>dbt, DuckDB, PostgreSQL, SQLite, Oracle, SQL Server. ETL from public sources, data tests, lineage and monitoring for silent failures.</p><p class="cap-proof"><a href="retail-dbt/">Retail pipeline in dbt</a><a href="business-finder/">Business Finder</a><a href="data-reliability-control-plane/">Data reliability control plane</a></p></li>
+      <li><h3>Forecasting, statistics and machine learning</h3><p>Time series with honest backtests, regression and classification, A/B readouts, anomaly detection, optimisation with OR-Tools.</p><p class="cap-proof"><a href="us-retail-forecast/">US retail sales forecast</a><a href="email-ab-test/">E-mail A/B test readout</a><a href="fraud-model-monitoring/">Fraud model monitoring</a></p></li>
+      <li><h3>AI-enabled tools and software systems</h3><p>Retrieval-augmented assistants that cite sources, FastAPI services, Docker Compose, and web front ends over real data.</p><p class="cap-proof"><a href="sec-10k-rag/">Ask the 10-K</a><a href="complaint-sorter/">Complaint sorter</a><a href="contract-rfp-automator/">Contract reviewer</a></p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="contact chapter" id="contact" data-chapter="16" aria-labelledby="contact-title">
+  <div class="plate copy">
+    <p class="cap">////// Contact</p><h2 id="contact-title">Open to analyst roles. Let's talk.</h2>
+    <p class="section-lede">Entry-level data and business analyst positions, US-wide and remote. The quickest route is e-mail or LinkedIn.</p>
+    <p class="contact-links"><a class="bracket" href="mailto:rishit.mathur@yahoo.com">rishit.mathur@yahoo.com</a><a class="bracket" href="https://www.linkedin.com/in/rishitrajmathur" target="_blank" rel="noopener">LinkedIn</a><a class="bracket" href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a><a class="bracket" href="https://mrrishit909.github.io/resume.pdf">Résumé (PDF)</a></p>
+  </div>
 </section>
 </main>
-<dialog id="dialog" aria-labelledby="modal-title"><div class="modal">
-  <div class="modal-head"><span id="catalog"></span><button class="close" id="close" aria-label="Close record">×</button></div>
-  <div class="album-stage" id="stage"><div class="record" id="record"><div class="label" id="label"></div></div><button class="jacket" id="jacket" aria-label="Slide the vinyl out of its sleeve"><span class="jacket-title" id="cover-title"></span><span class="jacket-kind" id="cover-kind"></span><img id="cover" alt=""><video id="cover-loop" muted loop playsinline preload="none" aria-hidden="true"></video><span class="jacket-meta"><span>RISHIT MATHUR</span><span id="cover-number"></span></span></button></div>
-  <div class="modal-info"><h2 id="modal-title"></h2><p id="kind"></p></div>
-  <div class="controls"><button class="primary" id="play">▶ Play project</button><button class="secondary" id="reveal">Reveal vinyl</button><a class="direct" id="direct">Open project directly</a></div>
-  <p class="hint" id="hint">Click the sleeve to slide out the record.</p>
-</div></dialog>
-<div class="play-strip" id="play-strip"><p><span id="status" aria-live="polite">Dropping the needle…</span><span class="progress"><i id="progress"></i></span></p><button class="primary" id="pause">Ⅱ Pause</button><button class="secondary" id="cancel">Cancel</button></div>
-<script type="application/json" id="projects-data">/*PROJECTS*/[]</script>
-<script src="home.js?v={{V}}"></script>
+<footer class="foot cap"><span>© 2026 Rishit Raj Mathur · Tampa, FL</span><nav aria-label="Footer"><a href="#projects">All projects</a><a href="https://mrrishit909.github.io/">About site</a><a href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></nav></footer>
+
+<dialog class="detail" id="detail" aria-labelledby="detail-title">
+  <div class="detail-body">
+    <div class="detail-head cap"><span id="detail-catalog"></span><button class="icon-btn" id="detail-close" type="button" aria-label="Close project">×</button></div>
+    <div class="detail-grid">
+      <figure class="detail-figure"><img id="detail-cover" alt="" width="1400" height="800"></figure>
+      <div class="detail-info"><h2 id="detail-title" tabindex="-1"></h2><p class="detail-tagline" id="detail-tagline"></p><ul class="tools" id="detail-tech" aria-label="Built with"></ul>
+        <p class="detail-actions"><a class="btn btn-primary" id="detail-open">Open the case study</a><a class="btn btn-ghost" id="detail-demo" hidden>Live demo ↗</a><a class="btn btn-ghost" id="detail-repo" target="_blank" rel="noopener">Code on GitHub ↗</a></p>
+        <p class="detail-nav"><button type="button" id="detail-prev">← Previous</button><span class="cap" id="detail-pos"></span><button type="button" id="detail-next">Next →</button></p></div>
+    </div>
+  </div>
+</dialog>
+<script type="application/json" id="projects-data">/*DATA*/[]</script>
+<script src="portfolio.js?v={{PORTFOLIO_JS}}" defer></script>
+<script type="module" src="scene.js?v={{SCENE_JS}}"></script>
 </body>
 </html>

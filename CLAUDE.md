@@ -12,7 +12,7 @@ moved; otherwise merge `main` in first and re-check. Say in the reply that it wa
 ## Adding a project
 
 **Rule: every project added from now on gets the same format and goes everywhere the others go.** That means a `project.json` in
-the standard fields, a `cover.jpg`, the standard case-study page, a record on the home-page shelf, a motion tile (`loop.mp4` +
+the standard fields, a `cover.jpg`, the standard case-study page, an entry in the catalogue, a motion tile (`loop.mp4` +
 `loop.webm`, see below), and the site-wide colours from `theme.css`. No one-off layouts, no custom pages, no per-project CSS or
 colours, no `"frozen"` (only `trading-bot`, which predates the format, is allowed it). `build.py` enforces the checkable parts and
 refuses to build otherwise: missing `cover.jpg`, a new frozen project, or text fields carrying `style=`, `<style>`, `<script>`,
@@ -23,8 +23,8 @@ This is the whole workflow, and it is the same for every project:
 1. Create `<slug>/project.json` and `<slug>/cover.jpg`. Copy the fields from any existing `project.json` (the required ones are listed
    as `REQUIRED` in `build.py`). Text fields are trusted HTML fragments.
 2. Run `python3 build.py`. It writes `<slug>/index.html` (the case study) and rebuilds the home page, where the project appears as a
-   new record on the shelf. Order is newest `date` first (`order` breaks ties).
-3. Make its motion tile (next section), rebuild, and check the new record on the shelf and its case study in a browser.
+   new entry in the catalogue. Order is newest `date` first (`order` breaks ties).
+3. Make its motion tile (next section), rebuild, and check its catalogue entry and its case study in a browser.
 4. Commit what the build changed, then publish (merge into `main`, see Publishing).
 
 Do **not** hand-edit `index.html` or any `<slug>/index.html`: they are generated. Don't touch other projects' files when adding one.
@@ -45,19 +45,39 @@ A project's record sleeve on the home page, and the "Next project" link on the c
      (Needs node, `npm i -g playwright` with its Chromium, and ffmpeg. `motion/render.cjs` has the details.)
   4. `python3 build.py`, then commit the two clips with the rest.
 
-## How the home page works (so it can be changed safely)
+## How the site is laid out (so it can be changed safely)
 
-* It is a record shelf: every project is a spine on the shelf (24 per page, 8 per shelf). Clicking one opens its sleeve; "Play" slides the
-  vinyl out, drops it on the turntable, and then opens the case study. Search filters by title and `kind`.
-* `index.template.html` is the markup and CSS; `home.js` is the behaviour (no libraries); `build.py` fills in the project list
-  (`/*PROJECTS*/[]`), the count and a plain no-JS link list (`<!--LIST-->`), and writes `index.html`.
-* On desktop the shelf and turntable are one fixed layout (two 500px columns, the player controls under the turntable) that
-  `fit()` in `home.js` zooms as one block to fill the window, so they always grow and shrink together. Phones stack them instead.
-  The record (`.platter`) and tonearm (`.arm`) are sized as percentages of the square deck.
-* `assets/vinyl.webp` and `assets/needle.webp` are the record and tonearm images. Spines are shades of the theme's `--accent`, light to dark along each shelf (`shade` in `home.js`).
-* `vendor/fonts` holds the Geist font used by `motion/` (self-hosted; licence alongside).
-* **One colour scheme for the whole site:** `theme.css` ("Stone & sage": paper, raised, panel, line, faint, wood, muted, ink, deep, a sage `--accent`
-  for small marks, and the Courier `--mono`). It is kept mid-contrast on purpose: no pure black, secondary text about 5:1.
-  The home page, every case study (`site.css`) and the frozen trading-bot page (`style.css`) all take their colours from it, so
-  change colours there, not in the page CSS.
+* **`/projects/` (index.html) is the whole portfolio**: `index.template.html` + `portfolio.css` + `portfolio.js` (DOM) +
+  `scene.js` (3D). One continuous page: hero, three approach steps, eight featured projects, the complete catalogue,
+  about, experience, capabilities, contact. All of it is plain HTML; `build.py` fills `{{FEATURED}}` from `featured.json`
+  (eight slugs with a hand-written problem / contribution / result each, numbers from that project's case study),
+  `{{CATALOG}}` (every project as a real link), the kind filter, and the JSON the detail dialog reads. Professional facts
+  come from the résumé at ~/portfolio/resume.pdf and the About site; do not add claims not in those.
+* **The environment** (`scene.js`, Three.js r168 vendored under `vendor/three/`, MIT) is one persistent scene driven by
+  native scroll, in the language of igloo.inc: a pale fog landscape, a "data cube" of frosted blocks with a glowing core that
+  assembles in the hero and splits into raw / modelled / served layers through the approach steps, then a dolly through fog
+  past one frosted block per featured project (its real screenshot sealed inside, mono HUD labels with leader lines drawn
+  in the DOM), landing on a glowing ring stage under the catalogue and the sections after it. Chapter changes pulse a
+  chromatic "glitch" pass. DPR is capped, phones get no transmission / bloom, the loop runs only while something changes,
+  it suspends when hidden, and it starts after first paint. No WebGL (or a second context loss) shows
+  `assets/scene-fallback.jpg` (a capture of the live scene; regenerate it if the scene changes) and the featured
+  screenshots inline. `prefers-reduced-motion` stops all self-driven motion; the nav's "Motion" control does the same by hand.
+  The renderer reads its colours from `--c-scene-*` in theme.css, so CSS and WebGL share one palette.
+* **The catalogue** is static HTML (219 links); `portfolio.js` adds search + kind filter (also from `?q=` / `?kind=`),
+  progressive reveal (36 at a time, "Show more" plus auto-load near the end), and a `<dialog>` with the project's cover,
+  tagline, tech and links, addressable as `#<slug>`. `/projects/archive/` is a static redirect to `/projects/#projects`.
+* **Checks:** `python3 -m http.server 8800 --bind 127.0.0.1 &` then `NODE_PATH=$(npm root -g) node tests/portfolio-check.cjs`
+  (no-JS content, every internal link on disk, catalogue search / filter / reveal / dialog, keyboard, reduced motion,
+  no WebGL, redirect, contrast, overflow).
+* `vendor/fonts` holds Geist (self-hosted, OFL licence alongside), used by the portfolio and `motion/`.
+* **One token scheme for the whole site:** `theme.css` holds three layers (`--p-*` primitives, `--s-*` semantics including
+  the pale `--s-fog-*` roles the portfolio uses, `--c-*` component decisions) plus the legacy names (`--paper`, `--ink`,
+  `--muted`, `--accent` ...) as aliases of the semantic layer. The portfolio, every case study (`site.css`) and the frozen
+  trading-bot page (`style.css`) take their colours from it, so change colours there, not in the page CSS. `build.py`
+  refuses any `color:` token under 4.5:1 on the cream canvas in `site.css`; the portfolio is checked by
+  `tests/portfolio-check.cjs` from computed styles.
 * Case-study pages use `site.css`. A project marked `"frozen": true` in its `project.json` is never rebuilt.
+
+Scene quality tiers (scene.js): 0 high, 1 lite (phones start here), 2 low, 3 static hand-off; stepped down only, from a
+1.5 s frame-time window. Headless SwiftShader reaches static by itself, so scene-dependent checks load `?scene=keep`.
+Perf evidence and scripts: ~/projects-site-evidence/perf-2026-10-19/ (hardware Chrome, SwiftShader, WebKit).

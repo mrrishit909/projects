@@ -130,15 +130,22 @@ def contrast(a, b):
 
 
 def low_contrast_text():
-    tokens = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})\b", (ROOT / "theme.css").read_text()))
+    css = (ROOT / "theme.css").read_text()
+    tokens = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})\b", css))
+    aliases = dict(re.findall(r"--([\w-]+):\s*var\(--([\w-]+)\)", css))     # semantic -> primitive chains
+
+    def resolve(tok, depth=0):
+        return tokens.get(tok) if tok in tokens or depth > 8 else resolve(aliases.get(tok, ""), depth + 1)
+    paper = resolve("paper")
     bad = []
-    for name in ("site.css", "index.template.html"):
+    for name in ("site.css",):   # portfolio.css (the fog environment) is checked from computed styles by tests/portfolio-check.cjs
         for sel, decls in re.findall(r"([^{}]+)\{([^{}]*)\}", (ROOT / name).read_text()):
             if "::marker" in sel:
                 continue
             for tok in re.findall(r"(?<![-\w])color:\s*var\(--([\w-]+)\)", decls):
-                if tok != "paper" and tok in tokens and contrast(tokens[tok], tokens["paper"]) < 4.5:
-                    bad.append(f"{name}: {sel.strip()[-60:]} uses --{tok} ({contrast(tokens[tok], tokens['paper']):.2f}:1)")
+                hexv = resolve(tok)
+                if hexv and tok not in ("paper", "s-canvas", "s-text-inverse", "p-color-white") and contrast(hexv, paper) < 4.5:
+                    bad.append(f"{name}: {sel.strip()[-60:]} uses --{tok} ({contrast(hexv, paper):.2f}:1)")
     return bad
 
 
@@ -191,7 +198,7 @@ def project_page(p, nxt):
     ids = ["problem", "built", "how", "results", "next-steps"]
     secs = "".join(f'<section class="s" id="{ids[n - 1]}"><h2 class="cap">{n:02d} &mdash; {escape(t)}</h2><div class="body">{b}</div></section>'
                    for n, (t, b) in enumerate(sections, 1))
-    body = f"""<header class="bar cap"><a href="{PORTFOLIO}">Rishit Mathur</a><nav><a href="../">All projects</a><a href="{PORTFOLIO}resume.pdf">Resume</a></nav></header>
+    body = f"""<header class="bar cap"><a href="{PORTFOLIO}">Rishit Mathur</a><nav><a href="../">Portfolio</a><a href="../#projects">All projects</a><a href="{PORTFOLIO}resume.pdf">Resume</a></nav></header>
 <main class="wrap">
   <div class="hero">
     <p class="cap dim">{escape(p["kind"])} &middot; {escape(p["date"])}</p>
@@ -208,21 +215,51 @@ def project_page(p, nxt):
     return page(f'{p["title"]} · Rishit Mathur', p["tagline"], body)
 
 
+def demo_url(p):
+    d = p.get("demo")
+    return d if not d or d.startswith("http") else f'{p["slug"]}/{d}'
+
+
 def index_page(projects):
-    """The record-shelf page (index.template.html + home.js). A plain list of real links is rendered here for no-JS visitors."""
-    items = "".join(f'<li><a href="{p["slug"]}/">{escape(p["title"])}</a></li>' for p in projects)
-    data = [{k: p.get(k) for k in ("slug", "title", "kind", "date", "cover", "aspect", "loops")} for p in projects]
-    # "Python, Statistics, LLM ...": the most common first word of each project's kind, so it follows new projects
-    heads = Counter(p["kind"].split("·")[0].strip() for p in projects)
+    """The portfolio (index.template.html + portfolio.css + portfolio.js + scene.js): one continuous page. build.py fills the
+    featured chapters from featured.json (eight slugs with a hand-written problem / contribution / result each, numbers from
+    that project's case study), the complete catalogue as static links, the kind filter, and the data the detail dialog reads."""
+    by_slug = {p["slug"]: p for p in projects}
+    order = {p["slug"]: i + 1 for i, p in enumerate(projects)}
+    feats = []
+    for i, f in enumerate(json.loads((ROOT / "featured.json").read_text()), 1):
+        p = by_slug[f["slug"]]
+        links = [f'<a href="{p["slug"]}/">Case study</a>', f'<a href="{escape(p["repo"])}" target="_blank" rel="noopener">Code</a>']
+        if p.get("demo"):
+            links.append(f'<a href="{escape(demo_url(p))}">{escape(p.get("demo_label", "Demo"))}</a>')
+        tools = "".join(f"<li>{escape(t)}</li>" for t in p["tech"])
+        feats.append(
+            f'<article class="feature chapter" id="feature-{p["slug"]}" data-chapter="{3 + i}" data-slug="{p["slug"]}" data-cover="{p["slug"]}/{p["cover"]}" '
+            f'data-title="{escape(p["title"], quote=True)}" data-area="{escape(f["area"], quote=True)}" data-date="{escape(p["date"], quote=True)}" data-no="{i:02d}">'
+            f'<div class="plate copy"><p class="hud-line cap"><span class="no">Portfolio_{i:02d}</span><span>{escape(f["area"])} · {escape(p["date"])}</span></p>'
+            f'<h3><a href="{p["slug"]}/">{escape(p["title"])}</a></h3><p class="tagline">{escape(p["tagline"])}</p>'
+            f'<dl class="facts"><dt>Problem</dt><dd>{f["problem"]}</dd><dt>What I did</dt><dd>{f["contribution"]}</dd><dt>Result</dt><dd>{f["result"]}</dd></dl>'
+            f'<ul class="tools" aria-label="Tools">{tools}</ul><p class="links">{"".join(links)}</p></div>'
+            f'<figure class="feature-figure"><a href="{p["slug"]}/" tabindex="-1" aria-hidden="true"><img src="{p["slug"]}/{p["cover"]}" alt="" width="1400" height="800" loading="lazy" decoding="async"></a></figure></article>')
+    heads = Counter(p["kind"].split("\u00b7")[0].strip() for p in projects)
+    tiles = []
+    for p in projects:
+        head = p["kind"].split("\u00b7")[0].strip()
+        search = escape(" ".join([p["title"], p["kind"], *p["tech"]]).lower(), quote=True)
+        tiles.append(f'<li class="tile" data-slug="{p["slug"]}" data-kind="{escape(head, quote=True)}" data-search="{search}">'
+                     f'<a class="tile-link" href="{p["slug"]}/"><span class="tile-no cap">{order[p["slug"]]:03d}</span>'
+                     f'<span class="tile-title">{escape(p["title"])}</span><span class="tile-kind cap">{escape(p["kind"])}</span></a></li>')
+    keys = ("slug", "title", "kind", "date", "cover", "tagline", "tech", "repo", "demo", "demo_label")
+    data = [{k: p.get(k) for k in keys if p.get(k) is not None} for p in projects]
     kinds = ", ".join(escape(k) for k, _ in heads.most_common(5))
-    # home.js?v=<hash of its contents>: a changed script gets a new URL, so browsers never run a stale cached copy
-    version = asset_version("home.js")
+    options = "".join(f'<option value="{escape(k, quote=True)}">{escape(k)} ({n})</option>' for k, n in heads.most_common())
     tpl = (ROOT / "index.template.html").read_text()
-    assert "<!--LIST-->" in tpl and "/*PROJECTS*/[]" in tpl
-    # json.dumps output is safe inside <script> once "</" can't appear
-    return (tpl.replace("<!--LIST-->", items).replace("/*PROJECTS*/[]", json.dumps(data).replace("</", "<\\/"))
-               .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS}}", kinds)
-               .replace("{{V}}", version).replace("{{THEME}}", asset_version("theme.css")))
+    assert "{{FEATURED}}" in tpl and "{{CATALOG}}" in tpl and "/*DATA*/[]" in tpl
+    return (tpl.replace("{{FEATURED}}", "".join(feats)).replace("{{CATALOG}}", "".join(tiles))
+               .replace("/*DATA*/[]", json.dumps(data).replace("</", "<\\/"))
+               .replace("{{COUNT}}", str(len(projects))).replace("{{KINDS_OPTIONS}}", options).replace("{{KINDS}}", kinds)
+               .replace("{{THEME}}", asset_version("theme.css")).replace("{{PORTFOLIO_CSS}}", asset_version("portfolio.css"))
+               .replace("{{PORTFOLIO_JS}}", asset_version("portfolio.js")).replace("{{SCENE_JS}}", asset_version("scene.js")))
 
 
 if __name__ == "__main__":

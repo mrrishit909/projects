@@ -1,19 +1,177 @@
-/* The one colour scheme for every page on the site (home shelf, case studies, the frozen trading-bot page).
-   "Stone & sage": a pale, cool grey-green paper with soft charcoal text and sage accents, kept in the middle of the
-   contrast range so nothing glares: dim paper, body text about 7:1 rather than black-on-white's 21:1,
-   secondary text about 4.7:1. Change a colour here and every page follows. */
+/* The one colour and token scheme for every page on the site (home record archive, case studies, the frozen trading-bot page).
+   Three layers, dependency direction component -> semantic -> primitive:
+     --p-*  primitives: raw colours, fonts, scales, durations, spring constants
+     --s-*  semantics:  purpose-based aliases (canvas, text-primary, accent, focus-ring ...)
+     --c-*  component decisions for the home page (record sleeve, shelf, toolbar, project panel)
+   The legacy names at the bottom (--paper, --ink, --accent ...) are semantic aliases kept so site.css / style.css keep working.
+   Palette: a custom chili / earth / charcoal / cream set (inspired by, not a copy of, any brand guide). */
 :root{
   color-scheme:light;
-  --paper:#e6e9e4;   /* page background */
-  --raised:#eef0ec;  /* cards that sit on the paper */
-  --panel:#dadfd8;   /* cabinets, decks, code blocks */
-  --line:#cdd3cc;    /* hairlines and borders */
-  --faint:#a0aaa2;   /* decorative marks only (never text you need to read) */
-  --wood:#b3bcb1;    /* shelf edges */
-  --muted:#5f6963;   /* secondary text, labels */
-  --ink:#444c48;     /* body text */
-  --deep:#4a554f;    /* primary buttons, strongest emphasis (deep slate-green rather than black) */
-  --accent:#7d9683;  /* sage, used sparingly: progress bars, active marks, hovers (2.6:1: never for text) */
-  --accent-ink:#53695a; /* the sage dark enough for text (4.85:1 on paper): step numbers */
-  --mono:'Courier New',Courier,monospace;
+
+  /* ---- LAYER 1: PRIMITIVES ------------------------------------------------------------------ */
+  --p-color-chili-600:#A81612;
+  --p-color-chili-700:#8E1310;   /* hover state of chili-600 */
+  --p-color-chili-900:#641D18;
+  --p-color-earth-700:#704632;
+  --p-color-charcoal-950:#24201D;
+  --p-color-stone-600:#685D55;
+  --p-color-stone-400:#9A8E85;   /* decorative hairlines and marks only (3.1:1 on cream: never text) */
+  --p-color-sand-400:#C9BAAA;
+  --p-color-sand-300:#D8CBBE;
+  --p-color-sand-100:#EEE5D8;
+  --p-color-cream-50:#FAF6EF;
+  --p-color-white:#FFFFFF;
+  --p-color-vinyl:#151413;
+  --p-color-fog-50:#F3F5F8;
+  --p-color-fog-100:#E9EDF2;
+  --p-color-fog-200:#D6DCE4;
+  --p-color-fog-300:#C3C9D2;
+  --p-color-fog-500:#9AA2AE;
+  --p-color-fog-700:#5F6773;
+  --p-color-slate-700:#3B414C;
+  --p-color-slate-900:#262B33;
+  --p-color-ice-glow:#E3F4FF;
+
+  --p-font-sans:Geist,"Helvetica Neue",Arial,system-ui,sans-serif;
+  --p-font-mono:"Geist Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --p-weight-regular:400;
+  --p-weight-medium:500;
+  --p-leading-tight:1.05;
+  --p-leading-snug:1.25;
+  --p-leading-body:1.55;
+  --p-tracking-tight:-0.03em;
+  --p-tracking-caps:0.12em;
+  --p-text-xs:12px;
+  --p-text-sm:14px;
+  --p-text-md:16px;
+  --p-text-lg:18px;
+  --p-text-xl:clamp(20px,1.3rem + .6vw,26px);
+  --p-text-2xl:clamp(26px,1.4rem + 1.6vw,40px);
+  --p-text-display:clamp(42px,1.6rem + 4.6vw,88px);
+
+  --p-space-1:4px;
+  --p-space-2:8px;
+  --p-space-3:12px;
+  --p-space-4:16px;
+  --p-space-5:24px;
+  --p-space-6:32px;
+  --p-space-7:48px;
+  --p-space-8:64px;
+  --p-space-9:96px;
+
+  --p-radius-1:2px;
+  --p-radius-2:4px;
+  --p-radius-3:8px;
+  --p-radius-pill:999px;
+  --p-border-1:1px;
+  --p-border-2:2px;
+
+  --p-duration-1:120ms;
+  --p-duration-2:200ms;
+  --p-duration-3:320ms;
+  --p-duration-4:520ms;
+  --p-ease-out:cubic-bezier(.2,.7,.2,1);
+  --p-ease-in-out:cubic-bezier(.65,0,.35,1);
+  /* damped spring constants, read by home.js (mass 1) */
+  --p-spring-stiffness:300;
+  --p-spring-damping:28;
+  --p-spring-mass:1;
+
+  /* ---- LAYER 2: SEMANTICS ------------------------------------------------------------------- */
+  --s-canvas:var(--p-color-cream-50);
+  --s-surface-primary:var(--p-color-white);
+  --s-surface-secondary:var(--p-color-sand-100);
+  --s-surface-tertiary:var(--p-color-sand-300);
+  --s-surface-inverse:var(--p-color-charcoal-950);
+  --s-text-primary:var(--p-color-charcoal-950);
+  --s-text-muted:var(--p-color-stone-600);
+  --s-text-inverse:var(--p-color-cream-50);
+  --s-accent:var(--p-color-chili-600);
+  --s-accent-hover:var(--p-color-chili-700);
+  --s-accent-strong:var(--p-color-chili-900);
+  --s-warm:var(--p-color-earth-700);
+  --s-border-subtle:var(--p-color-sand-300);
+  --s-border-strong:var(--p-color-sand-400);
+  --s-mark-decorative:var(--p-color-stone-400);
+  --s-focus-ring:var(--p-color-chili-600);
+  --s-focus-ring-width:var(--p-border-2);
+  --s-focus-ring-offset:3px;
+  /* the portfolio home is a pale fog environment; these are its surface and text roles */
+  --s-fog-canvas:var(--p-color-fog-300);
+  --s-fog-surface:var(--p-color-fog-100);
+  --s-fog-plate:color-mix(in srgb,var(--p-color-fog-50) 78%,transparent);
+  --s-fog-border:var(--p-color-fog-500);
+  --s-fog-text:var(--p-color-slate-900);
+  --s-fog-text-muted:var(--p-color-slate-700);
+  --s-fog-glow:var(--p-color-ice-glow);
+  --s-fog-focus-ring:var(--p-color-slate-900);
+  --s-font-body:var(--p-font-sans);
+  --s-font-mono:var(--p-font-mono);
+  --s-space-inline:var(--p-space-3);
+  --s-space-component:var(--p-space-5);
+  --s-space-section:clamp(var(--p-space-7),6vw,var(--p-space-9));
+  --s-gutter:clamp(20px,4vw,64px);
+  --s-content-max:1320px;
+
+  --s-motion-feedback:var(--p-duration-2);
+  --s-motion-scene:var(--p-duration-4);
+  --s-ease-feedback:var(--p-ease-out);
+  --s-ease-scene:var(--p-ease-in-out);
+  --s-spring-responsive-stiffness:var(--p-spring-stiffness);
+  --s-spring-responsive-damping:var(--p-spring-damping);
+  --s-spring-responsive-mass:var(--p-spring-mass);
+
+  /* ---- LAYER 3: COMPONENT DECISIONS (home page) --------------------------------------------- */
+  --c-record-sleeve-radius:var(--p-radius-1);
+  --c-record-sleeve-padding:var(--p-space-3);
+  --c-record-sleeve-background:var(--s-surface-secondary);
+  --c-record-sleeve-edge:var(--s-border-strong);
+  --c-record-label-background:var(--s-surface-secondary);
+  --c-record-label-ink:var(--s-text-primary);
+  --c-record-preview-distance:22%;     /* vinyl extraction on hover/focus, share of sleeve width */
+  --c-record-open-distance:34%;        /* vinyl extraction in the expanded presentation */
+  --c-record-lift:-5px;
+  --c-record-press-scale:.98;
+  --c-record-meta-color:var(--s-text-muted);
+  --c-shelf-gap:clamp(var(--p-space-4),2.2vw,var(--p-space-6));
+  --c-shelf-row-gap:clamp(var(--p-space-6),3vw,var(--p-space-7));
+  --c-toolbar-control-height:44px;
+  --c-toolbar-background:var(--s-canvas);
+  --c-project-panel-width:min(1120px,calc(100vw - 2 * var(--s-gutter)));
+  --c-project-panel-padding:clamp(var(--p-space-5),3vw,var(--p-space-7));
+  --c-project-panel-background:var(--s-surface-primary);
+  --c-project-panel-backdrop:color-mix(in srgb,var(--p-color-charcoal-950) 55%,transparent);
+  --c-record-transition-duration:var(--s-motion-scene);
+  --c-arm-rest-angle:-18deg;
+  --c-arm-play-angle:12deg;
+
+  /* scene (WebGL) palette: portfolio.js reads exactly these, so the renderer and the CSS share one source */
+  --c-scene-fog:var(--p-color-fog-300);
+  --c-scene-ground:#AEB5C0;
+  --c-scene-block:#CDD4DD;
+  --c-scene-glow:var(--p-color-ice-glow);
+  --c-scene-sky:var(--p-color-fog-50);
+  --c-scene-shadow:var(--p-color-fog-700);
+  --c-nav-height:64px;
+  --c-nav-background:color-mix(in srgb,var(--p-color-fog-100) 70%,transparent);
+  --c-plate-background:var(--s-fog-plate);
+  --c-plate-radius:var(--p-radius-3);
+  --c-plate-padding:clamp(var(--p-space-5),3vw,var(--p-space-6));
+  --c-tile-background:color-mix(in srgb,var(--p-color-fog-50) 70%,transparent);
+  --c-tile-border:color-mix(in srgb,var(--p-color-fog-500) 45%,transparent);
+  --c-chapter-min-height:100svh;
+
+  /* ---- legacy semantic aliases (site.css, style.css) ---------------------------------------- */
+  --paper:var(--s-canvas);
+  --raised:var(--s-surface-primary);
+  --panel:var(--s-surface-secondary);
+  --line:var(--s-border-subtle);
+  --faint:var(--s-mark-decorative);
+  --wood:var(--s-border-strong);
+  --muted:var(--s-text-muted);
+  --ink:var(--s-text-primary);
+  --deep:var(--s-accent-strong);
+  --accent:var(--s-accent);
+  --accent-ink:var(--s-accent);
+  --mono:var(--s-font-mono);
 }
