@@ -147,9 +147,11 @@
 
   /* scene (WebGL) palette: portfolio.js reads exactly these, so the renderer and the CSS share one source */
   --c-scene-fog:var(--p-color-fog-300);
-  --c-scene-ground:#AEB5C0;
-  --c-scene-block:#CDD4DD;
+  --c-scene-ground:#A6ADB9;              /* a step darker than the blocks, so the sculpture reads against the land */
+  --c-scene-block:#D9DFE8;
   --c-scene-glow:var(--p-color-ice-glow);
+  --c-scene-core-raw:var(--p-color-fog-500);   /* the unlit source layers of the data cube */
+  --c-scene-accent:var(--p-color-chili-600);   /* one restrained warm note: the served layer's core, the rim light */
   --c-scene-sky:var(--p-color-fog-50);
   --c-scene-shadow:var(--p-color-fog-700);
   --c-nav-height:64px;
@@ -160,17 +162,26 @@
   --c-tile-background:color-mix(in srgb,var(--p-color-fog-50) 70%,transparent);
   --c-tile-border:color-mix(in srgb,var(--p-color-fog-500) 45%,transparent);
   --c-chapter-min-height:100svh;
+  --c-method-min-height:88svh;
+  /* presentation patterns: a frosted plate (featured copy), an editorial sheet (about, experience, catalogue), a figure card */
+  --c-sheet-background:color-mix(in srgb,var(--p-color-fog-50) 88%,transparent);
+  --c-sheet-border:color-mix(in srgb,var(--p-color-fog-500) 35%,transparent);
+  --c-sheet-padding:clamp(var(--p-space-5),4vw,var(--p-space-7));
+  --c-figure-background:var(--p-color-fog-50);
+  --c-figure-border:color-mix(in srgb,var(--p-color-fog-500) 45%,transparent);
+  --c-figure-shadow:0 30px 60px -30px rgba(38,43,51,.45);
+  --c-viewer-backdrop:color-mix(in srgb,var(--p-color-slate-900) 72%,transparent);
 
-  /* ---- legacy semantic aliases (site.css, style.css) ---------------------------------------- */
-  --paper:var(--s-canvas);
-  --raised:var(--s-surface-primary);
-  --panel:var(--s-surface-secondary);
-  --line:var(--s-border-subtle);
-  --faint:var(--s-mark-decorative);
-  --wood:var(--s-border-strong);
-  --muted:var(--s-text-muted);
-  --ink:var(--s-text-primary);
-  --deep:var(--s-accent-strong);
+  /* ---- legacy semantic aliases (site.css, style.css): the case studies share the portfolio's fog family ------- */
+  --paper:var(--p-color-fog-50);
+  --raised:var(--p-color-white);
+  --panel:var(--p-color-fog-100);
+  --line:var(--p-color-fog-200);
+  --faint:var(--p-color-fog-500);          /* decorative hairlines and marks only (3.1:1 on the paper: never text) */
+  --wood:var(--p-color-fog-300);
+  --muted:var(--s-fog-text-muted);
+  --ink:var(--s-fog-text);
+  --deep:var(--s-fog-text);
   --accent:var(--s-accent);
   --accent-ink:var(--s-accent);
   --mono:var(--s-font-mono);

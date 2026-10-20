@@ -62,12 +62,11 @@ def mp4_aspect(path):
     return walk(0, len(data))
 
 
-def image_aspect(path):
-    """Width / height of a .jpg or .png, or None."""
+def image_size(path):
+    """(width, height) of a .jpg or .png, or None."""
     d = path.read_bytes()
     if d[:8] == b"\x89PNG\r\n\x1a\n":
-        w, h = struct.unpack(">II", d[16:24])
-        return w / h
+        return struct.unpack(">II", d[16:24])
     i = 2
     while d[:2] == b"\xff\xd8" and i + 9 < len(d):
         if d[i] != 0xFF:
@@ -76,9 +75,15 @@ def image_aspect(path):
         m = d[i + 1]
         if m in (0xC0, 0xC1, 0xC2):
             h, w = struct.unpack(">HH", d[i + 5:i + 9])
-            return w / h
+            return w, h
         i += 2 + struct.unpack(">H", d[i + 2:i + 4])[0]
     return None
+
+
+def image_aspect(path):
+    """Width / height of a .jpg or .png, or None."""
+    wh = image_size(path)
+    return wh[0] / wh[1] if wh else None
 
 
 def tile_media(folder, p):
@@ -222,8 +227,9 @@ def demo_url(p):
 
 def index_page(projects):
     """The portfolio (index.template.html + portfolio.css + portfolio.js + scene.js): one continuous page. build.py fills the
-    featured chapters from featured.json (eight slugs with a hand-written problem / contribution / result each, numbers from
-    that project's case study), the complete catalogue as static links, the kind filter, and the data the detail dialog reads."""
+    flagship chapters from featured.json (four slugs with a hand-written headline / problem / contribution / result / caption
+    each, numbers from that project's case study), the complete catalogue as static links, the kind filter, and the data the
+    detail dialog reads. Scene chapters are the elements carrying data-scene, in document order (scene.js reads them)."""
     by_slug = {p["slug"]: p for p in projects}
     order = {p["slug"]: i + 1 for i, p in enumerate(projects)}
     feats = []
@@ -232,15 +238,19 @@ def index_page(projects):
         links = [f'<a href="{p["slug"]}/">Case study</a>', f'<a href="{escape(p["repo"])}" target="_blank" rel="noopener">Code</a>']
         if p.get("demo"):
             links.append(f'<a href="{escape(demo_url(p))}">{escape(p.get("demo_label", "Demo"))}</a>')
-        tools = "".join(f"<li>{escape(t)}</li>" for t in p["tech"])
+        tools = "".join(f"<li>{escape(t)}</li>" for t in p["tech"][:5])
+        w, h = image_size(ROOT / p["slug"] / p["cover"])
+        cover = f'{p["slug"]}/{p["cover"]}'
         feats.append(
-            f'<article class="feature chapter" id="feature-{p["slug"]}" data-chapter="{3 + i}" data-slug="{p["slug"]}" data-cover="{p["slug"]}/{p["cover"]}" '
+            f'<article class="feature chapter" id="feature-{p["slug"]}" data-scene="feature" data-slug="{p["slug"]}" data-cover="{cover}" '
             f'data-title="{escape(p["title"], quote=True)}" data-area="{escape(f["area"], quote=True)}" data-date="{escape(p["date"], quote=True)}" data-no="{i:02d}">'
-            f'<div class="plate copy"><p class="hud-line cap"><span class="no">Portfolio_{i:02d}</span><span>{escape(f["area"])} · {escape(p["date"])}</span></p>'
-            f'<h3><a href="{p["slug"]}/">{escape(p["title"])}</a></h3><p class="tagline">{escape(p["tagline"])}</p>'
+            f'<div class="plate copy feature-copy"><p class="hud-line cap"><span class="no">Portfolio_{i:02d}</span><span>{escape(f["area"])} · {escape(p["date"])}</span></p>'
+            f'<h3><a href="{p["slug"]}/">{escape(p["title"])}</a></h3><p class="headline">{escape(f["headline"])}</p>'
             f'<dl class="facts"><dt>Problem</dt><dd>{f["problem"]}</dd><dt>What I did</dt><dd>{f["contribution"]}</dd><dt>Result</dt><dd>{f["result"]}</dd></dl>'
             f'<ul class="tools" aria-label="Tools">{tools}</ul><p class="links">{"".join(links)}</p></div>'
-            f'<figure class="feature-figure"><a href="{p["slug"]}/" tabindex="-1" aria-hidden="true"><img src="{p["slug"]}/{p["cover"]}" alt="" width="1400" height="800" loading="lazy" decoding="async"></a></figure></article>')
+            f'<figure class="feature-figure"><a class="inspect" href="{cover}" data-inspect="{p["slug"]}" aria-label="Enlarge screenshot of {escape(p["title"], quote=True)}">'
+            f'<img src="{cover}" alt="" width="{w}" height="{h}" loading="lazy" decoding="async"><span class="inspect-label cap" aria-hidden="true">Enlarge screenshot</span></a>'
+            f'<figcaption>{escape(f["caption"])}</figcaption></figure></article>')
     heads = Counter(p["kind"].split("\u00b7")[0].strip() for p in projects)
     tiles = []
     for p in projects:
@@ -251,6 +261,11 @@ def index_page(projects):
                      f'<span class="tile-title">{escape(p["title"])}</span><span class="tile-kind cap">{escape(p["kind"])}</span></a></li>')
     keys = ("slug", "title", "kind", "date", "cover", "tagline", "tech", "repo", "demo", "demo_label")
     data = [{k: p.get(k) for k in keys if p.get(k) is not None} for p in projects]
+    captions = {f["slug"]: f["caption"] for f in json.loads((ROOT / "featured.json").read_text())}
+    for d in data:
+        if d["slug"] in captions:
+            d["caption"] = captions[d["slug"]]
+            d["size"] = list(image_size(ROOT / d["slug"] / d["cover"]))
     kinds = ", ".join(escape(k) for k, _ in heads.most_common(5))
     options = "".join(f'<option value="{escape(k, quote=True)}">{escape(k)} ({n})</option>' for k, n in heads.most_common())
     tpl = (ROOT / "index.template.html").read_text()

@@ -1,8 +1,9 @@
 /* The environment behind the portfolio: one persistent Three.js scene driven by native scroll.
-   A pale fog landscape; a "data cube" of frosted blocks with a glowing core that assembles in the hero and splits into its
-   three layers (raw / modelled / served) through the approach chapters; then the camera dollies through fog past one
-   frosted block per featured project (its real screenshot sealed inside, HUD labels drawn in the DOM); and lands on a ring
-   stage under the catalogue. Progressive: the page is complete without this file. Palette comes from theme.css (--c-scene-*). */
+   A pale fog landscape; a "data cube" of frosted blocks around a lit core that assembles in the hero and splits into its three
+   layers (raw / modelled / served) through the method strip; then the camera dollies through fog past one frosted block per
+   flagship project (its real screenshot sealed inside, HUD labels drawn in the DOM); and lands on a ring stage under the
+   sections after. Chapters are the elements carrying data-scene, in document order, so the choreography follows the page.
+   Progressive: the page is complete without this file. Palette comes from theme.css (--c-scene-*). */
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -18,9 +19,13 @@ let reduced = motionQuery.matches, paused = false;
 const small = () => innerWidth < 900 || matchMedia("(pointer: coarse)").matches;
 const lite = small();                                   // fewer segments, no transmission, no bloom
 const col = name => { const d = document.createElement("div"); d.style.color = `var(${name})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return new THREE.Color(c); };
-const chapters = [...document.querySelectorAll("[data-chapter]")].sort((a, b) => +a.dataset.chapter - +b.dataset.chapter);
-const LAST = +chapters[chapters.length - 1].dataset.chapter;
-const features = [...document.querySelectorAll(".feature")];
+const chapters = [...document.querySelectorAll("[data-scene]")];                 // document order is the scene order
+const LAST = chapters.length - 1;
+const kindOf = k => chapters[k]?.dataset.scene;
+const METHOD = chapters.findIndex(c => c.dataset.scene === "method");            // where the cube splits into its layers
+const FEAT0 = chapters.findIndex(c => c.dataset.scene === "feature");            // first flagship chapter
+const features = chapters.filter(c => c.dataset.scene === "feature");
+const featureAt = k => FEAT0 + k, inRun = c => c >= FEAT0 && c < FEAT0 + features.length;
 const report = state => { root.classList.toggle("scene-live", state === "live"); root.classList.toggle("scene-static", state === "static"); dispatchEvent(new CustomEvent("portfolio:scene", { detail: { state } })); };
 
 /* ---- scroll -> chapter progress (chapter k is fully formed when its block is centred in the viewport) ---- */
@@ -59,13 +64,13 @@ let tier = lite ? 1 : 0, frames = 0, tierAt = 0, win = [];
 const keep = new URLSearchParams(location.search).get("scene") === "keep";   // tests: hold the current tier
 const cube = { blocks: [], cores: [], group: null, mesh: null }, blocks = [];   // cube instance data, featured blocks
 const CAM = [];                                          // per chapter: position, look-at, fog density
-const STAGE_Z = -124, FEAT_Z0 = -16, FEAT_DZ = 13;
+const FEAT_Z0 = -16, FEAT_DZ = 13, STAGE_Z = FEAT_Z0 - features.length * FEAT_DZ - 24;   // the ring stage sits past the last block
 const loader = new THREE.TextureLoader();
 const palette = {};
 
 function build() {
   performance.mark("scene:build");
-  Object.assign(palette, { fog: col("--c-scene-fog"), ground: col("--c-scene-ground"), block: col("--c-scene-block").multiplyScalar(0.8), glow: col("--c-scene-glow"), sky: col("--c-scene-sky"), shadow: col("--c-scene-shadow") });
+  Object.assign(palette, { fog: col("--c-scene-fog"), ground: col("--c-scene-ground"), block: col("--c-scene-block").multiplyScalar(0.84), glow: col("--c-scene-glow"), sky: col("--c-scene-sky"), shadow: col("--c-scene-shadow"), raw: col("--c-scene-core-raw"), accent: col("--c-scene-accent") });
   renderer = new THREE.WebGLRenderer({ canvas, antialias: lite, alpha: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, lite ? 1 : 1.5));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -75,10 +80,10 @@ function build() {
   scene.fog = new THREE.FogExp2(palette.fog.clone(), 0.03);
   camera = new THREE.PerspectiveCamera(38, 1, 0.1, 400);
 
-  // light: soft sky, a low sun, a cool rim from behind
-  scene.add(new THREE.HemisphereLight(palette.sky, palette.shadow, 1.3));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-8, 14, 6); scene.add(sun);
-  const rim = new THREE.DirectionalLight(palette.glow, 1.0); rim.position.set(8, 5, -12); scene.add(rim);
+  // light: a lower ambient sky, one key from the upper left, a warm rim from behind right so the blocks separate from the land
+  scene.add(new THREE.HemisphereLight(palette.sky, palette.shadow, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(-9, 14, 7); scene.add(sun);
+  const rim = new THREE.DirectionalLight(palette.glow.clone().lerp(palette.accent, 0.35), 1.1); rim.position.set(9, 4, -12); scene.add(rim);
 
   // terrain: a wide plane with fbm hills, flattened around the cube, the path, and the stage
   const seg = lite ? 90 : 128, W = 240, D = 240;
@@ -117,16 +122,21 @@ function build() {
   cube.mesh = new THREE.InstancedMesh(blockGeo, blockMat, n * n * n);   // one draw call for the 64 blocks (two with the glass pass)
   cube.mesh.frustumCulled = false;
   cube.group.add(cube.mesh);
+  // layers read bottom-up as the method: raw (two unlit source layers, matte and a touch darker), modelled (lit), served (lit, a warm note)
+  const GROUP = [0, 0, 1, 2], tint = [0.9, 0.9, 1.0, 1.06], coreCol = [palette.raw, palette.raw, palette.glow, palette.glow.clone().lerp(palette.accent, 0.22)];
+  const ic = new THREE.Color();
   for (let y = 0; y < n; y++) {
-    const core = new THREE.Mesh(new THREE.BoxGeometry(n * pitch - 1.15, pitch * 0.42, n * pitch - 1.15), new THREE.MeshBasicMaterial({ color: palette.glow }));
-    core.userData = { y, base: y * pitch + 0.5 };
+    const core = new THREE.Mesh(new THREE.BoxGeometry(n * pitch - 1.15, pitch * 0.42, n * pitch - 1.15), new THREE.MeshBasicMaterial({ color: coreCol[y] }));
+    core.userData = { y, group: GROUP[y], base: y * pitch + 0.5, col: coreCol[y] };
     cube.group.add(core); cube.cores.push(core);
     for (let x = 0; x < n; x++) for (let z = 0; z < n; z++) {
       const home = new THREE.Vector3((x - (n - 1) / 2) * pitch, y * pitch + 0.5, (z - (n - 1) / 2) * pitch);
       const dir = new THREE.Vector3(rnd() - 0.5, rnd() * 0.6 + 0.2, rnd() - 0.5).normalize();
-      cube.blocks.push({ home, y, away: dir.multiplyScalar(6 + rnd() * 6).add(home), spin: new THREE.Euler((rnd() - 0.5) * 3, (rnd() - 0.5) * 3, (rnd() - 0.5) * 3), delay: rnd() * 0.35, hover: rnd() < 0.12 ? 0.35 + rnd() * 0.5 : 0 });
+      cube.mesh.setColorAt(cube.blocks.length, ic.setScalar(tint[y]));
+      cube.blocks.push({ home, y, group: GROUP[y], away: dir.multiplyScalar(6 + rnd() * 6).add(home), spin: new THREE.Euler((rnd() - 0.5) * 3, (rnd() - 0.5) * 3, (rnd() - 0.5) * 3), delay: rnd() * 0.35, hover: rnd() < 0.12 ? 0.35 + rnd() * 0.5 : 0 });
     }
   }
+  cube.mesh.instanceColor.needsUpdate = true;
   scene.add(cube.group);
 
   // featured projects: a frosted shell with the screenshot sealed inside, lit from within
@@ -138,7 +148,7 @@ function build() {
   features.forEach((el, k) => {
     const g = new THREE.Group();
     const x = small() ? 0 : 1.9;
-    g.position.set(x, 1.15, FEAT_Z0 - k * FEAT_DZ);
+    g.position.set(x, 2.6, FEAT_Z0 - k * FEAT_DZ);
     const shell = new THREE.Mesh(shellGeo, shellMat);
     const glow = new THREE.MeshBasicMaterial({ color: palette.glow });
     const face = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.35, 1.35, 1.35), map: blank });   // a map from the start, so the screenshot swaps in without a recompile
@@ -150,7 +160,7 @@ function build() {
 
   // the dot grid that fills the fog along the fly-through
   const dots = new Float32Array(lite ? 900 * 3 : 2200 * 3);
-  for (let i = 0; i < dots.length; i += 3) { dots[i] = (rnd() - 0.5) * 70; dots[i + 1] = rnd() * 16 - 2; dots[i + 2] = -4 - rnd() * 140; }
+  for (let i = 0; i < dots.length; i += 3) { dots[i] = (rnd() - 0.5) * 70; dots[i + 1] = rnd() * 16 - 2; dots[i + 2] = -4 + rnd() * (STAGE_Z - 16); }
   const dotGeo = new THREE.BufferGeometry(); dotGeo.setAttribute("position", new THREE.BufferAttribute(dots, 3));
   scene.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: palette.sky, size: 0.07, transparent: true, opacity: 0.55, sizeAttenuation: true })));
 
@@ -165,19 +175,15 @@ function build() {
   }
   scene.add(stage);
 
-  // camera path, one keyframe per chapter
-  CAM.push([[0.5, 3.2, 15.5], [-1.9, 1.7, 0], 0.022]);
-  CAM.push([[-8, 4.2, 12], [-1.4, 2.0, 0], 0.024]);
-  CAM.push([[-11, 3.4, 8], [-1.2, 2.4, 0], 0.024]);
-  CAM.push([[-7, 8.5, 10.5], [-1.2, 2.8, 0], 0.026]);
-  features.forEach((_, k) => { const z = FEAT_Z0 - k * FEAT_DZ; CAM.push([[0, 1.5, z + 7.5], [0.2, 1.1, z - 2], 0.05]); });
-  const after = features.length + 4;
-  CAM[after] = [[0, 9.5, STAGE_Z + 15], [0, 0.5, STAGE_Z - 3], 0.028];
-  CAM[after + 1] = [[7, 8, STAGE_Z + 12], [0, 0.6, STAGE_Z], 0.028];
-  CAM[after + 2] = [[9, 6.5, STAGE_Z + 4], [0, 0.6, STAGE_Z], 0.028];
-  CAM[after + 3] = [[3, 7, STAGE_Z - 11], [0, 0.6, STAGE_Z], 0.028];
-  CAM[after + 4] = [[-6, 8.5, STAGE_Z - 8], [0, 0.6, STAGE_Z], 0.028];
-  while (CAM.length <= LAST) CAM.push(CAM[CAM.length - 1]);
+  // camera path, one keyframe per chapter, chosen by the chapter's kind so it follows the document
+  const STAGE_VIEWS = [[[0, 9.5, STAGE_Z + 15], [0, 0.5, STAGE_Z - 3], 0.028], [[7, 8, STAGE_Z + 12], [0, 0.6, STAGE_Z], 0.028], [[9, 6.5, STAGE_Z + 4], [0, 0.6, STAGE_Z], 0.028], [[3, 7, STAGE_Z - 11], [0, 0.6, STAGE_Z], 0.028], [[-6, 8.5, STAGE_Z - 8], [0, 0.6, STAGE_Z], 0.028]];
+  let feat = 0, sv = 0;
+  for (const c of chapters) {
+    if (c.dataset.scene === "hero") CAM.push([[0.5, 3.2, 15.5], [-1.9, 1.7, 0], 0.022]);
+    else if (c.dataset.scene === "method") CAM.push([[-10.5, 11.5, 15.5], [0.2, 3.3, 0], 0.024]);
+    else if (c.dataset.scene === "feature") { const z = FEAT_Z0 - feat++ * FEAT_DZ; CAM.push([[0, 2.2, z + 7.5], [0.5, 1.7, z - 2], 0.05]); }
+    else CAM.push(STAGE_VIEWS[Math.min(sv++, STAGE_VIEWS.length - 1)]);
+  }
 
   // post: bloom for the glowing seams, then a chromatic / scan "glitch" pulse on chapter changes, then output
   scene.userData.lite = { liteBlock, liteShell };
@@ -233,7 +239,7 @@ function pose(ch) {
   v3.set(A[0][0] + (B[0][0] - A[0][0]) * s, A[0][1] + (B[0][1] - A[0][1]) * s, A[0][2] + (B[0][2] - A[0][2]) * s);
   look.set(A[1][0] + (B[1][0] - A[1][0]) * s, A[1][1] + (B[1][1] - A[1][1]) * s, A[1][2] + (B[1][2] - A[1][2]) * s);
   scene.fog.density = A[2] + (B[2] - A[2]) * s;
-  if (small()) { v3.z += 7; v3.x *= 0.4; v3.y += 0.4; look.x = Math.min(look.x + 1.6, 0.2); look.y -= t < 3.5 ? 1.7 : 0.9; }   // phones: aim lower so objects sit above the plates
+  if (small()) { v3.z += 7; v3.x *= 0.4; v3.y += 0.4; look.x = Math.min(look.x + 1.6, 0.2); look.y -= t < 0.5 ? 3.7 : t < FEAT0 - 0.5 ? 1.7 : 0.9; }   // hero: the cube sits above the open copy   // phones: aim lower so objects sit above the plates
   camera.position.copy(v3);
   camera.lookAt(look);
 }
@@ -243,9 +249,9 @@ function layout(dt) {
   if (live) clock += dt;
   if (!introStart) introStart = performance.now();
   intro = reduced ? 1 : Math.min(1, (performance.now() - introStart) / 2000);
-  // cube: assembly (intro) then layer split through chapters 1..3; a few blocks hover in the hero like the reference
-  const split = smooth(0.4, 1.0, t) * 1.25 * (1 - smooth(3.2, 4.0, t));
-  const litLayer = t < 1 ? -1 : t < 2 ? 0 : t < 3 ? 1 + (t - 2) : 3;
+  // cube: assembly (intro), then the layer split through the method chapter; a few blocks hover in the hero like the reference
+  const split = smooth(METHOD - 0.6, METHOD, t) * 1.25 * (1 - smooth(FEAT0 - 0.8, FEAT0, t));
+  const lit = smooth(METHOD - 0.5, METHOD + 0.45, t) * 3;          // 0..3: the lit group walks up raw -> modelled -> served
   cube.blocks.forEach((u, i) => {
     const a = smooth(u.delay, u.delay + 0.5, intro), e = 1 - Math.pow(1 - a, 3);
     tmp.copy(u.home); tmp.y += u.y * split;
@@ -260,17 +266,17 @@ function layout(dt) {
   cube.mesh.instanceMatrix.needsUpdate = true;
   for (const c of cube.cores) {
     c.position.y = c.userData.base + c.userData.y * split;
-    const on = litLayer < 0 ? 1 : 0.35 + 0.9 * Math.max(0, 1 - Math.abs(litLayer - c.userData.y));
-    c.material.color.copy(palette.glow).multiplyScalar(0.75 * on * (0.9 + 0.1 * Math.sin(clock * 1.7 + c.userData.y)));
+    const on = lit <= 0 ? 1 : 0.45 + 0.8 * Math.max(0, 1 - Math.abs(Math.min(lit, 2.6) - 0.3 - c.userData.group));
+    c.material.color.copy(c.userData.col).multiplyScalar(0.5 * on * (0.92 + 0.08 * Math.sin(clock * 1.7 + c.userData.y)));
   }
   cube.group.rotation.y = 0.35 + (live ? clock * 0.02 : 0);
   // featured blocks: float, face the camera a little, load the screenshot when near
   let active = -1, activeW = 0;
   blocks.forEach(g => {
-    const k = g.userData.k, ch = 4 + k, d = t - ch, w = Math.max(0, 1 - Math.abs(d) / 0.75);
+    const k = g.userData.k, d = t - featureAt(k), w = Math.max(0, 1 - Math.abs(d) / 0.75);
     if (Math.abs(d) < 2.2) loadCover(g);
-    g.visible = Math.abs(d) < 2.6 && t > 3.3 && !small();   // phones show the screenshot inline instead
-    g.position.y = 1.15 + (live ? Math.sin(clock * 0.6 + g.userData.phase) * 0.08 : 0);
+    g.visible = Math.abs(d) < 2.6 && t > FEAT0 - 0.7 && !small();   // phones show the screenshot inline instead
+    g.position.y = 2.6 + (live ? Math.sin(clock * 0.6 + g.userData.phase) * 0.08 : 0);
     g.rotation.y = -0.35 + d * 0.25 + (live ? Math.sin(clock * 0.3 + g.userData.phase) * 0.04 : 0);
     g.rotation.x = (live ? Math.sin(clock * 0.4 + g.userData.phase) * 0.03 : 0) + d * 0.05;
     if (w > activeW) { activeW = w; active = k; }
@@ -278,7 +284,7 @@ function layout(dt) {
   hud(active, activeW);
   // glitch pulse when the chapter changes; stronger into and out of the fly-through
   const ch = Math.round(t);
-  if (ch !== lastChapter) { if (lastChapter >= 0 && !reduced) glitch = (ch === 4 || ch === 12 || lastChapter === 4 || lastChapter === 12) ? 1 : 0.45; lastChapter = ch; }
+  if (ch !== lastChapter) { if (lastChapter >= 0 && !reduced) glitch = inRun(ch) !== inRun(lastChapter) ? 1 : 0.45; lastChapter = ch; }
   glitch = Math.max(0, glitch - dt * 2.2);
   glitchPass.uniforms.uAmount.value = glitch;
   glitchPass.uniforms.uTime.value = clock;
@@ -289,25 +295,45 @@ const hudEl = $("hud"), tagA = $("hud-a"), tagB = $("hud-b"), tagC = $("hud-c"),
 let hudFor = -1;
 function toScreen(p) { tmp.copy(p).project(camera); return [(tmp.x + 1) / 2 * innerWidth, (1 - tmp.y) / 2 * innerHeight, tmp.z < 1]; }
 function hud(k, w) {
-  const on = k >= 0 && w > 0.15 && !small() && t < features.length + 3.5;
+  const mw = METHOD < 0 ? 0 : Math.max(0, 1 - Math.abs(t - METHOD) / 0.6);   // the three layer labels while the cube is split
+  const mode = k >= 0 && w > 0.15 ? "feature" : mw > 0.15 ? "method" : "";
+  const on = !!mode && !small();
   root.classList.toggle("hud-on", on);
   if (!on) { hudFor = -1; hudEl.style.opacity = ""; return; }
-  const g = blocks[k], el = g.userData.el;
-  if (hudFor !== k) {
-    hudFor = k;
-    tagA.innerHTML = `Portfolio_${el.dataset.no}<b>${el.dataset.title}</b>`;
-    tagB.innerHTML = `${el.dataset.area}<b>${el.dataset.date}</b>`;
-    tagC.innerHTML = `Open case study<b>Click the block</b>`;
+  let ax, ay, bx, by, cx, cy, off = [[-70, -70], [120, -30], [110, 60]];
+  if (mode === "method") {
+    off = [[-150, -60], [-150, 0], [-150, -30]];              // all three to the left of the cube, clear of the strip below
+    if (hudFor !== -2) {
+      hudFor = -2;
+      tagA.innerHTML = `03 // Served<b>Reports, forecasts, assistants</b>`;
+      tagB.innerHTML = `02 // Modelled<b>Tested transformations</b>`;
+      tagC.innerHTML = `01 // Raw<b>Source data, illustration</b>`;
+    }
+    hudEl.style.opacity = mw;
+    cube.group.updateMatrixWorld();
+    [ax, ay] = toScreen(tmp.set(-1.9, cube.cores[3].position.y, 0).applyMatrix4(cube.group.matrixWorld));
+    [bx, by] = toScreen(tmp.set(-1.9, cube.cores[2].position.y, 0).applyMatrix4(cube.group.matrixWorld));
+    [cx, cy] = toScreen(tmp.set(-1.9, cube.cores[1].position.y, 0).applyMatrix4(cube.group.matrixWorld));
+  } else {
+    const g = blocks[k], el = g.userData.el;
+    if (hudFor !== k) {
+      hudFor = k;
+      tagA.innerHTML = `Portfolio_${el.dataset.no}<b>${el.dataset.title}</b>`;
+      tagB.innerHTML = `${el.dataset.area}<b>${el.dataset.date}</b>`;
+      tagC.innerHTML = `Open case study<b>Click the block</b>`;
+    }
+    hudEl.style.opacity = w;
+    off = [[-70, -70], [120, -70], [130, 10]];                 // above and beside the block: the figure card owns the lower right
+    [ax, ay] = toScreen(tmp.set(-1.45, 0.98, 0.3).applyMatrix4(g.matrixWorld));
+    [bx, by] = toScreen(tmp.set(1.45, 0.9, 0.3).applyMatrix4(g.matrixWorld));
+    [cx, cy] = toScreen(tmp.set(1.45, -0.2, 0.3).applyMatrix4(g.matrixWorld));
   }
-  hudEl.style.opacity = w;
-  const [ax, ay] = toScreen(tmp.set(-1.45, 0.98, 0.3).applyMatrix4(g.matrixWorld));
-  const [bx, by] = toScreen(tmp.set(1.45, 0.4, 0.3).applyMatrix4(g.matrixWorld));
-  const [cx, cy] = toScreen(tmp.set(1.1, -0.98, 0.3).applyMatrix4(g.matrixWorld));
   const place = (tag, x, y, dx, dy) => { const hw = tag.offsetWidth / 2 + 16, hh = tag.offsetHeight / 2 + 12; const px = Math.min(innerWidth - hw, Math.max(hw, x + dx)), py = Math.min(innerHeight - hh, Math.max(80, y + dy)); tag.style.transform = `translate(${(px - tag.offsetWidth / 2).toFixed(1)}px, ${(py - tag.offsetHeight / 2).toFixed(1)}px)`; return [px, py]; };   // transform, so moving labels never count as layout shift
-  const [a1, a2] = place(tagA, ax, ay, -70, -70);
-  const [b1, b2] = place(tagB, bx, by, 120, -30);
-  const [c1, c2] = place(tagC, cx, cy, 110, 60);
-  lines.innerHTML = `<line x1="${ax}" y1="${ay}" x2="${a1 + 40}" y2="${a2 + 14}"/><line x1="${bx}" y1="${by}" x2="${b1 - 60}" y2="${b2}"/><line x1="${cx}" y1="${cy}" x2="${c1 - 50}" y2="${c2 - 8}"/>`;
+  const [a1, a2] = place(tagA, ax, ay, ...off[0]);
+  const [b1, b2] = place(tagB, bx, by, ...off[1]);
+  const [c1, c2] = place(tagC, cx, cy, ...off[2]);
+  const end = (px, x, w) => px + (x < px ? -w : w);           // the leader meets the tag on the side that faces the anchor
+  lines.innerHTML = `<line x1="${ax}" y1="${ay}" x2="${end(a1, ax, 50)}" y2="${a2 + 8}"/><line x1="${bx}" y1="${by}" x2="${end(b1, bx, 60)}" y2="${b2}"/><line x1="${cx}" y1="${cy}" x2="${end(c1, cx, 60)}" y2="${c2}"/>`;
 }
 
 /* ---- frame loop: runs only while something changes ---- */

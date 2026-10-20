@@ -48,24 +48,35 @@ A project's record sleeve on the home page, and the "Next project" link on the c
 ## How the site is laid out (so it can be changed safely)
 
 * **`/projects/` (index.html) is the whole portfolio**: `index.template.html` + `portfolio.css` + `portfolio.js` (DOM) +
-  `scene.js` (3D). One continuous page: hero, three approach steps, eight featured projects, the complete catalogue,
-  about, experience, capabilities, contact. All of it is plain HTML; `build.py` fills `{{FEATURED}}` from `featured.json`
-  (eight slugs with a hand-written problem / contribution / result each, numbers from that project's case study),
-  `{{CATALOG}}` (every project as a real link), the kind filter, and the JSON the detail dialog reads. Professional facts
-  come from the résumé at ~/portfolio/resume.pdf and the About site; do not add claims not in those.
+  `scene.js` (3D). One continuous page in this order: hero, the raw / modelled / served method strip, four flagship
+  projects ("Selected work"), about, experience, capabilities, the complete catalogue, contact. All of it is plain HTML;
+  `build.py` fills `{{FEATURED}}` from `featured.json` (four slugs, each with a hand-written headline / problem /
+  contribution / result / caption, numbers and qualifications from that project's case study; 60-100 words of copy),
+  `{{CATALOG}}` (every project as a real link), the kind filter, and the JSON the detail dialog and screenshot viewer read.
+  Each flagship shows its real cover at readable size with an "Enlarge screenshot" control (a link to the file without
+  JavaScript; a `<dialog>` viewer with it). Professional facts come from the résumé at ~/portfolio/resume.pdf and the
+  About site; do not add claims not in those.
 * **The environment** (`scene.js`, Three.js r168 vendored under `vendor/three/`, MIT) is one persistent scene driven by
-  native scroll, in the language of igloo.inc: a pale fog landscape, a "data cube" of frosted blocks with a glowing core that
-  assembles in the hero and splits into raw / modelled / served layers through the approach steps, then a dolly through fog
-  past one frosted block per featured project (its real screenshot sealed inside, mono HUD labels with leader lines drawn
-  in the DOM), landing on a glowing ring stage under the catalogue and the sections after it. Chapter changes pulse a
+  native scroll, in the language of igloo.inc: a pale fog landscape, a "data cube" of frosted blocks (one instanced mesh;
+  the two lower layers matte "raw", the lit middle "modelled", the lit top with a warm note "served") that assembles in the
+  hero and splits into its layers through the method strip, then a dolly through fog past one frosted block per flagship
+  (its real screenshot sealed inside, mono HUD labels with leader lines drawn in the DOM), landing on a glowing ring stage
+  under about, experience, capabilities, the catalogue and contact. **Chapters are the elements with `data-scene`
+  (hero / method / feature / stage) in document order**: camera path, stage position, HUD, glitch boundaries and block
+  visibility are all derived from that list and the real flagship count, so reordering sections or changing
+  `featured.json` needs no scene edits. Chapter changes pulse a
   chromatic "glitch" pass. DPR is capped, phones get no transmission / bloom, the loop runs only while something changes,
   it suspends when hidden, and it starts after first paint. No WebGL (or a second context loss) shows
   `assets/scene-fallback.jpg` (a capture of the live scene; regenerate it if the scene changes) and the featured
   screenshots inline. `prefers-reduced-motion` stops all self-driven motion; the nav's "Motion" control does the same by hand.
   The renderer reads its colours from `--c-scene-*` in theme.css, so CSS and WebGL share one palette.
-* **The catalogue** is static HTML (219 links); `portfolio.js` adds search + kind filter (also from `?q=` / `?kind=`),
-  progressive reveal (36 at a time, "Show more" plus auto-load near the end), and a `<dialog>` with the project's cover,
-  tagline, tech and links, addressable as `#<slug>`. `/projects/archive/` is a static redirect to `/projects/#projects`.
+* **The catalogue** is static HTML (219 links); `portfolio.js` adds search + kind filter (also from `?q=` / `?kind=`;
+  "Clear search" clears the text only, "Reset all filters" both), reveal of 12 at a time on an explicit "Show more projects"
+  (no auto-load), and a `<dialog>` with the project's cover, tagline, tech and links, addressable as `#<slug>`. A click
+  pushes one history entry; Previous / Next replace it (hash, state and links always name the displayed project);
+  popstate only renders. `/projects/archive/` is a static redirect to `/projects/#projects`.
+* **Case studies** (`site.css`) share the portfolio's fog family through the legacy aliases in `theme.css` (`--paper`
+  is fog-50, `--ink` slate, `--accent` chili) and the same Geist sans headings.
 * **Checks:** `python3 -m http.server 8800 --bind 127.0.0.1 &` then `NODE_PATH=$(npm root -g) node tests/portfolio-check.cjs`
   (no-JS content, every internal link on disk, catalogue search / filter / reveal / dialog, keyboard, reduced motion,
   no WebGL, redirect, contrast, overflow).
@@ -81,3 +92,4 @@ A project's record sleeve on the home page, and the "Next project" link on the c
 Scene quality tiers (scene.js): 0 high, 1 lite (phones start here), 2 low, 3 static hand-off; stepped down only, from a
 1.5 s frame-time window. Headless SwiftShader reaches static by itself, so scene-dependent checks load `?scene=keep`.
 Perf evidence and scripts: ~/projects-site-evidence/perf-2026-10-19/ (hardware Chrome, SwiftShader, WebKit).
+Refinement review evidence (screenshots at five breakpoints, case pages): ~/projects-site-evidence/refine-2026-10-19/.

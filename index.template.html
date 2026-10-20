@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rishit Mathur · Data, Analytics & Intelligent Systems</title>
-<meta name="description" content="Rishit Mathur turns complex data into clear insights and useful software: Power BI, SQL, Python, data pipelines, forecasting and AI-enabled tools. Eight featured builds and the complete catalogue of {{COUNT}} projects.">
+<meta name="description" content="Rishit Mathur turns complex data into clear insights and useful software: Power BI, SQL, Python, data pipelines, forecasting and AI-enabled tools. Four flagship projects and the complete catalogue of {{COUNT}} projects.">
 <meta name="theme-color" content="#C3C9D2">
 <link rel="stylesheet" href="theme.css?v={{THEME}}">
 <link rel="stylesheet" href="portfolio.css?v={{PORTFOLIO_CSS}}">
@@ -22,53 +22,41 @@
 
 <header class="nav" id="nav">
   <a class="wordmark" href="#top"><span class="wordmark-mark" aria-hidden="true"></span>Rishit Mathur</a>
-  <nav class="nav-links cap" aria-label="Site"><a href="#work">Work</a><a href="#projects">Projects</a><a href="#about">About</a><a href="#experience">Experience</a><a href="https://mrrishit909.github.io/resume.pdf">Résumé</a><a href="#contact">Contact</a></nav>
+  <nav class="nav-links cap" aria-label="Site"><a href="#work">Work</a><a href="#about">About</a><a href="#experience">Experience</a><a href="#projects">Projects</a><a href="https://mrrishit909.github.io/resume.pdf">Résumé</a><a href="#contact">Contact</a></nav>
   <button class="motion-toggle cap" id="motion-toggle" type="button" aria-pressed="false" hidden>Motion: On</button>
 </header>
 
 <main id="main">
-<section class="hero chapter" id="top" data-chapter="0" aria-labelledby="hero-name">
-  <div class="hero-copy plate">
+<section class="hero chapter" id="top" data-scene="hero" aria-labelledby="hero-name">
+  <div class="hero-copy">
     <p class="cap eyebrow">// Data analyst · Tampa, FL</p>
     <h1 id="hero-name">Rishit Mathur</h1>
-    <p class="hero-role">Data, Analytics &amp; Intelligent Systems</p>
-    <p class="lede">I turn complex data into clear insights and useful software: dashboards people act on, pipelines that can be tested, and tools that show their sources.</p>
-    <p class="hero-actions"><a class="btn btn-primary" href="#work">View selected work</a><a class="btn btn-ghost" href="https://mrrishit909.github.io/resume.pdf">Résumé (PDF)</a></p>
+    <p class="hero-role">Business intelligence, data pipelines, forecasting and AI-enabled tools.</p>
+    <p class="lede">I turn messy data into numbers people can act on, with the tests and sources to back them.</p>
+    <p class="hero-actions"><a class="btn btn-primary" href="#work">Selected work</a><a class="btn btn-ghost" href="https://mrrishit909.github.io/resume.pdf">Résumé (PDF)</a><a class="hero-contact" href="#contact">Contact</a></p>
   </div>
-  <aside class="manifesto cap"><p class="manifesto-head">////// Focus</p><p>Analysis and business intelligence, data pipelines, forecasting, and AI-enabled tools. B.S. Business Analytics &amp; IS, USF 2026. M.S. candidate. Power BI Data Analyst Associate.</p></aside>
+  <aside class="hero-aside cap"><p class="hero-aside-head">////// Credentials</p><p>B.S. Business Analytics &amp; IS, USF 2026 · M.S. candidate · Microsoft Power BI Data Analyst Associate</p></aside>
   <p class="scroll-hint cap" aria-hidden="true">Scroll down to explore<br>// {{COUNT}} projects, one environment</p>
 </section>
 
-<section class="approach" id="approach" aria-labelledby="approach-title">
-  <h2 id="approach-title" class="visually-hidden">How I work with data</h2>
-  <div class="step chapter" data-chapter="1"><div class="plate copy"><p class="cap step-no">01 // Raw</p><h3>Start with the question, then the data as it really arrives.</h3><p>Requirements before models: what decision is waiting, who makes it, which fields exist and which are missing. Then the raw layer, loaded as-is and documented.</p><p class="step-links"><a href="er-wait-requirements/">ER wait-time requirements</a><a href="business-finder/">Business Finder ETL</a></p></div></div>
-  <div class="step chapter" data-chapter="2"><div class="plate copy"><p class="cap step-no">02 // Modelled</p><h3>Write the cleaning once, as tested SQL.</h3><p>Staging, intermediate and mart layers with data tests, so every report starts from the same trusted tables. Window functions, backtests, and an independent recount that has to agree.</p><p class="step-links"><a href="retail-dbt/">Retail pipeline in dbt, 31 tests</a><a href="chicago-bike-share/">6.1M Chicago bike trips in SQL</a></p></div></div>
-  <div class="step chapter" data-chapter="3"><div class="plate copy"><p class="cap step-no">03 // Served</p><h3>A number is only useful once someone can act on it.</h3><p>Star schemas and DAX measures with a benchmark, forecasts with honest ranges, services that watch for silent failures, and assistants that cite their sources.</p><p class="step-links"><a href="florida-flight-delays/">Florida flight delays in Power BI</a><a href="sec-10k-rag/">Ask the 10-K</a></p></div></div>
+<section class="method chapter" id="method" data-scene="method" aria-labelledby="method-title">
+  <h2 id="method-title" class="visually-hidden">How I work with data</h2>
+  <ol class="method-strip">
+    <li><p class="cap method-no">01 // Raw</p><p>The data as it really arrives, loaded as-is and documented. <span class="cap method-note">Illustration in the scene: the lower, unlit layers</span></p><a href="business-finder/">Business Finder ETL</a></li>
+    <li><p class="cap method-no">02 // Modelled</p><p>Cleaning written once as tested SQL, so every report starts from the same tables. <span class="cap method-note">The lit middle layer</span></p><a href="retail-dbt/">Retail pipeline in dbt</a></li>
+    <li><p class="cap method-no">03 // Served</p><p>Reports with a benchmark, forecasts with honest ranges, assistants that cite sources. <span class="cap method-note">The top layer</span></p><a href="florida-flight-delays/">Florida flight delays</a></li>
+  </ol>
 </section>
 
 <section class="work" id="work" aria-labelledby="work-title">
-  <div class="section-intro plate"><p class="cap">////// Selected work</p><h2 id="work-title">Eight builds, each with a written case study, the code, and where it applies a live report.</h2><p class="section-lede">All solo projects. Numbers come from the case studies.</p></div>
+  <div class="section-intro"><p class="cap">////// Selected work</p><h2 id="work-title">Selected work</h2><p class="section-lede">Four projects, one per focus area. Each has a written case study, the code, and where it applies a working demo. Numbers come from the case studies.</p></div>
   {{FEATURED}}
 </section>
 
-<section class="projects chapter" id="projects" data-chapter="12" aria-labelledby="projects-title">
-  <div class="plate catalog">
-    <div class="catalog-head"><p class="cap">////// All projects</p><h2 id="projects-title">{{COUNT}} projects, every one with a case study.</h2><p class="section-lede">Search by title, technology or kind. Most common kinds: {{KINDS}}.</p></div>
-    <form class="toolbar" id="toolbar" role="search" onsubmit="return false">
-      <div class="field"><label class="cap" for="search">Search</label><input class="control" id="search" type="search" placeholder="Title, technology or kind…" autocomplete="off"><button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button></div>
-      <div class="field"><label class="visually-hidden" for="kind">Filter by kind</label><select class="control" id="kind"><option value="">All kinds</option>{{KINDS_OPTIONS}}</select></div>
-      <p class="count cap" id="count"><b id="count-n">{{COUNT}}</b> of {{COUNT}} projects</p>
-      <p class="visually-hidden" id="announce" aria-live="polite"></p>
-    </form>
-    <ol class="tiles" id="tiles">{{CATALOG}}</ol>
-    <p class="empty" id="empty" hidden>No projects match. <button type="button" id="reset">Show everything</button></p>
-    <p class="more"><button class="btn btn-ghost" id="more" type="button" hidden>Show more projects</button><span class="cap" id="shown"></span></p>
-  </div>
-</section>
 
-<section class="about chapter" id="about" data-chapter="13" aria-labelledby="about-title">
-  <div class="plate copy wide">
-    <p class="cap">////// About</p><h2 id="about-title">Analyst first, builder second.</h2>
+<section class="about chapter" id="about" data-scene="stage" aria-labelledby="about-title">
+  <div class="sheet copy wide">
+    <p class="cap">////// About</p><h2 id="about-title">About</h2><p class="section-lede">Analyst first, builder second.</p>
     <div class="about-grid">
       <div class="about-copy"><p>I am a data analyst in Tampa with hands-on SQL and Python experience. I completed a B.S. in Business Analytics and Information Systems at the University of South Florida's Muma College of Business in May 2026 (Dean's List, Fall 2024) and am now an M.S. candidate in Business and Enterprise Integration there, expected May 2028.</p><p>Across research, athletics operations and a business-analyst role I have gathered reporting requirements, redesigned data structures, cleaned and merged 100K+ records, and built Power BI dashboards that cut report turnaround by 22%. The projects on this page extend that work into pipelines, forecasting, optimisation and AI-enabled tools.</p></div>
       <dl class="about-facts">
@@ -80,9 +68,9 @@
   </div>
 </section>
 
-<section class="experience chapter" id="experience" data-chapter="14" aria-labelledby="experience-title">
-  <div class="plate copy wide">
-    <p class="cap">////// Experience</p><h2 id="experience-title">Where the work has been done.</h2>
+<section class="experience chapter" id="experience" data-scene="stage" aria-labelledby="experience-title">
+  <div class="sheet copy wide">
+    <p class="cap">////// Experience</p><h2 id="experience-title">Experience</h2>
     <ol class="timeline">
       <li><p class="cap tl-when">Sep 2025 – present</p><h3>Research Assistant · USF REACH Lab</h3><p>Managed end-to-end data workflows and built interactive dashboards that turn experimental findings into clear, actionable views for the team.</p></li>
       <li><p class="cap tl-when">May 2025 – present</p><h3>Student Assistant, Ticketing Operations · USF Athletics</h3><p>Queried and analysed ticket sales, attendance and entry data to surface trends for event planning and resource allocation; maintained accurate transaction and customer records.</p></li>
@@ -92,9 +80,9 @@
   </div>
 </section>
 
-<section class="capabilities chapter" id="capabilities" data-chapter="15" aria-labelledby="cap-title">
-  <div class="plate copy wide">
-    <p class="cap">////// Capabilities</p><h2 id="cap-title">Four things I can do for a team, each with proof.</h2>
+<section class="capabilities chapter" id="capabilities" data-scene="stage" aria-labelledby="cap-title">
+  <div class="copy wide">
+    <p class="cap">////// Capabilities</p><h2 id="cap-title">Capabilities</h2><p class="section-lede">Four things I can do for a team, each with proof on this page.</p>
     <ul class="cap-grid">
       <li><h3>Analysis and business intelligence</h3><p>SQL, Python, pandas, Excel, Power BI with DAX and star schemas, Tableau. Reports with a benchmark and a recount behind every number.</p><p class="cap-proof"><a href="florida-flight-delays/">Florida flight delays</a><a href="chicago-bike-share/">How Chicago rides</a><a href="excel-model/">Costco model in Excel</a></p></li>
       <li><h3>Data pipelines and databases</h3><p>dbt, DuckDB, PostgreSQL, SQLite, Oracle, SQL Server. ETL from public sources, data tests, lineage and monitoring for silent failures.</p><p class="cap-proof"><a href="retail-dbt/">Retail pipeline in dbt</a><a href="business-finder/">Business Finder</a><a href="data-reliability-control-plane/">Data reliability control plane</a></p></li>
@@ -104,15 +92,30 @@
   </div>
 </section>
 
-<section class="contact chapter" id="contact" data-chapter="16" aria-labelledby="contact-title">
-  <div class="plate copy">
+<section class="projects chapter" id="projects" data-scene="stage" aria-labelledby="projects-title">
+  <div class="sheet catalog">
+    <div class="catalog-head"><p class="cap">////// All projects</p><h2 id="projects-title">All {{COUNT}} projects</h2><p class="section-lede">Every project has a case study. Search by title, technology or kind; the most common kinds are {{KINDS}}.</p></div>
+    <form class="toolbar" id="toolbar" role="search" onsubmit="return false">
+      <div class="field"><label class="cap" for="search">Search</label><input class="control" id="search" type="search" placeholder="Title, technology or kind…" autocomplete="off"><button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button></div>
+      <div class="field"><label class="visually-hidden" for="kind">Filter by kind</label><select class="control" id="kind"><option value="">All kinds</option>{{KINDS_OPTIONS}}</select></div>
+      <p class="count cap" id="count"><b id="count-n">{{COUNT}}</b> of {{COUNT}} projects</p><button class="reset-all cap" id="reset-all" type="button" hidden>Reset all filters</button>
+      <p class="visually-hidden" id="announce" aria-live="polite"></p>
+    </form>
+    <ol class="tiles" id="tiles">{{CATALOG}}</ol>
+    <p class="empty" id="empty" hidden>No projects match. <button type="button" id="reset">Reset all filters</button></p>
+    <p class="more"><button class="btn btn-ghost" id="more" type="button" hidden>Show more projects</button><span class="cap" id="shown"></span></p>
+  </div>
+</section>
+
+<section class="contact chapter" id="contact" data-scene="stage" aria-labelledby="contact-title">
+  <div class="copy contact-copy">
     <p class="cap">////// Contact</p><h2 id="contact-title">Open to analyst roles. Let's talk.</h2>
     <p class="section-lede">Entry-level data and business analyst positions, US-wide and remote. The quickest route is e-mail or LinkedIn.</p>
     <p class="contact-links"><a class="bracket" href="mailto:rishit.mathur@yahoo.com">rishit.mathur@yahoo.com</a><a class="bracket" href="https://www.linkedin.com/in/rishitrajmathur" target="_blank" rel="noopener">LinkedIn</a><a class="bracket" href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a><a class="bracket" href="https://mrrishit909.github.io/resume.pdf">Résumé (PDF)</a></p>
   </div>
 </section>
 </main>
-<footer class="foot cap"><span>© 2026 Rishit Raj Mathur · Tampa, FL</span><nav aria-label="Footer"><a href="#projects">All projects</a><a href="https://mrrishit909.github.io/">About site</a><a href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></nav></footer>
+<footer class="foot cap"><span>© 2026 Rishit Raj Mathur · Tampa, FL</span><nav aria-label="Footer"><a href="#projects">All projects</a><a href="#about">About</a><a href="https://github.com/mrrishit909" target="_blank" rel="noopener">GitHub</a></nav></footer>
 
 <dialog class="detail" id="detail" aria-labelledby="detail-title">
   <div class="detail-body">
@@ -123,6 +126,14 @@
         <p class="detail-actions"><a class="btn btn-primary" id="detail-open">Open the case study</a><a class="btn btn-ghost" id="detail-demo" hidden>Live demo ↗</a><a class="btn btn-ghost" id="detail-repo" target="_blank" rel="noopener">Code on GitHub ↗</a></p>
         <p class="detail-nav"><button type="button" id="detail-prev">← Previous</button><span class="cap" id="detail-pos"></span><button type="button" id="detail-next">Next →</button></p></div>
     </div>
+  </div>
+</dialog>
+<dialog class="viewer" id="viewer" aria-labelledby="viewer-title">
+  <div class="viewer-body">
+    <div class="viewer-head cap"><span id="viewer-title"></span><button class="icon-btn" id="viewer-close" type="button" aria-label="Close screenshot">×</button></div>
+    <img id="viewer-img" alt="" decoding="async">
+    <p class="viewer-caption" id="viewer-caption"></p>
+    <p class="viewer-actions"><a class="btn btn-primary" id="viewer-case">Open the case study</a><a class="btn btn-ghost" id="viewer-demo" hidden>Demo ↗</a></p>
   </div>
 </dialog>
 <script type="application/json" id="projects-data">/*DATA*/[]</script>
