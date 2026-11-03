@@ -1,0 +1,47 @@
+{
+  "title": "Which Purchases Carry Addressable Price Leakage, and Which Sourcing Action Is Worth Reviewing?",
+  "tagline": "SpendPrism: a synthetic procurement price-leakage workbench. It compares what was paid with the effective contract price by item, supplier and business unit, keeps tax, freight, volume and FX beside the price figure instead of inside it, and shows the baseline, scope, exclusions and assumptions for every potential saving. Potential is never realized. Nothing here is real data.",
+  "kind": "Dashboard · Procurement · Spend analytics · FastAPI · React",
+  "demo_label": "Open SpendPrism",
+  "tech": [
+    "Python 3.12 (stdlib-only seeded generator, Decimal money)",
+    "PostgreSQL (17 immutable evidence tables, guarded sp_* write functions, SQL reference twin)",
+    "FastAPI",
+    "TypeScript + React + Vite (engine in the browser)",
+    "Playwright, axe-core, Lighthouse, Vitest",
+    "GitHub Actions only; no local build",
+    "HyperFrames and Remotion renders, openpyxl and LibreOffice workbook"
+  ],
+  "note": "<b>Everything is synthetic</b>: 25 invented suppliers and every figure come from a seeded generator (dataset sp-sim-v1-s20260630); declared defects and hidden truth sit in files the app never loads. A potential saving is a modelled quantity, never booked. Four screens render committed SQL-reference results and do not recompute after an edit; four run the engine in the browser and keep edits in memory only. The workbook's classification inputs are copied from the golden output. The actor header is a stand-in for authentication and the API is not hosted. The last independent QC accepted the UI for final audit with two low items open.",
+  "problem": "<p>Category managers see purchase-price variance, but it mixes price with tax, freight, volume, currency and lines that are not comparable. A number that looks like a saving may be none of those.</p>",
+  "built": "<p>A spend landscape with inline reconciliation, category detail, a comparable-price evidence table with exclusion reasons, a leakage queue, alias review, sourcing comparison and draft actions with outcome tracking. PPV on the ordered basis and on the invoiced basis are separate labelled figures, never added. Rules live in one written contract and are checked in SQL, in an independent Decimal recomputation and in the browser engine.</p>",
+  "steps": [
+    {
+      "title": "The decision and the contract",
+      "body": "<p>One contract defines the effective contract price, what is comparable and what is excluded, and what is out of scope: switching suppliers, creating POs, payment and realized-savings accounting.</p>"
+    },
+    {
+      "title": "A hand fixture first",
+      "body": "<p>Known-answer, negative and adversarial cases are asserted in SQL and recomputed independently in Python (120 checks). The case manifest requires 191 passing cases.</p>"
+    },
+    {
+      "title": "Synthetic procurement ledger with declared defects",
+      "body": "<p>A seeded generator writes suppliers, POs, receipts and invoices, with name variants, FX gaps, duplicate billings and split invoices declared in a separate defect file.</p>"
+    },
+    {
+      "title": "Golden outputs and a flow scene",
+      "body": "<p>The SQL reference writes eight golden files; the browser engine reproduces them byte for byte. The landing flow scene draws real USD amounts from the golden.</p>"
+    },
+    {
+      "title": "Evidence",
+      "body": "<p>214 browser tests pass, axe finds no violations on every route at two widths, Lighthouse accessibility is 100. Excel recalculates 27,045 formula cells with zero reconciliation differences, given classification inputs copied from the golden.</p>"
+    }
+  ],
+  "results": "<p><b>Measured on the synthetic release candidate</b> (commit 7731285): 191 of 191 manifest cases, 61 API tests, 167 unit tests, 214 browser tests, 8 of 8 golden files byte-identical in SQL and in the browser engine. These describe generated data and this code; they say nothing about any real procurement team or saving.</p>",
+  "next": "<ul><li>Publish the static site and re-read the mobile leakage and evidence compositions.</li><li>Independent line logic for the reference twin and a classification check in Excel.</li><li>Real authentication before any hosting.</li></ul>",
+  "date": "2026-11",
+  "repo": "https://mrrishit909.github.io/projects-site/labs/spendprism/evidence/source/",
+  "cover": "cover.jpg",
+  "demo": "https://mrrishit909.github.io/projects-site/labs/spendprism/",
+  "order": 311
+}
